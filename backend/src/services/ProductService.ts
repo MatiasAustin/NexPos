@@ -23,7 +23,8 @@ export class ProductService {
                 cogs: payload.cogs,
                 stock: payload.stock,
                 image_icon: payload.image_icon || '📦',
-                is_active: payload.is_active !== undefined ? payload.is_active : true
+                is_active: payload.is_active !== undefined ? payload.is_active : true,
+                ingredients: payload.ingredients || []
             })
             .select('*')
             .single();
@@ -43,6 +44,7 @@ export class ProductService {
                 stock: payload.stock,
                 image_icon: payload.image_icon,
                 is_active: payload.is_active,
+                ingredients: payload.ingredients,
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)

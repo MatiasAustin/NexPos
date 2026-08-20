@@ -19,7 +19,9 @@ export default function AdminDashboard() {
     
     // Inventory states
     const [products, setProducts] = useState<any[]>([]);
-    const [newProduct, setNewProduct] = useState({ name: '', category: '', price: 0, cogs: 0, stock: 0, image_icon: '📦' });
+    const [newProduct, setNewProduct] = useState<{name: string, category: string, price: number, cogs: number, stock: number, image_icon: string, ingredients: {name: string, cost: number}[]}>({ 
+        name: '', category: '', price: 0, cogs: 0, stock: 0, image_icon: '📦', ingredients: [] 
+    });
     
     const [loading, setLoading] = useState(false);
     const router = useRouter();
@@ -99,6 +101,12 @@ export default function AdminDashboard() {
     const handleCreateProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        
+        // Hitung total HPP otomatis dari bahan baku (jika ada)
+        const computedCogs = newProduct.ingredients.length > 0 
+            ? newProduct.ingredients.reduce((sum, item) => sum + item.cost, 0)
+            : Number(newProduct.cogs);
+
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products`, {
                 method: 'POST',
@@ -106,13 +114,14 @@ export default function AdminDashboard() {
                 body: JSON.stringify({
                     ...newProduct,
                     price: Number(newProduct.price),
-                    cogs: Number(newProduct.cogs),
+                    cogs: computedCogs,
                     stock: Number(newProduct.stock),
+                    ingredients: newProduct.ingredients
                 })
             });
             if(res.ok) {
                 alert("Produk berhasil ditambahkan!");
-                setNewProduct({ name: '', category: '', price: 0, cogs: 0, stock: 0, image_icon: '📦' });
+                setNewProduct({ name: '', category: '', price: 0, cogs: 0, stock: 0, image_icon: '📦', ingredients: [] });
                 fetchData();
             } else {
                 const err = await res.json();
@@ -162,6 +171,25 @@ export default function AdminDashboard() {
     useEffect(() => {
         fetchData();
     }, [activeTab]);
+
+    const addIngredient = () => {
+        setNewProduct(prev => ({
+            ...prev,
+            ingredients: [...prev.ingredients, { name: '', cost: 0 }]
+        }));
+    };
+
+    const updateIngredient = (index: number, field: 'name' | 'cost', value: any) => {
+        const updated = [...newProduct.ingredients];
+        updated[index] = { ...updated[index], [field]: value };
+        setNewProduct({ ...newProduct, ingredients: updated });
+    };
+
+    const removeIngredient = (index: number) => {
+        const updated = [...newProduct.ingredients];
+        updated.splice(index, 1);
+        setNewProduct({ ...newProduct, ingredients: updated });
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900 p-8">
@@ -424,8 +452,46 @@ export default function AdminDashboard() {
                                                 />
                                             </div>
                                         </div>
+
+                                        {/* Dynamic Ingredients Section */}
+                                        <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h4 className="font-bold text-gray-800">Detail Bahan Baku / Resep</h4>
+                                                <button type="button" onClick={addIngredient} className="text-sm px-3 py-1 bg-blue-100 text-blue-700 font-bold rounded-lg hover:bg-blue-200">
+                                                    + Tambah Bahan Baku
+                                                </button>
+                                            </div>
+                                            
+                                            {newProduct.ingredients.length === 0 ? (
+                                                <p className="text-sm text-gray-500">Anda dapat membiarkan ini kosong jika ingin mengisi HPP Manual di atas.</p>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {newProduct.ingredients.map((ing, i) => (
+                                                        <div key={i} className="flex gap-3 items-center">
+                                                            <input 
+                                                                type="text" placeholder="Nama Bahan (Cth: Susu 100ml)" 
+                                                                value={ing.name} onChange={(e) => updateIngredient(i, 'name', e.target.value)}
+                                                                className="flex-1 p-2 border rounded focus:border-blue-500 outline-none" required
+                                                            />
+                                                            <input 
+                                                                type="number" placeholder="Biaya (Rp)" min={0}
+                                                                value={ing.cost} onChange={(e) => updateIngredient(i, 'cost', Number(e.target.value))}
+                                                                className="w-32 p-2 border rounded focus:border-blue-500 outline-none" required
+                                                            />
+                                                            <button type="button" onClick={() => removeIngredient(i)} className="p-2 text-red-500 hover:bg-red-50 rounded">
+                                                                Hapus
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                    <div className="pt-3 border-t text-right font-bold text-gray-800">
+                                                        Total HPP Otomatis: Rp {newProduct.ingredients.reduce((sum, item) => sum + item.cost, 0).toLocaleString('id-ID')}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
                                         <button type="submit" disabled={loading} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-bold w-full md:w-auto">
-                                            {loading ? 'Menyimpan...' : 'Tambah Produk'}
+                                            {loading ? 'Menyimpan...' : 'Simpan Produk'}
                                         </button>
                                     </form>
 
