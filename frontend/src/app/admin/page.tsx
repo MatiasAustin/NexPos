@@ -3,14 +3,15 @@
 import { useState, useEffect } from "react";
 import { getReconciliationReport, getAuditLogs } from "@/lib/api";
 import Link from "next/link";
-import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package } from "lucide-react";
+import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function AdminDashboard() {
-    const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory">("reconciliation");
+    const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history">("reconciliation");
     const [reconciliation, setReconciliation] = useState<any[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<any[]>([]);
     
     // Staff states
     const [staffList, setStaffList] = useState<any[]>([]);
@@ -62,6 +63,9 @@ export default function AdminDashboard() {
             } else if (activeTab === "inventory") {
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products`);
                 if(res.ok) setProducts(await res.json());
+            } else if (activeTab === "history") {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`);
+                if(res.ok) setTransactions(await res.json());
             }
         } catch (error) {
             console.error("Error fetching data", error);
@@ -120,6 +124,41 @@ export default function AdminDashboard() {
         setLoading(false);
     };
 
+    const handleRefund = async (trx: any) => {
+        const reason = prompt(`Masukkan alasan refund untuk transaksi ${trx.order_reference}:`);
+        if (!reason) return; // Cancelled
+        
+        const confirm = window.confirm(`Anda yakin ingin melakukan refund senilai Rp ${trx.amount_received.toLocaleString('id-ID')}?`);
+        if (!confirm) return;
+
+        setLoading(true);
+        try {
+            // Kita butuh staff/owner id yang saat ini login
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/refunds`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    transaction_id: trx.id,
+                    refund_amount: trx.amount_received, // Full refund
+                    reason: reason,
+                    requested_by: session?.user?.id
+                })
+            });
+            if(res.ok) {
+                alert("Refund berhasil diproses!");
+                fetchData(); // reload history
+            } else {
+                const err = await res.json();
+                alert(err.error);
+            }
+        } catch(error) {
+            alert("Terjadi kesalahan sistem saat memproses refund.");
+        }
+        setLoading(false);
+    };
+
     useEffect(() => {
         fetchData();
     }, [activeTab]);
@@ -169,6 +208,12 @@ export default function AdminDashboard() {
                         className={`pb-4 px-2 font-semibold ${activeTab === "inventory" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-800"}`}
                     >
                         Produk & Stok
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab("history")}
+                        className={`pb-4 px-2 font-semibold ${activeTab === "history" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-800"}`}
+                    >
+                        Riwayat & Refund
                     </button>
                 </div>
 
@@ -428,6 +473,67 @@ export default function AdminDashboard() {
                                                     ))}
                                                 </tbody>
                                             </table>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* HISTORY & REFUND TAB */}
+                            {activeTab === "history" && (
+                                <div>
+                                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-blue-600" />
+                                        Riwayat Transaksi & Refund
+                                    </h2>
+                                    
+                                    {transactions.length === 0 ? (
+                                        <p className="text-gray-500">Belum ada transaksi.</p>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {transactions.map((trx: any) => (
+                                                <div key={trx.id} className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <span className="font-bold text-gray-900">{trx.order_reference}</span>
+                                                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${trx.status === 'Paid' ? 'bg-green-100 text-green-700' : trx.status === 'Refunded' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                                {trx.status}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-sm text-gray-500 mb-2">Metode: <span className="font-semibold text-gray-700">{trx.payment_methods?.name || 'Unknown'}</span> | Waktu: {new Date(trx.created_at).toLocaleString('id-ID')}</p>
+                                                        
+                                                        {/* Detail Items */}
+                                                        {trx.order_items && trx.order_items.length > 0 && (
+                                                            <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                                                <p className="text-xs font-bold text-gray-600 mb-2">Detail Pesanan:</p>
+                                                                <ul className="text-sm space-y-1">
+                                                                    {trx.order_items.map((item: any, idx: number) => (
+                                                                        <li key={idx} className="flex justify-between">
+                                                                            <span>{item.quantity}x {item.product_name}</span>
+                                                                            <span className="text-gray-500">Rp {(item.quantity * item.price_at_time).toLocaleString('id-ID')}</span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    <div className="text-right min-w-[150px] flex flex-col justify-between">
+                                                        <div>
+                                                            <p className="text-sm text-gray-500">Total Diterima</p>
+                                                            <p className="font-bold text-xl text-blue-600">Rp {trx.amount_received.toLocaleString('id-ID')}</p>
+                                                        </div>
+                                                        
+                                                        {trx.status === 'Paid' && (
+                                                            <button 
+                                                                onClick={() => handleRefund(trx)}
+                                                                className="mt-4 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-bold hover:bg-red-100 transition-colors"
+                                                            >
+                                                                Refund Pesanan
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     )}
                                 </div>

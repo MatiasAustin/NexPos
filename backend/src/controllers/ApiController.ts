@@ -65,6 +65,30 @@ router.delete('/admin/products/:id', async (req, res) => {
 });
 
 // =======================
+// TRANSACTIONS & REFUNDS
+// =======================
+router.get('/transactions', async (req, res) => {
+    try {
+        const transactions = await transactionService.getTransactionHistory(100);
+        res.json(transactions);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.post('/refunds', async (req, res) => {
+    try {
+        const { transaction_id, refund_amount, reason, requested_by } = req.body;
+        // Direct approve for simplicity in this demo, or we can use the two-step
+        const request = await refundService.requestRefund({ transaction_id, refund_amount, reason, requested_by });
+        const approved = await refundService.approveRefund(request.id, requested_by);
+        res.json(approved);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// =======================
 // STAFF & AUTH (ADMIN ONLY)
 // =======================
 router.get('/staff', async (req, res) => {

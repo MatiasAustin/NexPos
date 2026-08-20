@@ -63,4 +63,15 @@ export const deleteProduct = async (id: string) => {
     return res.data;
 };
 
+// Transactions & Refunds
+export const getTransactions = async () => {
+    const res = await api.get('/transactions');
+    return res.data;
+};
+
+export const processRefund = async (payload: { transaction_id: string; refund_amount: number; reason: string; requested_by: string }) => {
+    const res = await api.post('/refunds', payload);
+    return res.data;
+};
+
 export default api;
