@@ -26,8 +26,13 @@ export default function PosPage() {
     const [staff, setStaff] = useState<any>(null);
     const router = useRouter();
 
+    // Merged Auth & Session check below
+
+    const [sessionId, setSessionId] = useState<string | null>(null);
+    const [isCheckingSession, setIsCheckingSession] = useState(true);
+
     useEffect(() => {
-        // Check Auth
+        // Check Auth & Session
         const checkAuth = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -43,12 +48,88 @@ export default function PosPage() {
                 
             if (profile) {
                 setStaff(profile);
+                await checkActiveSession(profile.id);
             } else {
                 router.push('/login');
             }
+            setIsCheckingSession(false);
         };
         checkAuth();
     }, [router]);
+
+    const checkActiveSession = async (staffId: string) => {
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staffId}&terminalId=TERM-01`);
+            if (res.ok) {
+                const sess = await res.json();
+                if (sess && sess.id) {
+                    setSessionId(sess.id);
+                    setHasSession(true);
+                }
+            }
+        } catch (error) {
+            console.error("Error checking session:", error);
+        }
+    };
+
+    const handleOpenSession = async () => {
+        if (!openingCash) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/open`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    staffId: staff.id,
+                    terminalId: "TERM-01",
+                    openingCash: Number(openingCash)
+                })
+            });
+            if (res.ok) {
+                const sess = await res.json();
+                setSessionId(sess.id);
+                setHasSession(true);
+            } else {
+                alert("Gagal membuka shift kasir.");
+            }
+        } catch (error) {
+            console.error("Error opening session:", error);
+        }
+        setLoading(false);
+    };
+
+    const handleCloseSession = async () => {
+        const confirm = window.confirm("Yakin ingin menutup shift sekarang? Uang laci harus dihitung.");
+        if (!confirm) return;
+
+        const actualCash = window.prompt("Masukkan jumlah uang tunai fisik yang ada di laci saat ini:");
+        if (actualCash === null) return; // Cancel
+
+        setLoading(true);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/close`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId: sessionId,
+                    actualCash: Number(actualCash),
+                    discrepancyReason: "Ditutup manual oleh kasir" // Default reason for demo
+                })
+            });
+            if (res.ok) {
+                alert("Shift berhasil ditutup.");
+                setHasSession(false);
+                setSessionId(null);
+                setOpeningCash("");
+            } else {
+                const err = await res.json();
+                alert(`Gagal menutup shift: ${err.error}`);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+        setLoading(false);
+    };
 
     useEffect(() => {
         if (hasSession && staff) {
@@ -131,6 +212,24 @@ export default function PosPage() {
                 // Clear any pending order from local storage so it clears the list
                 localStorage.removeItem("nexpos_pending_orders");
                 setPendingOrders([]);
+
+                // Update Session Expected Cash if payment is CASH
+                if (selectedMethod?.type?.toLowerCase() === 'cash' && sessionId && staff) {
+                    try {
+                        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-movements`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                session_id: sessionId,
+                                staff_id: staff.id,
+                                type: 'sale',
+                                amount: totalAmount
+                            })
+                        });
+                    } catch(err) {
+                        console.error("Gagal mencatat mutasi kasir:", err);
+                    }
+                }
             }
         } catch (error: any) {
             alert(error.response?.data?.error || "Payment Failed");
@@ -138,12 +237,16 @@ export default function PosPage() {
         setLoading(false);
     };
 
+    if (isCheckingSession) {
+        return <div className="flex min-h-screen bg-gray-50 items-center justify-center p-4">Memuat data shift kasir...</div>;
+    }
+
     if (!hasSession) {
         return (
             <div className="flex min-h-screen bg-gray-50 items-center justify-center p-4">
                 <div className="bg-white p-8 rounded-2xl w-full max-w-[400px] shadow-xl text-center">
                     <Banknote className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold mb-2">Buka Laci Kasir</h2>
+                    <h2 className="text-2xl font-bold mb-2">Buka Shift Kasir</h2>
                     <p className="text-gray-500 mb-6">Masukkan modal uang fisik awal (Opening Cash) untuk sesi ini.</p>
                     <input 
                         type="number"
@@ -153,12 +256,11 @@ export default function PosPage() {
                         placeholder="Rp 0"
                     />
                     <button 
-                        onClick={() => {
-                            if(openingCash) setHasSession(true);
-                        }}
-                        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors"
+                        onClick={handleOpenSession}
+                        disabled={loading}
+                        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50"
                     >
-                        Buka Sesi Kasir
+                        {loading ? 'Membuka...' : 'Buka Shift'}
                     </button>
                 </div>
             </div>
@@ -171,9 +273,14 @@ export default function PosPage() {
             <div className="flex-1 p-4 md:p-6 flex flex-col overflow-y-auto">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <h1 className="text-2xl font-bold text-gray-800">NexPos Terminal</h1>
-                    <div className="bg-white p-2 rounded-lg shadow-sm font-semibold flex items-center gap-4 text-sm w-full sm:w-auto overflow-x-auto">
-                        <span className="text-gray-500 whitespace-nowrap"><Clock className="w-4 h-4 inline" /> {new Date().toLocaleTimeString()}</span>
-                        <span className="border-l pl-4 whitespace-nowrap">Shift: Pagi | Kasir: Budi</span>
+                    <div className="bg-white p-2 rounded-lg shadow-sm font-semibold flex items-center gap-4 text-sm w-full sm:w-auto overflow-x-auto justify-between sm:justify-start">
+                        <div>
+                            <span className="text-gray-500 whitespace-nowrap"><Clock className="w-4 h-4 inline" /> {new Date().toLocaleTimeString()}</span>
+                            <span className="border-l pl-4 ml-4 whitespace-nowrap">Kasir: {staff?.full_name}</span>
+                        </div>
+                        <button onClick={handleCloseSession} className="ml-4 px-3 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 font-bold text-xs whitespace-nowrap">
+                            Tutup Shift
+                        </button>
                     </div>
                 </div>
 

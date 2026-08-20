@@ -185,6 +185,20 @@ router.post('/refunds/:id/approve', async (req, res) => {
 // =======================
 // CASH SESSIONS
 // =======================
+router.get('/cash-sessions/active', async (req, res) => {
+    try {
+        const { staffId, terminalId } = req.query;
+        const session = await cashService.getActiveSession(String(staffId), String(terminalId));
+        if (session) {
+            res.json(session);
+        } else {
+            res.status(404).json({ error: 'No active session found' });
+        }
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 router.post('/cash-sessions/open', async (req, res) => {
     try {
         const { staffId, terminalId, openingCash } = req.body;
