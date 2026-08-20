@@ -72,7 +72,7 @@ export default function AdminDashboard() {
             if (activeTab === "reconciliation") {
                 const today = new Date().toISOString().split('T')[0];
                 const report = await getReconciliationReport(today, today + "T23:59:59Z");
-                setReconciliation(report.sessions || []);
+                setReconciliation(Array.isArray(report) ? report : report.sessions || []);
             } else if (activeTab === "audit") {
                 const logs = await getAuditLogs();
                 setAuditLogs(logs);
