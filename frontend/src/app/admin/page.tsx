@@ -13,8 +13,6 @@ export default function AdminDashboard() {
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [staffList, setStaffList] = useState<any[]>([]);
-    const [products, setProducts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
     
     // Edit & Expenses States
     const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -39,6 +37,7 @@ export default function AdminDashboard() {
     });
     
     const [loading, setLoading] = useState(false);
+    const [profile, setProfile] = useState<any>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -49,15 +48,17 @@ export default function AdminDashboard() {
                 return;
             }
             
-            const { data: profile } = await supabase
+            const { data: prof } = await supabase
                 .from('staff_profiles')
                 .select('*')
                 .eq('id', session.user.id)
                 .single();
                 
-            if (!profile || profile.role !== 'owner') {
+            if (!prof || prof.role !== 'owner') {
                 alert("Akses ditolak. Anda bukan Admin/Owner.");
                 router.push('/pos');
+            } else {
+                setProfile(prof);
             }
         };
         checkAuth();
@@ -67,7 +68,8 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             if (activeTab === "reconciliation") {
-                const report = await getReconciliationReport();
+                const today = new Date().toISOString().split('T')[0];
+                const report = await getReconciliationReport(today, today + "T23:59:59Z");
                 setReconciliation(report.sessions || []);
             } else if (activeTab === "audit") {
                 const logs = await getAuditLogs();
