@@ -64,9 +64,16 @@ export default function AdminDashboard() {
     const [editingExpense, setEditingExpense] = useState<any>(null);
     const [expenses, setExpenses] = useState<any[]>([]);
     const [rawMaterials, setRawMaterials] = useState<any[]>([]);
+    const [materialStockLogs, setMaterialStockLogs] = useState<any[]>([]); // New state
     const [newExpense, setNewExpense] = useState({ description: '', amount: 0 });
     const [newMaterial, setNewMaterial] = useState({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
     const [newStaff, setNewStaff] = useState({ full_name: '', email: '', password: '', role: 'staff' });
+    
+    // UI states for new features
+    const [materialMode, setMaterialMode] = useState<'add' | 'update'>('add');
+    const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
+    const [stockAdjustment, setStockAdjustment] = useState<{ delta: number; note: string; price: number }>({ delta: 0, note: '', price: 0 });
+    const [expenseSortOrder, setExpenseSortOrder] = useState<'desc' | 'asc'>('desc');
     
     // Store Settings
     const [storeSettings, setStoreSettings] = useState({
@@ -155,13 +162,21 @@ export default function AdminDashboard() {
                     console.error("Store settings table might not exist yet", e);
                 }
             } else if (activeTab === "expenses") {
-                const { data: exp } = await supabase.from('expenses').select('*').order('created_at', { ascending: false });
-                setExpenses(exp || []);
-                const { data: mat } = await supabase.from('raw_materials').select('*').order('name', { ascending: true });
-                setRawMaterials(mat || []);
+                const [expRes, matRes, logRes] = await Promise.all([
+                    supabase.from('expenses').select('*').order('created_at', { ascending: expenseSortOrder === 'desc' ? false : true }),
+                    supabase.from('raw_materials').select('*').order('name', { ascending: true }),
+                    supabase.from('material_stock_logs').select('*').order('created_at', { ascending: false }).limit(50)
+                ]);
+                setExpenses(expRes.data || []);
+                setRawMaterials(matRes.data || []);
+                setMaterialStockLogs(logRes.data || []);
             }
+            
+            // Settings always loaded for UI config
+            const { data: setts } = await supabase.from('store_settings').select('*').single();
+            if (setts) setStoreSettings(setts);
+            
         } catch (error) {
-            console.error("Error fetching data", error);
             toast.error("Terjadi kesalahan saat memuat data.");
         }
         setTabLoading(false);
@@ -553,22 +568,38 @@ export default function AdminDashboard() {
         setLoading(false);
     };
 
-    const handleUpdateMaterial = async (e: React.FormEvent) => {
+    const handleAdjustStock = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!selectedMaterial) return;
         setLoading(true);
+        const newStock = selectedMaterial.current_stock + Number(stockAdjustment.delta);
+        if (newStock < 0) { toast.error("Stok tidak boleh negatif!"); setLoading(false); return; }
         try {
-            const { error } = await supabase.from('raw_materials')
-                .update({
-                    name: editingMaterial.name,
-                    unit: editingMaterial.unit,
-                    current_stock: Number(editingMaterial.current_stock),
-                    last_price_per_unit: Number(editingMaterial.last_price_per_unit),
-                    updated_by_name: profile?.full_name
-                })
-                .eq('id', editingMaterial.id);
+            const updatePayload: any = {
+                current_stock: newStock,
+                updated_by_name: profile?.full_name
+            };
+            if (stockAdjustment.price > 0) updatePayload.last_price_per_unit = Number(stockAdjustment.price);
+            
+            // 1. Update raw_materials
+            const { error } = await supabase.from('raw_materials').update(updatePayload).eq('id', selectedMaterial.id);
             if (error) throw error;
-            toast.success("Bahan Baku berhasil diperbarui.");
-            setEditingMaterial(null);
+            
+            // 2. Insert into material_stock_logs
+            await supabase.from('material_stock_logs').insert([{
+                material_id: selectedMaterial.id,
+                material_name: selectedMaterial.name,
+                delta: Number(stockAdjustment.delta),
+                current_stock: newStock,
+                price: Number(stockAdjustment.price) || null,
+                staff_name: profile?.full_name,
+                note: stockAdjustment.note
+            }]);
+
+            const action = stockAdjustment.delta >= 0 ? `+${stockAdjustment.delta}` : `${stockAdjustment.delta}`;
+            toast.success(`Stok ${selectedMaterial.name} diupdate (${action} ${selectedMaterial.unit}).`);
+            setSelectedMaterial(null);
+            setStockAdjustment({ delta: 0, note: '', price: 0 });
             fetchData();
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
@@ -1221,16 +1252,58 @@ export default function AdminDashboard() {
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                         {/* Bahan Baku */}
                                         <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
-                                            <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Bahan Baku</h3>
-                                            <form onSubmit={handleCreateMaterial} className="space-y-4">
-                                                <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                <div className="grid grid-cols-3 gap-4">
-                                                    <input type="text" placeholder="Unit (kg/lt)" required value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                    <input type="number" placeholder="Stok" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                    <input type="number" placeholder="Harga/Unit" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                            <div className="flex items-center gap-2 mb-6 border-b border-gray-800 pb-3">
+                                                <button onClick={() => setMaterialMode('add')} className={`pb-2 px-2 text-lg font-bold border-b-2 transition-colors ${materialMode === 'add' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-400 hover:text-white'}`}>Tambah Bahan</button>
+                                                <button onClick={() => setMaterialMode('update')} className={`pb-2 px-2 text-lg font-bold border-b-2 transition-colors ${materialMode === 'update' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-400 hover:text-white'}`}>+/- Stok</button>
+                                            </div>
+                                            
+                                            {materialMode === 'add' ? (
+                                                <form onSubmit={handleCreateMaterial} className="space-y-4">
+                                                    <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                    <div className="grid grid-cols-3 gap-4">
+                                                        <input type="text" placeholder="Unit (kg/lt)" required value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                        <input type="number" placeholder="Stok" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                        <input type="number" placeholder="Harga/Unit" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                    </div>
+                                                    <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Bahan</button>
+                                                </form>
+                                            ) : (
+                                                <div className="space-y-4">
+                                                    {!selectedMaterial ? (
+                                                        <div className="text-gray-400 text-sm text-center py-4 border border-dashed border-gray-700 rounded-xl">
+                                                            Pilih bahan baku dari tabel di bawah untuk mengatur stok.
+                                                        </div>
+                                                    ) : (
+                                                        <div className="bg-gray-800/30 p-4 rounded-xl border border-gray-800">
+                                                            <div className="flex justify-between items-center mb-4">
+                                                                <h4 className="font-bold text-white">{selectedMaterial.name}</h4>
+                                                                <span className="text-xs bg-gray-800 px-2 py-1 rounded-md text-gray-300">Stok saat ini: {selectedMaterial.current_stock} {selectedMaterial.unit}</span>
+                                                            </div>
+                                                            <form onSubmit={handleAdjustStock} className="space-y-4">
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    <div>
+                                                                        <label className="text-xs text-gray-500 mb-1 block">Penambahan/Pengurangan Stok</label>
+                                                                        <input type="number" placeholder="Contoh: 5 atau -2" required value={stockAdjustment.delta || ''} onChange={e => setStockAdjustment({...stockAdjustment, delta: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-xs text-gray-500 mb-1 block">Harga Beli Baru (Opsional)</label>
+                                                                        <input type="number" placeholder="Biarkan kosong jika tetap" value={stockAdjustment.price || ''} onChange={e => setStockAdjustment({...stockAdjustment, price: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs text-gray-500 mb-1 block">Keterangan (Contoh: Beli baru, Rusak, Terpakai)</label>
+                                                                    <input type="text" placeholder="Masukkan keterangan" required value={stockAdjustment.note || ''} onChange={e => setStockAdjustment({...stockAdjustment, note: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                                </div>
+                                                                <p className="text-xs text-gray-500">Gunakan angka minus (-) jika bahan terpakai/dibuang.</p>
+                                                                <div className="flex gap-2 mt-2">
+                                                                    <button type="button" onClick={() => setSelectedMaterial(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
+                                                                    <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Update Stok</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Bahan</button>
-                                            </form>
+                                            )}
                                         </div>
 
                                         {/* Pengeluaran */}
@@ -1263,7 +1336,7 @@ export default function AdminDashboard() {
                                                                 <td className="p-4 text-right text-gray-400 text-sm">Rp {mat.last_price_per_unit.toLocaleString('id-ID')}/{mat.unit}</td>
                                                                 <td className="p-3 text-right">
                                                                     <div className="flex gap-1 justify-end">
-                                                                        <button onClick={() => setEditingMaterial({...mat})} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
+                                                                        <button onClick={() => { setSelectedMaterial({...mat}); setMaterialMode('update'); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
                                                                         <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
                                                                     </div>
                                                                 </td>
@@ -1274,7 +1347,15 @@ export default function AdminDashboard() {
                                             )}
                                         </div>
                                         <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                            <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Riwayat Pengeluaran</h3>
+                                            <div className="p-4 bg-gray-800/30 border-b border-gray-800 flex justify-between items-center">
+                                                <h3 className="font-bold text-gray-300">Riwayat Pengeluaran</h3>
+                                                <button onClick={() => {
+                                                    setExpenseSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
+                                                    fetchData(); // reload
+                                                }} className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1 rounded-md text-white border border-gray-700">
+                                                    Sort: {expenseSortOrder === 'desc' ? 'Terbaru' : 'Terlama'}
+                                                </button>
+                                            </div>
                                             {expenses.length === 0 ? (
                                                 <p className="p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran.</p>
                                             ) : (
@@ -1307,27 +1388,49 @@ export default function AdminDashboard() {
                                             )}
                                         </div>
                                     </div>
-
-                                    {/* Edit Material Modal */}
-                                    {editingMaterial && (
-                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-md shadow-2xl">
-                                                <h3 className="font-bold text-xl text-white mb-5">Edit Bahan Baku</h3>
-                                                <form onSubmit={handleUpdateMaterial} className="space-y-4">
-                                                    <input type="text" placeholder="Nama Bahan" value={editingMaterial.name} onChange={e => setEditingMaterial({...editingMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
-                                                    <div className="grid grid-cols-3 gap-3">
-                                                        <input type="text" placeholder="Unit" value={editingMaterial.unit} onChange={e => setEditingMaterial({...editingMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
-                                                        <input type="number" placeholder="Stok" value={editingMaterial.current_stock} onChange={e => setEditingMaterial({...editingMaterial, current_stock: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
-                                                        <input type="number" placeholder="Harga/Unit" value={editingMaterial.last_price_per_unit} onChange={e => setEditingMaterial({...editingMaterial, last_price_per_unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
-                                                    </div>
-                                                    <div className="flex gap-3 mt-4">
-                                                        <button type="button" onClick={() => setEditingMaterial(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
-                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan</button>
-                                                    </div>
-                                                </form>
+                                    
+                                    {/* Material Stock Logs Row */}
+                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl mt-8">
+                                        <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Riwayat Update Stok Bahan Baku</h3>
+                                        {materialStockLogs.length === 0 ? (
+                                            <p className="p-6 text-gray-500 text-center text-sm">Belum ada riwayat update stok.</p>
+                                        ) : (
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left text-sm">
+                                                    <thead>
+                                                        <tr className="bg-gray-800/50 border-b border-gray-800 text-gray-400">
+                                                            <th className="p-4">Waktu</th>
+                                                            <th className="p-4">Bahan Baku</th>
+                                                            <th className="p-4">Perubahan</th>
+                                                            <th className="p-4">Keterangan</th>
+                                                            <th className="p-4">Oleh</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {materialStockLogs.map((log: any) => (
+                                                            <tr key={log.id} className="border-b border-gray-800 hover:bg-gray-800/20">
+                                                                <td className="p-4 text-gray-400">{new Date(log.created_at).toLocaleString('id-ID')}</td>
+                                                                <td className="p-4 font-bold text-white">{log.material_name}</td>
+                                                                <td className="p-4">
+                                                                    <span className={`px-2 py-1 rounded-md font-bold text-xs ${log.delta > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                                                                        {log.delta > 0 ? '+' : ''}{log.delta}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="p-4 text-gray-400">{log.note || '-'}</td>
+                                                                <td className="p-4">
+                                                                    {log.staff_name ? (
+                                                                        <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{log.staff_name}</span>
+                                                                    ) : (
+                                                                        <span className="px-2 py-1 bg-gray-800 text-gray-400 rounded-md text-[10px] border border-gray-700">Admin</span>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
 
                                     {/* Edit Expense Modal */}
                                     {editingExpense && (

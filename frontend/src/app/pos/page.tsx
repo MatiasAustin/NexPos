@@ -215,14 +215,32 @@ export default function PosPage() {
     const [activeQueueNumber, setActiveQueueNumber] = useState<string | null>(null);
 
     const loadCustomerOrder = (order: any, idx: number) => {
-        setCart(order.items);
-        setActiveQueueNumber(order.queue_number || null);
-        
-        // Remove from pending
         const newPending = [...pendingOrders];
-        newPending.splice(idx, 1);
+        newPending.splice(idx, 1); // Remove the selected order
+
+        if (cart.length > 0) {
+            // Save current cart as draft
+            const currentSubTotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
+            const currentTaxRate = storeSettings?.tax_enabled ? Number(storeSettings?.tax_rate || 0) : 0;
+            const currentTaxAmount = (currentSubTotal * currentTaxRate) / 100;
+            
+            const draftOrder = {
+                id: Date.now().toString(),
+                queue_number: activeQueueNumber || `Draft`,
+                items: cart,
+                total: currentSubTotal + currentTaxAmount,
+                time: new Date().toISOString(),
+                is_draft: true
+            };
+            newPending.unshift(draftOrder);
+            toast.info("Pesanan sebelumnya disimpan sebagai Draft");
+        }
+
         setPendingOrders(newPending);
         localStorage.setItem("nexpos_pending_orders", JSON.stringify(newPending));
+        
+        setCart(order.items);
+        setActiveQueueNumber(order.queue_number || null);
     };
 
     const fetchExpensesAndMaterials = async () => {
@@ -312,8 +330,22 @@ export default function PosPage() {
                 updated_by_name: staff?.full_name
             };
             if (stockAdjustment.price > 0) updatePayload.last_price_per_unit = Number(stockAdjustment.price);
+            
+            // 1. Update raw_materials
             const { error } = await supabase.from('raw_materials').update(updatePayload).eq('id', selectedMaterial.id);
             if (error) throw error;
+            
+            // 2. Insert into material_stock_logs
+            await supabase.from('material_stock_logs').insert([{
+                material_id: selectedMaterial.id,
+                material_name: selectedMaterial.name,
+                delta: Number(stockAdjustment.delta),
+                current_stock: newStock,
+                price: Number(stockAdjustment.price) || null,
+                staff_name: staff?.full_name,
+                note: stockAdjustment.note
+            }]);
+
             const action = stockAdjustment.delta >= 0 ? `+${stockAdjustment.delta}` : `${stockAdjustment.delta}`;
             toast.success(`Stok ${selectedMaterial.name} diupdate (${action} ${selectedMaterial.unit}).`);
             setSelectedMaterial(null);
@@ -783,10 +815,14 @@ export default function PosPage() {
                             </>
                         ) : (
                             <div className="text-center py-8">
-                                <div className="w-20 h-20 bg-green-500/10 border border-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <div className="w-20 h-20 bg-green-500/10 border border-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                                 </div>
-                                <h2 className="text-3xl font-black mb-3 text-white">Pembayaran Sukses!</h2>
+                                <h2 className="text-3xl font-black mb-1 text-white">Pembayaran Sukses!</h2>
+                                <p className="text-gray-400 mb-6 flex flex-col items-center">
+                                    <span className="text-[10px] uppercase tracking-wider mb-1">Nomor Antrean / Order</span>
+                                    <span className="font-bold text-2xl text-white">{paymentResult.transaction?.order_reference || paymentResult.order_reference}</span>
+                                </p>
                                 <div className="flex gap-4">
                                     <button 
                                         onClick={() => {
@@ -818,13 +854,23 @@ export default function PosPage() {
                 <div className="hidden print:block fixed inset-0 bg-white text-black z-[9999] p-4 text-sm font-mono leading-tight">
                     <div className="max-w-[80mm] mx-auto text-center border-b border-dashed border-black pb-4 mb-4">
                         {storeSettings?.logo_base64 && (
-                            <img src={storeSettings.logo_base64} alt="Logo" className="w-20 h-20 object-contain mx-auto mb-2 grayscale" />
+                            <img src={storeSettings.logo_base64} alt="Logo" style={{ width: storeSettings.logo_size, height: storeSettings.logo_size }} className="mx-auto mb-2 object-contain grayscale" />
                         )}
-                        <h1 className="text-xl font-bold uppercase">{storeSettings?.cafe_name || 'NexPos Cafe'}</h1>
-                        <p className="mt-1">Kasir: {staff?.full_name || 'Staff'}</p>
-                        <p>{new Date().toLocaleString('id-ID')}</p>
+                        <h2 className="font-bold text-xl">{storeSettings?.store_name || 'NEXPOS'}</h2>
+                        <p className="text-xs mt-1">{storeSettings?.store_address}</p>
+                        <p className="text-xs mt-1">{storeSettings?.store_phone}</p>
                     </div>
-
+                    
+                    <div className="max-w-[80mm] mx-auto mb-4 text-xs border-b border-dashed border-black pb-4">
+                        <div className="flex justify-between mb-1">
+                            <span>No: {paymentResult.transaction?.order_reference || paymentResult.order_reference}</span>
+                            <span>{new Date().toLocaleDateString('id-ID')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Kasir: {staff?.full_name || 'Admin'}</span>
+                            <span>{new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</span>
+                        </div>
+                    </div>
                     <div className="max-w-[80mm] mx-auto">
                         <table className="w-full text-left mb-4">
                             <tbody>
@@ -924,6 +970,10 @@ export default function PosPage() {
                                                     <label className="text-xs text-gray-500 mb-1 block">Harga Beli Baru (Opsional)</label>
                                                     <input type="number" placeholder="Biarkan kosong jika tetap" value={stockAdjustment.price || ''} onChange={e => setStockAdjustment({...stockAdjustment, price: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                                 </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-gray-500 mb-1 block">Keterangan (Contoh: Beli baru, Rusak, Terpakai)</label>
+                                                <input type="text" placeholder="Masukkan keterangan" required value={stockAdjustment.note || ''} onChange={e => setStockAdjustment({...stockAdjustment, note: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                             </div>
                                             <p className="text-xs text-gray-500">Gunakan angka minus (-) jika bahan terpakai/dibuang.</p>
                                             <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Update Stok</button>
