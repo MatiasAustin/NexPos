@@ -69,7 +69,10 @@ export default function CustomerPage() {
         setCart(prev => prev.filter(p => p.product.id !== productId));
     };
 
-    const totalAmount = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
+    const subTotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
+    const taxRate = storeSettings?.tax_enabled ? Number(storeSettings?.tax_rate || 0) : 0;
+    const taxAmount = (subTotal * taxRate) / 100;
+    const grandTotal = subTotal + taxAmount;
 
     const [queueNumber, setQueueNumber] = useState<string | null>(null);
 
@@ -77,12 +80,11 @@ export default function CustomerPage() {
         if (cart.length === 0) return;
         
         const qNumber = Math.floor(100 + Math.random() * 900).toString(); // Generate 3 digit queue
-        const orderId = `CUST-${Date.now()}`;
         const newOrder = { 
-            id: orderId, 
+            id: Date.now().toString(), 
             queue_number: qNumber,
             items: cart, 
-            total: totalAmount, 
+            total: grandTotal, 
             time: new Date().toISOString() 
         };
         
@@ -239,9 +241,19 @@ export default function CustomerPage() {
                 </div>
 
                 <div className="p-5 md:p-8 bg-[#121214] border-t border-gray-800 relative overflow-hidden">
-                    <div className="flex justify-between mb-6">
-                        <span className="text-gray-400 text-base md:text-lg font-bold">Total Tagihan</span>
-                        <span className="font-black text-2xl md:text-3xl text-blue-400">Rp {totalAmount.toLocaleString("id-ID")}</span>
+                    <div className="flex justify-between mb-2">
+                        <span className="text-gray-400 text-sm md:text-base">Subtotal</span>
+                        <span className="font-bold text-lg md:text-xl text-gray-200">Rp {subTotal.toLocaleString("id-ID")}</span>
+                    </div>
+                    {storeSettings?.tax_enabled && (
+                        <div className="flex justify-between mb-2">
+                            <span className="text-gray-400 text-sm md:text-base">Pajak ({storeSettings.tax_rate}%)</span>
+                            <span className="font-bold text-lg md:text-xl text-gray-200">Rp {taxAmount.toLocaleString("id-ID")}</span>
+                        </div>
+                    )}
+                    <div className="flex justify-between mb-6 border-t border-gray-800 pt-4">
+                        <span className="text-gray-300 text-base md:text-lg font-bold">Total Tagihan</span>
+                        <span className="font-black text-2xl md:text-3xl text-blue-400">Rp {grandTotal.toLocaleString("id-ID")}</span>
                     </div>
                     
                     {sent ? (

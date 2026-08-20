@@ -30,7 +30,10 @@ export default function AdminDashboard() {
         qris_image_base64: "",
         cafe_name: "NexPos Cafe",
         receipt_footer: "Terima kasih atas kunjungan Anda!",
-        wifi_password: ""
+        wifi_name: "",
+        wifi_password: "",
+        tax_enabled: false,
+        tax_rate: 0
     });
 
     // Inventory states
@@ -96,7 +99,10 @@ export default function AdminDashboard() {
                             qris_image_base64: data.qris_image_base64 || "",
                             cafe_name: data.cafe_name || "NexPos Cafe",
                             receipt_footer: data.receipt_footer || "Terima kasih atas kunjungan Anda!",
-                            wifi_password: data.wifi_password || ""
+                            wifi_name: data.wifi_name || "",
+                            wifi_password: data.wifi_password || "",
+                            tax_enabled: !!data.tax_enabled,
+                            tax_rate: Number(data.tax_rate) || 0
                         });
                     }
                 } catch(e) {
@@ -935,18 +941,55 @@ export default function AdminDashboard() {
 
                                         {/* Receipt Settings */}
                                         <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
-                                            <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4">Template Struk</h3>
+                                            <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4">Template Struk & Biaya</h3>
                                             
                                             <div className="space-y-6">
-                                                <div>
-                                                    <label className="block text-sm font-bold text-gray-300 mb-2">Password WiFi (Tampil di struk)</label>
-                                                    <input 
-                                                        type="text" 
-                                                        value={storeSettings.wifi_password}
-                                                        onChange={e => setStoreSettings({...storeSettings, wifi_password: e.target.value})}
-                                                        className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none"
-                                                        placeholder="Contoh: KopiEnak123"
-                                                    />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-bold text-gray-300 mb-2">Nama WiFi (Tampil di struk)</label>
+                                                        <input 
+                                                            type="text" 
+                                                            value={storeSettings.wifi_name}
+                                                            onChange={e => setStoreSettings({...storeSettings, wifi_name: e.target.value})}
+                                                            className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none"
+                                                            placeholder="Contoh: NexPos_Guest"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-bold text-gray-300 mb-2">Password WiFi</label>
+                                                        <input 
+                                                            type="text" 
+                                                            value={storeSettings.wifi_password}
+                                                            onChange={e => setStoreSettings({...storeSettings, wifi_password: e.target.value})}
+                                                            className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none"
+                                                            placeholder="Contoh: KopiEnak123"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-[#0B0F19] border border-gray-800 rounded-xl p-4">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <div>
+                                                            <h4 className="font-bold text-white">Pajak (Tax / PB1)</h4>
+                                                            <p className="text-xs text-gray-500 mt-1">Aktifkan untuk menambahkan pajak pada total pesanan.</p>
+                                                        </div>
+                                                        <label className="relative inline-flex items-center cursor-pointer">
+                                                            <input type="checkbox" className="sr-only peer" checked={storeSettings.tax_enabled} onChange={e => setStoreSettings({...storeSettings, tax_enabled: e.target.checked})} />
+                                                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                                        </label>
+                                                    </div>
+                                                    {storeSettings.tax_enabled && (
+                                                        <div>
+                                                            <label className="block text-sm font-bold text-gray-300 mb-2">Persentase Pajak (%)</label>
+                                                            <input 
+                                                                type="number" 
+                                                                value={storeSettings.tax_rate}
+                                                                onChange={e => setStoreSettings({...storeSettings, tax_rate: Number(e.target.value)})}
+                                                                className="w-full bg-[#131B2C] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none"
+                                                                placeholder="Contoh: 11"
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div>
@@ -1013,13 +1056,30 @@ export default function AdminDashboard() {
                                             
                                             <div className="border-b-2 border-dashed border-gray-400 my-4"></div>
                                             
-                                            <div className="flex justify-between font-bold mb-4">
-                                                <span>TOTAL</span>
-                                                <span>Rp 60.000</span>
-                                            </div>
+                                            {storeSettings.tax_enabled ? (
+                                                <>
+                                                    <div className="flex justify-between mb-1">
+                                                        <span>Subtotal</span>
+                                                        <span>Rp 60.000</span>
+                                                    </div>
+                                                    <div className="flex justify-between mb-4">
+                                                        <span>Pajak ({storeSettings.tax_rate}%)</span>
+                                                        <span>Rp {((60000 * storeSettings.tax_rate) / 100).toLocaleString('id-ID')}</span>
+                                                    </div>
+                                                    <div className="flex justify-between font-bold mb-4">
+                                                        <span>TOTAL</span>
+                                                        <span>Rp {(60000 + ((60000 * storeSettings.tax_rate) / 100)).toLocaleString('id-ID')}</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="flex justify-between font-bold mb-4">
+                                                    <span>TOTAL</span>
+                                                    <span>Rp 60.000</span>
+                                                </div>
+                                            )}
 
                                             {storeSettings.qris_image_base64 && (
-                                                <div className="flex flex-col items-center justify-center my-6 border-2 border-black p-2">
+                                                <div className="flex flex-col items-center justify-center my-6">
                                                     <p className="font-bold text-xs mb-2 text-center">SCAN QRIS UNTUK BAYAR</p>
                                                     <img src={storeSettings.qris_image_base64} alt="QRIS" className="w-32 h-32 object-contain" />
                                                 </div>
@@ -1027,10 +1087,10 @@ export default function AdminDashboard() {
 
                                             <div className="border-b-2 border-dashed border-gray-400 my-4"></div>
                                             
-                                            {storeSettings.wifi_password && (
+                                            {(storeSettings.wifi_name || storeSettings.wifi_password) && (
                                                 <div className="text-center mb-2">
-                                                    <div className="font-bold">WiFi Password:</div>
-                                                    <div>{storeSettings.wifi_password}</div>
+                                                    {storeSettings.wifi_name && <div className="font-bold">WiFi: {storeSettings.wifi_name}</div>}
+                                                    {storeSettings.wifi_password && <div>Pass: {storeSettings.wifi_password}</div>}
                                                 </div>
                                             )}
                                             
@@ -1055,7 +1115,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* PRINT ONLY RECEIPT BLOCK */}
-        <div className="hidden print-receipt">
+        <div className="hidden print:block print-receipt">
             {storeSettings.logo_base64 && (
                 <div style={{ textAlign: 'center', marginBottom: '10px' }}>
                     <img src={storeSettings.logo_base64} alt="Logo" style={{ width: '60px', filter: 'grayscale(100%)', margin: '0 auto' }} />
@@ -1081,10 +1141,27 @@ export default function AdminDashboard() {
             
             <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                <span>TOTAL</span>
-                <span>Rp 60.000</span>
-            </div>
+            {storeSettings.tax_enabled ? (
+                <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                        <span>Subtotal</span>
+                        <span>Rp 60.000</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                        <span>Pajak ({storeSettings.tax_rate}%)</span>
+                        <span>Rp {((60000 * storeSettings.tax_rate) / 100).toLocaleString('id-ID')}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                        <span>TOTAL</span>
+                        <span>Rp {(60000 + ((60000 * storeSettings.tax_rate) / 100)).toLocaleString('id-ID')}</span>
+                    </div>
+                </>
+            ) : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                    <span>TOTAL</span>
+                    <span>Rp 60.000</span>
+                </div>
+            )}
 
             {storeSettings.qris_image_base64 && (
                 <div style={{ textAlign: 'center', marginTop: '20px' }}>
@@ -1095,10 +1172,10 @@ export default function AdminDashboard() {
             
             <div style={{ borderBottom: '1px dashed #000', margin: '15px 0' }}></div>
 
-            {storeSettings.wifi_password && (
+            {(storeSettings.wifi_name || storeSettings.wifi_password) && (
                 <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                    <div style={{ fontWeight: 'bold' }}>WiFi Password:</div>
-                    <div>{storeSettings.wifi_password}</div>
+                    {storeSettings.wifi_name && <div style={{ fontWeight: 'bold' }}>WiFi: {storeSettings.wifi_name}</div>}
+                    {storeSettings.wifi_password && <div>Pass: {storeSettings.wifi_password}</div>}
                 </div>
             )}
             

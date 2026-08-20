@@ -233,7 +233,10 @@ export default function PosPage() {
         setCart(prev => prev.filter(p => p.product.id !== productId));
     };
 
-    const totalAmount = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
+    const subTotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
+    const taxRate = storeSettings?.tax_enabled ? Number(storeSettings?.tax_rate || 0) : 0;
+    const taxAmount = (subTotal * taxRate) / 100;
+    const grandTotal = subTotal + taxAmount;
 
     const handlePayment = async () => {
         if (!selectedMethod) {
@@ -246,8 +249,8 @@ export default function PosPage() {
             const orderRef = activeQueueNumber ? `Q${activeQueueNumber}-${Date.now()}` : `ORD-${Date.now()}`;
             const payload = {
                 order_reference: orderRef,
-                amount_due: totalAmount,
-                amount_received: Number(amountReceived) || totalAmount, // For non-cash, amount received = amount due
+                amount_due: grandTotal,
+                amount_received: Number(amountReceived) || grandTotal, // For non-cash, amount received = amount due
                 payment_method_id: selectedMethod.id,
                 items: cart.map(item => ({
                     product_id: item.product.id,
@@ -276,7 +279,7 @@ export default function PosPage() {
                                 session_id: sessionId,
                                 staff_id: staff.id,
                                 type: 'sale',
-                                amount: totalAmount
+                                amount: grandTotal
                             })
                         });
                     } catch(err) {
@@ -524,9 +527,19 @@ export default function PosPage() {
                 </div>
 
                 <div className="p-6 bg-[#121214] border-t border-gray-800">
-                    <div className="flex justify-between mb-4">
+                    <div className="flex justify-between mb-2">
                         <span className="text-gray-400 text-sm md:text-base">Subtotal</span>
-                        <span className="font-bold text-xl md:text-2xl text-blue-400">Rp {totalAmount.toLocaleString("id-ID")}</span>
+                        <span className="font-bold text-lg md:text-xl text-gray-200">Rp {subTotal.toLocaleString("id-ID")}</span>
+                    </div>
+                    {storeSettings?.tax_enabled && (
+                        <div className="flex justify-between mb-2">
+                            <span className="text-gray-400 text-sm md:text-base">Pajak ({storeSettings.tax_rate}%)</span>
+                            <span className="font-bold text-lg md:text-xl text-gray-200">Rp {taxAmount.toLocaleString("id-ID")}</span>
+                        </div>
+                    )}
+                    <div className="flex justify-between mb-4 border-t border-gray-800 pt-4">
+                        <span className="text-gray-300 font-bold text-base md:text-lg">Total</span>
+                        <span className="font-black text-2xl md:text-3xl text-blue-400">Rp {grandTotal.toLocaleString("id-ID")}</span>
                     </div>
                     
                     <button 
@@ -548,7 +561,7 @@ export default function PosPage() {
                                 <h2 className="text-2xl font-bold mb-6 border-b border-gray-800 pb-4 text-white">Pilih Pembayaran</h2>
                                 <div className="text-center mb-8 p-6 bg-[#121214] rounded-2xl border border-gray-800">
                                     <p className="text-gray-400 mb-2">Total Tagihan</p>
-                                    <p className="text-5xl font-black text-blue-400">Rp {totalAmount.toLocaleString("id-ID")}</p>
+                                    <p className="text-5xl font-black text-blue-400">Rp {grandTotal.toLocaleString("id-ID")}</p>
                                 </div>
                                 
                                 {paymentMethods.length > 0 ? (
@@ -582,9 +595,9 @@ export default function PosPage() {
                                             className="w-full bg-[#121214] border border-gray-800 rounded-xl p-4 text-xl text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-bold"
                                             placeholder="Masukkan jumlah..."
                                         />
-                                        {Number(amountReceived) >= totalAmount && (
+                                        {Number(amountReceived) >= grandTotal && (
                                             <div className="mt-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 font-bold text-center">
-                                                Kembalian: Rp {(Number(amountReceived) - totalAmount).toLocaleString("id-ID")}
+                                                Kembalian: Rp {(Number(amountReceived) - grandTotal).toLocaleString("id-ID")}
                                             </div>
                                         )}
                                     </div>
@@ -603,7 +616,7 @@ export default function PosPage() {
                                     </button>
                                     <button 
                                         onClick={handlePayment}
-                                        disabled={loading || !selectedMethod || (selectedMethod?.type?.toLowerCase() === 'cash' && Number(amountReceived) < totalAmount)}
+                                        disabled={loading || !selectedMethod || (selectedMethod?.type?.toLowerCase() === 'cash' && Number(amountReceived) < grandTotal)}
                                         className="flex-1 py-4 bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-blue-500 transition-colors"
                                     >
                                         {loading ? "Memproses..." : <><CreditCard className="w-5 h-5"/> Proses</>}
