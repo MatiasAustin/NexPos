@@ -24,6 +24,8 @@ export default function AdminDashboard() {
     // Edit & Expenses States
     const [editingProduct, setEditingProduct] = useState<any>(null);
     const [editingStaff, setEditingStaff] = useState<any>(null);
+    const [editingMaterial, setEditingMaterial] = useState<any>(null);
+    const [editingExpense, setEditingExpense] = useState<any>(null);
     const [expenses, setExpenses] = useState<any[]>([]);
     const [rawMaterials, setRawMaterials] = useState<any[]>([]);
     const [newExpense, setNewExpense] = useState({ description: '', amount: 0 });
@@ -81,8 +83,7 @@ export default function AdminDashboard() {
                 // Ensure it's an array
                 setReconciliation(Array.isArray(res) ? res : (res?.sessions || []));
             } else if (activeTab === "audit") {
-                const logs = await getAuditLogs(50);
-                setAuditLogs(Array.isArray(logs) ? logs : []);
+                await fetchAuditLogs();
             } else if (activeTab === "staff") {
                 // Fetch staff list from backend (requires API endpoint)
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff`);
@@ -353,11 +354,12 @@ export default function AdminDashboard() {
         e.preventDefault();
         setLoading(true);
         try {
-            await supabase.from('expenses').insert([{
+            const { error } = await supabase.from('expenses').insert([{
                 description: newExpense.description,
                 amount: Number(newExpense.amount),
                 recorded_by: profile?.id
             }]);
+            if (error) throw error;
             alert("Pengeluaran dicatat.");
             setNewExpense({ description: '', amount: 0 });
             fetchData();
@@ -365,21 +367,93 @@ export default function AdminDashboard() {
         setLoading(false);
     };
 
+    const handleUpdateExpense = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('expenses')
+                .update({ description: editingExpense.description, amount: Number(editingExpense.amount) })
+                .eq('id', editingExpense.id);
+            if (error) throw error;
+            alert("Pengeluaran diperbarui.");
+            setEditingExpense(null);
+            fetchData();
+        } catch (e: any) { alert(e.message); }
+        setLoading(false);
+    };
+
+    const handleDeleteExpense = async (id: string) => {
+        if (!window.confirm("Hapus pengeluaran ini secara permanen?")) return;
+        setLoading(true);
+        const { error } = await supabase.from('expenses').delete().eq('id', id);
+        if (error) alert(error.message);
+        else { fetchData(); }
+        setLoading(false);
+    };
+
     const handleCreateMaterial = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         try {
-            await supabase.from('raw_materials').insert([{
+            const { error } = await supabase.from('raw_materials').insert([{
                 name: newMaterial.name,
                 unit: newMaterial.unit,
                 current_stock: Number(newMaterial.current_stock),
                 last_price_per_unit: Number(newMaterial.last_price_per_unit)
             }]);
+            if (error) throw error;
             alert("Bahan Baku ditambahkan.");
             setNewMaterial({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
             fetchData();
         } catch (e: any) { alert(e.message); }
         setLoading(false);
+    };
+
+    const handleUpdateMaterial = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('raw_materials')
+                .update({
+                    name: editingMaterial.name,
+                    unit: editingMaterial.unit,
+                    current_stock: Number(editingMaterial.current_stock),
+                    last_price_per_unit: Number(editingMaterial.last_price_per_unit)
+                })
+                .eq('id', editingMaterial.id);
+            if (error) throw error;
+            alert("Bahan Baku diperbarui.");
+            setEditingMaterial(null);
+            fetchData();
+        } catch (e: any) { alert(e.message); }
+        setLoading(false);
+    };
+
+    const handleDeleteMaterial = async (id: string) => {
+        if (!window.confirm("Hapus bahan baku ini secara permanen?")) return;
+        setLoading(true);
+        const { error } = await supabase.from('raw_materials').delete().eq('id', id);
+        if (error) alert(error.message);
+        else { fetchData(); }
+        setLoading(false);
+    };
+
+    const fetchAuditLogs = async () => {
+        // Fetch directly from Supabase to bypass any backend RLS issues
+        const { data, error } = await supabase
+            .from('audit_logs')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(100);
+        if (!error && data) {
+            setAuditLogs(data);
+        } else {
+            // Fallback: also try via backend
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/audit-logs?limit=100`);
+                if (res.ok) setAuditLogs(await res.json());
+            } catch(e) {}
+        }
     };
 
     const handleUpdateStaff = async (e: React.FormEvent) => {
@@ -880,35 +954,93 @@ export default function AdminDashboard() {
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                         <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                             <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Daftar Bahan Baku</h3>
-                                            <table className="w-full text-left">
-                                                <tbody>
-                                                    {rawMaterials.map((mat: any) => (
-                                                        <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/30">
-                                                            <td className="p-4 font-bold text-white">{mat.name}</td>
-                                                            <td className="p-4 text-center"><span className="px-3 py-1 bg-gray-800 rounded-lg text-sm">{mat.current_stock} {mat.unit}</span></td>
-                                                            <td className="p-4 text-right text-gray-400">Rp {mat.last_price_per_unit.toLocaleString('id-ID')}/{mat.unit}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                            {rawMaterials.length === 0 ? (
+                                                <p className="p-6 text-gray-500 text-center text-sm">Belum ada bahan baku.</p>
+                                            ) : (
+                                                <table className="w-full text-left">
+                                                    <tbody>
+                                                        {rawMaterials.map((mat: any) => (
+                                                            <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
+                                                                <td className="p-4 font-bold text-white">{mat.name}</td>
+                                                                <td className="p-4 text-center"><span className="px-3 py-1 bg-gray-800 rounded-lg text-sm">{mat.current_stock} {mat.unit}</span></td>
+                                                                <td className="p-4 text-right text-gray-400 text-sm">Rp {mat.last_price_per_unit.toLocaleString('id-ID')}/{mat.unit}</td>
+                                                                <td className="p-3 text-right">
+                                                                    <div className="flex gap-1 justify-end">
+                                                                        <button onClick={() => setEditingMaterial({...mat})} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
+                                                                        <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            )}
                                         </div>
                                         <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                             <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Riwayat Pengeluaran</h3>
-                                            <table className="w-full text-left">
-                                                <tbody>
-                                                    {expenses.map((exp: any) => (
-                                                        <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/30">
-                                                            <td className="p-4">
-                                                                <p className="font-bold text-white">{exp.description}</p>
-                                                                <p className="text-xs text-gray-500">{new Date(exp.expense_date).toLocaleString('id-ID')}</p>
-                                                            </td>
-                                                            <td className="p-4 text-right font-bold text-red-400">- Rp {exp.amount.toLocaleString('id-ID')}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                            {expenses.length === 0 ? (
+                                                <p className="p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran.</p>
+                                            ) : (
+                                                <table className="w-full text-left">
+                                                    <tbody>
+                                                        {expenses.map((exp: any) => (
+                                                            <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20">
+                                                                <td className="p-4">
+                                                                    <p className="font-bold text-white">{exp.description}</p>
+                                                                    <p className="text-xs text-gray-500">{new Date(exp.expense_date || exp.created_at).toLocaleString('id-ID')}</p>
+                                                                </td>
+                                                                <td className="p-4 text-right font-bold text-red-400 whitespace-nowrap">- Rp {Number(exp.amount).toLocaleString('id-ID')}</td>
+                                                                <td className="p-3 text-right">
+                                                                    <div className="flex gap-1 justify-end">
+                                                                        <button onClick={() => setEditingExpense({...exp})} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
+                                                                        <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            )}
                                         </div>
                                     </div>
+
+                                    {/* Edit Material Modal */}
+                                    {editingMaterial && (
+                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-md shadow-2xl">
+                                                <h3 className="font-bold text-xl text-white mb-5">Edit Bahan Baku</h3>
+                                                <form onSubmit={handleUpdateMaterial} className="space-y-4">
+                                                    <input type="text" placeholder="Nama Bahan" value={editingMaterial.name} onChange={e => setEditingMaterial({...editingMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                    <div className="grid grid-cols-3 gap-3">
+                                                        <input type="text" placeholder="Unit" value={editingMaterial.unit} onChange={e => setEditingMaterial({...editingMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                        <input type="number" placeholder="Stok" value={editingMaterial.current_stock} onChange={e => setEditingMaterial({...editingMaterial, current_stock: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                        <input type="number" placeholder="Harga/Unit" value={editingMaterial.last_price_per_unit} onChange={e => setEditingMaterial({...editingMaterial, last_price_per_unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                    </div>
+                                                    <div className="flex gap-3 mt-4">
+                                                        <button type="button" onClick={() => setEditingMaterial(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
+                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Edit Expense Modal */}
+                                    {editingExpense && (
+                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-md shadow-2xl">
+                                                <h3 className="font-bold text-xl text-white mb-5">Edit Pengeluaran</h3>
+                                                <form onSubmit={handleUpdateExpense} className="space-y-4">
+                                                    <input type="text" placeholder="Deskripsi" value={editingExpense.description} onChange={e => setEditingExpense({...editingExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                    <input type="number" placeholder="Nominal (Rp)" value={editingExpense.amount} onChange={e => setEditingExpense({...editingExpense, amount: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                    <div className="flex gap-3 mt-4">
+                                                        <button type="button" onClick={() => setEditingExpense(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
+                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -990,17 +1122,35 @@ export default function AdminDashboard() {
                             {/* AUDIT TAB */}
                             {activeTab === "audit" && (
                                 <div className="space-y-4">
-                                    {auditLogs.map((log) => (
-                                        <div key={log.id} className="p-5 rounded-2xl bg-[#131B2C] border border-gray-800 flex justify-between items-center shadow-lg">
-                                            <div>
-                                                <p className="font-bold text-white capitalize text-lg">{log.action.replace('_', ' ')}</p>
-                                                <p className="text-sm text-gray-500 mt-1">Entity: <span className="text-gray-300">{log.entity_type}</span> | Staff: <span className="text-gray-300">{log.staff_id}</span></p>
-                                            </div>
-                                            <div className="text-right text-sm text-gray-500 bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-800">
-                                                {new Date(log.created_at).toLocaleString('id-ID')}
-                                            </div>
+                                    <div className="flex justify-between items-center bg-[#131B2C] p-4 rounded-2xl border border-gray-800/60">
+                                        <div>
+                                            <h3 className="font-bold text-white">Security Log</h3>
+                                            <p className="text-xs text-gray-500 mt-1">Rekam jejak aktivitas sistem</p>
                                         </div>
-                                    ))}
+                                        <button onClick={fetchAuditLogs} className="px-3 py-2 bg-gray-800 text-gray-300 rounded-xl text-sm font-bold hover:bg-gray-700 flex items-center gap-2">
+                                            <RefreshCw className="w-4 h-4" /> Refresh
+                                        </button>
+                                    </div>
+                                    {auditLogs.length === 0 ? (
+                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl p-10 text-center">
+                                            <ShieldCheck className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+                                            <p className="text-gray-400 font-semibold">Belum ada log aktivitas.</p>
+                                            <p className="text-gray-600 text-sm mt-1">Log akan otomatis tercatat saat ada transaksi, refund, atau login.</p>
+                                            <p className="text-yellow-500/70 text-xs mt-3">Pastikan tabel <code className="bg-gray-900 px-1 rounded">audit_logs</code> sudah dibuat di Supabase dan RLS dinonaktifkan.</p>
+                                        </div>
+                                    ) : (
+                                        auditLogs.map((log: any) => (
+                                            <div key={log.id} className="p-5 rounded-2xl bg-[#131B2C] border border-gray-800 flex justify-between items-center shadow-lg">
+                                                <div>
+                                                    <p className="font-bold text-white capitalize text-lg">{String(log.action || '').replace(/_/g, ' ')}</p>
+                                                    <p className="text-sm text-gray-500 mt-1">Entity: <span className="text-gray-300">{log.entity_type}</span> | Staff: <span className="text-gray-300">{log.staff_id || 'System'}</span></p>
+                                                </div>
+                                                <div className="text-right text-sm text-gray-500 bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-800">
+                                                    {new Date(log.created_at).toLocaleString('id-ID')}
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             )}
                             {/* SETTINGS TAB */}
