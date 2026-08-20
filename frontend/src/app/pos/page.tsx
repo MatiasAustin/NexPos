@@ -140,8 +140,8 @@ export default function PosPage() {
 
     if (!hasSession) {
         return (
-            <div className="flex h-screen bg-gray-50 items-center justify-center">
-                <div className="bg-white p-8 rounded-2xl w-[400px] shadow-xl text-center">
+            <div className="flex min-h-screen bg-gray-50 items-center justify-center p-4">
+                <div className="bg-white p-8 rounded-2xl w-full max-w-[400px] shadow-xl text-center">
                     <Banknote className="w-12 h-12 text-blue-600 mx-auto mb-4" />
                     <h2 className="text-2xl font-bold mb-2">Buka Laci Kasir</h2>
                     <p className="text-gray-500 mb-6">Masukkan modal uang fisik awal (Opening Cash) untuk sesi ini.</p>
@@ -156,7 +156,7 @@ export default function PosPage() {
                         onClick={() => {
                             if(openingCash) setHasSession(true);
                         }}
-                        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl"
+                        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors"
                     >
                         Buka Sesi Kasir
                     </button>
@@ -166,27 +166,27 @@ export default function PosPage() {
     }
 
     return (
-        <div className="flex h-screen bg-gray-50 text-gray-900">
+        <div className="flex flex-col md:flex-row h-screen bg-gray-50 text-gray-900">
             {/* LEFT: PRODUCTS LIST */}
-            <div className="flex-1 p-6 flex flex-col overflow-y-auto">
-                <div className="flex justify-between items-center mb-6">
+            <div className="flex-1 p-4 md:p-6 flex flex-col overflow-y-auto">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <h1 className="text-2xl font-bold text-gray-800">NexPos Terminal</h1>
-                    <div className="bg-white p-2 rounded-lg shadow-sm font-semibold flex items-center gap-4">
-                        <span className="text-sm text-gray-500"><Clock className="w-4 h-4 inline" /> {new Date().toLocaleTimeString()}</span>
-                        <span className="border-l pl-4">Shift: Pagi | Kasir: Budi</span>
+                    <div className="bg-white p-2 rounded-lg shadow-sm font-semibold flex items-center gap-4 text-sm w-full sm:w-auto overflow-x-auto">
+                        <span className="text-gray-500 whitespace-nowrap"><Clock className="w-4 h-4 inline" /> {new Date().toLocaleTimeString()}</span>
+                        <span className="border-l pl-4 whitespace-nowrap">Shift: Pagi | Kasir: Budi</span>
                     </div>
                 </div>
 
                 {/* INCOMING ORDERS NOTIFICATION */}
                 {pendingOrders.length > 0 && (
                     <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-xl">
-                        <h3 className="font-bold text-orange-800 mb-2">🔔 Pesanan Baru dari Customer (Tab Sebelah)</h3>
-                        <div className="flex gap-2 overflow-x-auto">
+                        <h3 className="font-bold text-orange-800 mb-2">🔔 Pesanan Baru dari Customer</h3>
+                        <div className="flex gap-2 overflow-x-auto pb-2">
                             {pendingOrders.map((order: any, idx: number) => (
                                 <button 
                                     key={order.id}
                                     onClick={() => loadCustomerOrder(order, idx)}
-                                    className="bg-white px-4 py-2 rounded-lg border border-orange-300 text-orange-700 font-bold hover:bg-orange-100 flex-shrink-0"
+                                    className="bg-white px-4 py-2 rounded-lg border border-orange-300 text-orange-700 font-bold hover:bg-orange-100 flex-shrink-0 shadow-sm"
                                 >
                                     {order.id} - Rp {order.total.toLocaleString('id-ID')}
                                 </button>
@@ -195,20 +195,22 @@ export default function PosPage() {
                     </div>
                 )}
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
                     {products.length === 0 ? (
-                        <div className="col-span-3 text-center text-gray-400 py-10">Belum ada produk aktif.</div>
+                        <div className="col-span-full text-center text-gray-400 py-10">Belum ada produk aktif.</div>
                     ) : (
                         products.map((p) => (
                             <div
                                 key={p.id}
                                 onClick={() => addToCart(p)}
-                                className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden"
+                                className="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all relative overflow-hidden group flex flex-col h-full"
                             >
-                                <h3 className="font-semibold text-lg">{p.name}</h3>
-                                <p className="text-gray-500 text-sm">{p.category}</p>
-                                <p className="text-blue-600 font-bold mt-2">Rp {p.price.toLocaleString("id-ID")}</p>
-                                <div className="absolute top-2 right-2 text-2xl opacity-20">{p.image_icon}</div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-base md:text-lg leading-tight mb-1">{p.name}</h3>
+                                    <p className="text-gray-400 text-xs md:text-sm">{p.category}</p>
+                                </div>
+                                <p className="text-blue-600 font-bold mt-3">Rp {p.price.toLocaleString("id-ID")}</p>
+                                <div className="absolute top-2 right-2 text-2xl md:text-3xl opacity-10 group-hover:opacity-20 transition-opacity">{p.image_icon}</div>
                             </div>
                         ))
                     )}
@@ -216,29 +218,29 @@ export default function PosPage() {
             </div>
 
             {/* RIGHT: CART */}
-            <div className="w-[400px] bg-white shadow-xl flex flex-col border-l border-gray-200">
-                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <h2 className="text-lg font-bold flex items-center gap-2">
+            <div className="w-full md:w-[320px] lg:w-[400px] h-[45vh] md:h-screen bg-white shadow-xl flex flex-col border-t-2 md:border-t-0 md:border-l border-gray-200 z-10 shrink-0">
+                <div className="p-3 md:p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
                         <ShoppingCart className="w-5 h-5" /> Current Order
                     </h2>
-                    <button onClick={clearCart} className="text-red-500 hover:bg-red-50 p-2 rounded-full">
+                    <button onClick={clearCart} className="text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors">
                         <Trash2 className="w-5 h-5" />
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto p-3 md:p-4">
                     {cart.length === 0 ? (
-                        <div className="text-center text-gray-400 mt-20">Keranjang kosong</div>
+                        <div className="text-center text-gray-400 mt-10 md:mt-20">Keranjang kosong</div>
                     ) : (
                         cart.map((item, idx) => (
-                            <div key={idx} className="flex justify-between mb-4 pb-2 border-b border-gray-50">
-                                <div>
-                                    <p className="font-semibold">{item.product.name}</p>
-                                    <p className="text-sm text-gray-500">
+                            <div key={idx} className="flex justify-between mb-3 md:mb-4 pb-2 border-b border-gray-50">
+                                <div className="flex-1 pr-2">
+                                    <p className="font-semibold text-sm md:text-base leading-tight">{item.product.name}</p>
+                                    <p className="text-xs md:text-sm text-gray-500 mt-1">
                                         Rp {item.product.price.toLocaleString("id-ID")} x {item.qty}
                                     </p>
                                 </div>
-                                <p className="font-bold">
+                                <p className="font-bold text-sm md:text-base whitespace-nowrap">
                                     Rp {(item.product.price * item.qty).toLocaleString("id-ID")}
                                 </p>
                             </div>
@@ -246,26 +248,26 @@ export default function PosPage() {
                     )}
                 </div>
 
-                <div className="p-6 bg-gray-50 border-t border-gray-200">
-                    <div className="flex justify-between mb-4">
-                        <span className="text-gray-600">Subtotal</span>
-                        <span className="font-bold text-xl">Rp {totalAmount.toLocaleString("id-ID")}</span>
+                <div className="p-4 md:p-6 bg-gray-50 border-t border-gray-200">
+                    <div className="flex justify-between mb-3 md:mb-4">
+                        <span className="text-gray-600 text-sm md:text-base">Subtotal</span>
+                        <span className="font-bold text-lg md:text-xl text-blue-700">Rp {totalAmount.toLocaleString("id-ID")}</span>
                     </div>
                     
                     <button 
                         onClick={() => setShowPayment(true)}
                         disabled={cart.length === 0}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 md:py-4 rounded-xl font-bold text-base md:text-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-sm"
                     >
-                        <CreditCard className="w-6 h-6" /> Bayar Sekarang
+                        <CreditCard className="w-5 h-5 md:w-6 md:h-6" /> Bayar
                     </button>
                 </div>
             </div>
 
-            {/* PAYMENT MODAL (Simplified) */}
+            {/* PAYMENT MODAL (Responsive) */}
             {showPayment && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white p-8 rounded-2xl w-[500px] shadow-2xl">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-white p-6 md:p-8 rounded-2xl w-full max-w-[500px] shadow-2xl overflow-y-auto max-h-[90vh]">
                         {!paymentResult ? (
                             <>
                                 <h2 className="text-2xl font-bold mb-6 border-b pb-2">Pilih Pembayaran</h2>

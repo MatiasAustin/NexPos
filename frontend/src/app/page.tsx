@@ -30,7 +30,7 @@ export default function Home() {
       <h1 className="text-4xl font-bold mb-4">NexPos System</h1>
       <p className="text-gray-500 mb-8">Pilih modul untuk masuk</p>
       
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xs sm:max-w-none justify-center px-4">
         <Link 
             href="/pos"
             className="px-8 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg"

@@ -195,7 +195,7 @@ export default function AdminDashboard() {
         <div className="min-h-screen bg-gray-50 text-gray-900 p-8">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
                     <div>
                         <Link href="/" className="flex items-center text-gray-500 hover:text-blue-600 mb-2">
                             <ArrowLeft className="w-4 h-4 mr-1" /> Kembali ke Home
@@ -212,10 +212,10 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-4 mb-6 border-b border-gray-200">
+                <div className="flex gap-4 mb-6 border-b border-gray-200 overflow-x-auto whitespace-nowrap hide-scrollbar pb-1">
                     <button 
                         onClick={() => setActiveTab("reconciliation")}
-                        className={`pb-4 px-2 font-semibold ${activeTab === "reconciliation" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-800"}`}
+                        className={`pb-3 px-2 font-semibold transition-colors ${activeTab === "reconciliation" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-800"}`}
                     >
                         Laporan Rekonsiliasi
                     </button>
