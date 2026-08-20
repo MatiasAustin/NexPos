@@ -46,13 +46,14 @@ export default function AdminDashboard() {
         tax_enabled: false,
         tax_rate: 0,
         logo_size: 60,
-        qris_size: 120
+        qris_size: 120,
+        categories: ["Makanan", "Minuman", "Snack"]
     });
 
     // Inventory states
     const [products, setProducts] = useState<any[]>([]);
-    const [newProduct, setNewProduct] = useState<{name: string, category: string, price: number, cogs: number, stock: number, image_icon: string, ingredients: {name: string, cost: number}[]}>({ 
-        name: '', category: '', price: 0, cogs: 0, stock: 0, image_icon: '📦', ingredients: [] 
+    const [newProduct, setNewProduct] = useState<{name: string, category: string, price: number, cogs: number, stock: number, image_icon: string, image_url: string, ingredients: {name: string, cost: number}[]}>({ 
+        name: '', category: 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '📦', image_url: '', ingredients: [] 
     });
     
     const [loading, setLoading] = useState(false);
@@ -113,7 +114,8 @@ export default function AdminDashboard() {
                             tax_enabled: !!data.tax_enabled,
                             tax_rate: Number(data.tax_rate) || 0,
                             logo_size: Number(data.logo_size) || 60,
-                            qris_size: Number(data.qris_size) || 120
+                            qris_size: Number(data.qris_size) || 120,
+                            categories: data.categories || ["Makanan", "Minuman", "Snack"]
                         });
                     }
                 } catch(e) {
@@ -230,6 +232,40 @@ export default function AdminDashboard() {
         setLoading(false);
     };
 
+    const compressImage = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target?.result as string;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 500;
+                    const MAX_HEIGHT = 500;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height && width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    } else if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/webp', 0.6));
+                };
+                img.onerror = (error) => reject(error);
+            };
+            reader.onerror = (error) => reject(error);
+        });
+    };
+
     const handleCreateProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -247,12 +283,13 @@ export default function AdminDashboard() {
                     price: Number(newProduct.price),
                     cogs: computedCogs,
                     stock: Number(newProduct.stock),
-                    ingredients: newProduct.ingredients
+                    ingredients: newProduct.ingredients,
+                    image_url: newProduct.image_url
                 })
             });
             if(res.ok) {
                 toast.success("Produk berhasil ditambahkan!");
-                setNewProduct({ name: '', category: '', price: 0, cogs: 0, stock: 0, image_icon: '📦', ingredients: [] });
+                setNewProduct({ name: '', category: storeSettings.categories?.[0] || 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '📦', image_url: '', ingredients: [] });
                 fetchData();
             } else {
                 const err = await res.json();
@@ -330,6 +367,7 @@ export default function AdminDashboard() {
                     cogs: computedCogs,
                     stock: Number(editingProduct.stock),
                     image_icon: editingProduct.image_icon,
+                    image_url: editingProduct.image_url || null,
                     ingredients: editingProduct.ingredients
                 })
             });
@@ -345,6 +383,58 @@ export default function AdminDashboard() {
             toast.error("Terjadi kesalahan jaringan.");
         }
         setLoading(false);
+    };
+
+    const handleDeleteProduct = async (product: any) => {
+        const ok = await confirm({
+            title: "Hapus Menu",
+            message: `Hapus menu "${product.name}" secara permanen? Tindakan ini tidak dapat dibatalkan.`,
+            confirmText: "Ya, Hapus",
+            variant: "danger"
+        });
+        if (!ok) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${product.id}`, { method: 'DELETE' });
+            if (res.ok) {
+                toast.success("Menu berhasil dihapus.");
+                fetchData();
+            } else {
+                const err = await res.json();
+                toast.error(err.error || "Gagal menghapus menu.");
+            }
+        } catch(error) {
+            toast.error("Terjadi kesalahan jaringan.");
+        }
+        setLoading(false);
+    };
+
+    const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            const compressed = await compressImage(file);
+            if (isEdit) {
+                setEditingProduct((prev: any) => ({ ...prev, image_url: compressed }));
+            } else {
+                setNewProduct(prev => ({ ...prev, image_url: compressed }));
+            }
+        } catch {
+            toast.error("Gagal memproses gambar.");
+        }
+    };
+
+    const handleAddCategory = (newCat: string) => {
+        if (!newCat.trim()) return;
+        if (storeSettings.categories.includes(newCat.trim())) {
+            toast.error("Kategori sudah ada!");
+            return;
+        }
+        setStoreSettings(prev => ({ ...prev, categories: [...prev.categories, newCat.trim()] }));
+    };
+
+    const handleRemoveCategory = (cat: string) => {
+        setStoreSettings(prev => ({ ...prev, categories: prev.categories.filter((c: string) => c !== cat) }));
     };
 
     const handleDeleteTransaction = async (trx: any) => {
@@ -877,10 +967,35 @@ export default function AdminDashboard() {
                                 <div className="space-y-6">
                                     <form onSubmit={handleCreateProduct} className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                         <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Produk Baru</h3>
+                                        
+                                        {/* Upload Gambar */}
+                                        <div className="flex items-center gap-6 mb-6">
+                                            <div className="w-24 h-24 rounded-2xl bg-gray-900 border-2 border-dashed border-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                                {newProduct.image_url 
+                                                    ? <img src={newProduct.image_url} alt="preview" className="w-full h-full object-cover" />
+                                                    : <span className="text-4xl">{newProduct.image_icon || '📦'}</span>
+                                                }
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-300 mb-2">Foto Menu</label>
+                                                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition-colors border border-gray-700">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                    Upload & Compress
+                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleProductImageUpload(e, false)} />
+                                                </label>
+                                                <p className="text-xs text-gray-500 mt-1">Gambar otomatis dikompres ke WebP ≤ 30KB</p>
+                                                {newProduct.image_url && <button type="button" onClick={() => setNewProduct(p => ({...p, image_url: ''}))} className="text-xs text-red-400 mt-1 hover:underline">Hapus foto</button>}
+                                            </div>
+                                        </div>
+
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-5 mb-6">
                                             <input type="text" placeholder="Nama Produk" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
-                                            <input type="text" placeholder="Kategori" required value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
-                                            <input type="text" placeholder="Icon (Emoji)" value={newProduct.image_icon} onChange={e => setNewProduct({...newProduct, image_icon: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
+                                            <select required value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white">
+                                                {storeSettings.categories.map((cat: string) => (
+                                                    <option key={cat} value={cat}>{cat}</option>
+                                                ))}
+                                            </select>
+                                            <input type="text" placeholder="Icon Emoji (opsional)" value={newProduct.image_icon} onChange={e => setNewProduct({...newProduct, image_icon: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
                                             <div><label className="text-xs text-gray-500 mb-2 block">Harga Jual (Rp)</label><input type="number" placeholder="0" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
                                             <div><label className="text-xs text-gray-500 mb-2 block">HPP / Modal (Rp)</label><input type="number" placeholder="0" required value={newProduct.cogs} onChange={e => setNewProduct({...newProduct, cogs: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
                                             <div><label className="text-xs text-gray-500 mb-2 block">Stok Awal</label><input type="number" placeholder="0" required value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
@@ -918,10 +1033,16 @@ export default function AdminDashboard() {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
+
                                                     {products.map((p: any) => (
                                                         <tr key={p.id} className="border-b border-gray-800 hover:bg-gray-800/30">
                                                             <td className="p-4 flex items-center gap-4">
-                                                                <div className="w-12 h-12 bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center text-2xl">{p.image_icon}</div>
+                                                                <div className="w-14 h-14 bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
+                                                                    {p.image_url 
+                                                                        ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                                                                        : <span>{p.image_icon || '📦'}</span>
+                                                                    }
+                                                                </div>
                                                                 <div>
                                                                     <p className="font-bold text-white text-base">{p.name}</p>
                                                                     <p className="text-xs text-gray-500">{p.category}</p>
@@ -939,7 +1060,10 @@ export default function AdminDashboard() {
                                                                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-gray-300'}`}>{p.stock}</span>
                                                             </td>
                                                             <td className="p-4 text-center">
-                                                                <button onClick={() => setEditingProduct(p)} className="px-3 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
+                                                                <div className="flex gap-2 justify-center">
+                                                                    <button onClick={() => setEditingProduct(p)} className="px-3 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
+                                                                    <button onClick={() => handleDeleteProduct(p)} className="px-3 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Hapus</button>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -950,13 +1074,38 @@ export default function AdminDashboard() {
                                     
                                     {/* Edit Product Modal */}
                                     {editingProduct && (
-                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl">
+                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[540px] shadow-2xl my-4">
                                                 <h3 className="font-bold text-xl text-white mb-6">Edit Produk: {editingProduct.name}</h3>
                                                 <form onSubmit={handleUpdateProduct} className="space-y-4">
+                                                    {/* Image Upload Edit */}
+                                                    <div className="flex items-center gap-5 mb-2">
+                                                        <div className="w-20 h-20 rounded-xl bg-gray-900 border-2 border-dashed border-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                                            {editingProduct.image_url 
+                                                                ? <img src={editingProduct.image_url} alt={editingProduct.name} className="w-full h-full object-cover" />
+                                                                : <span className="text-3xl">{editingProduct.image_icon || '📦'}</span>
+                                                            }
+                                                        </div>
+                                                        <div>
+                                                            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition-colors border border-gray-700">
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                                Ganti Foto
+                                                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleProductImageUpload(e, true)} />
+                                                            </label>
+                                                            {editingProduct.image_url && <button type="button" onClick={() => setEditingProduct((p: any) => ({...p, image_url: ''}))} className="block text-xs text-red-400 mt-1 hover:underline">Hapus foto</button>}
+                                                        </div>
+                                                    </div>
                                                     <div>
                                                         <label className="text-sm font-bold text-gray-400 block mb-2">Nama Produk</label>
                                                         <input type="text" value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-sm font-bold text-gray-400 block mb-2">Kategori</label>
+                                                        <select value={editingProduct.category} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500">
+                                                            {storeSettings.categories.map((cat: string) => (
+                                                                <option key={cat} value={cat}>{cat}</option>
+                                                            ))}
+                                                        </select>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div>
@@ -1356,6 +1505,42 @@ export default function AdminDashboard() {
                                                             )}
                                                         </div>
                                                     </div>
+                                                </div>
+
+                                                <div className="mt-6 p-5 bg-gray-900 border border-gray-800 rounded-xl">
+                                                    <h4 className="font-bold text-gray-300 mb-4">Kelola Kategori Menu</h4>
+                                                    <div className="flex flex-wrap gap-2 mb-4">
+                                                        {storeSettings.categories.map((cat: string) => (
+                                                            <div key={cat} className="flex items-center gap-1 px-3 py-1.5 bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded-xl text-sm font-bold">
+                                                                <span>{cat}</span>
+                                                                <button type="button" onClick={() => handleRemoveCategory(cat)} className="ml-1 text-red-400 hover:text-red-300 text-xs font-bold leading-none">✕</button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <input 
+                                                            type="text" 
+                                                            id="new-category-input"
+                                                            placeholder="Nama kategori baru..." 
+                                                            className="flex-1 p-2.5 bg-[#0B0F19] border border-gray-700 rounded-xl text-white outline-none focus:border-blue-500 text-sm"
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    handleAddCategory((e.target as HTMLInputElement).value);
+                                                                    (e.target as HTMLInputElement).value = '';
+                                                                }
+                                                            }}
+                                                        />
+                                                        <button 
+                                                            type="button" 
+                                                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500"
+                                                            onClick={() => {
+                                                                const input = document.getElementById('new-category-input') as HTMLInputElement;
+                                                                if (input) { handleAddCategory(input.value); input.value = ''; }
+                                                            }}
+                                                        >+ Tambah</button>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 mt-2">Tekan Enter atau klik Tambah. Kategori tersimpan saat klik "Simpan Semua Pengaturan".</p>
                                                 </div>
 
                                                 <button 

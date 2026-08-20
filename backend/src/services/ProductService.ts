@@ -23,6 +23,7 @@ export class ProductService {
                 cogs: payload.cogs,
                 stock: payload.stock,
                 image_icon: payload.image_icon || '📦',
+                image_url: payload.image_url || null,
                 is_active: payload.is_active !== undefined ? payload.is_active : true,
                 ingredients: payload.ingredients || []
             })
@@ -34,19 +35,24 @@ export class ProductService {
     }
 
     async updateProduct(id: string, payload: any) {
+        const updateData: any = {
+            name: payload.name,
+            category: payload.category,
+            price: payload.price,
+            cogs: payload.cogs,
+            stock: payload.stock,
+            image_icon: payload.image_icon,
+            is_active: payload.is_active,
+            ingredients: payload.ingredients,
+            updated_at: new Date().toISOString()
+        };
+        if (payload.image_url !== undefined) {
+            updateData.image_url = payload.image_url;
+        }
+
         const { data, error } = await supabase
             .from('products')
-            .update({
-                name: payload.name,
-                category: payload.category,
-                price: payload.price,
-                cogs: payload.cogs,
-                stock: payload.stock,
-                image_icon: payload.image_icon,
-                is_active: payload.is_active,
-                ingredients: payload.ingredients,
-                updated_at: new Date().toISOString()
-            })
+            .update(updateData)
             .eq('id', id)
             .select('*')
             .single();
