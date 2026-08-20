@@ -351,23 +351,24 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-[#121214] text-gray-100 flex flex-col md:flex-row">
+        <div className="min-h-screen bg-[#0B0F19] text-gray-100 flex flex-col md:flex-row font-sans selection:bg-blue-500/30">
             {/* Sidebar */}
-            <div className="w-full md:w-[280px] bg-[#1a1a1c] border-r border-gray-800 flex flex-col shrink-0">
-                <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+            <div className="w-full md:w-[280px] bg-[#131B2C] border-b md:border-b-0 md:border-r border-gray-800/60 flex flex-col shrink-0 z-20">
+                <div className="p-6 border-b border-gray-800/60 flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-                            <span className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white text-lg">N</span>
-                            NexPos
+                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-3">
+                            <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-lg shadow-lg shadow-blue-900/20">N</span>
+                            Dashbrd X
                         </h1>
-                        <p className="text-gray-500 text-sm mt-1">Control Center</p>
+                        <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mt-2">NexPos Control Center</p>
                     </div>
-                    <Link href="/" className="md:hidden p-2 text-gray-500 hover:text-white bg-gray-800 rounded-lg">
+                    <Link href="/" className="md:hidden p-2 text-gray-400 hover:text-white bg-gray-800/50 rounded-xl">
                         <ArrowLeft className="w-5 h-5" />
                     </Link>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {/* Horizontal Scroll on Mobile, Vertical on Desktop */}
+                <div className="flex-1 overflow-y-auto overflow-x-auto md:overflow-x-hidden p-4 flex flex-row md:flex-col gap-2 no-scrollbar">
                     {[
                         { id: "reconciliation", label: "Laporan Rekonsiliasi", icon: AlertTriangle },
                         { id: "history", label: "Riwayat Transaksi", icon: FileText },
@@ -380,14 +381,15 @@ export default function AdminDashboard() {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === tab.id ? "bg-blue-600/10 text-blue-500 border border-blue-500/20" : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"}`}
+                            className={`flex-shrink-0 md:w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold transition-all ${activeTab === tab.id ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" : "text-gray-400 hover:text-white hover:bg-gray-800/40"}`}
                         >
-                            <tab.icon className="w-5 h-5" /> {tab.label}
+                            <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? "text-white" : "text-gray-500"}`} /> 
+                            <span className="whitespace-nowrap">{tab.label}</span>
                         </button>
                     ))}
                 </div>
                 
-                <div className="p-4 border-t border-gray-800">
+                <div className="p-4 border-t border-gray-800/60 hidden md:block">
                     <Link href="/" className="hidden md:flex items-center gap-2 text-gray-500 hover:text-gray-300 transition-colors w-full px-4 py-2 font-medium">
                         <ArrowLeft className="w-4 h-4" /> Kembali ke Home
                     </Link>
@@ -397,27 +399,28 @@ export default function AdminDashboard() {
             {/* Main Content */}
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
                 {/* Top Header */}
-                <div className="h-20 border-b border-gray-800 px-8 flex items-center justify-between shrink-0 bg-[#121214]">
+                <div className="h-20 border-b border-gray-800/60 px-6 md:px-8 flex items-center justify-between shrink-0 bg-[#0B0F19]">
                     <div className="flex items-center gap-4">
-                        <h2 className="text-xl font-bold text-white capitalize">
+                        <h2 className="text-xl md:text-2xl font-bold text-white capitalize">
                             {activeTab.replace('reconciliation', 'Rekonsiliasi').replace('history', 'Riwayat Transaksi')}
                         </h2>
                         <button 
                             onClick={fetchData}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 text-gray-300 rounded-lg text-sm hover:bg-gray-700 transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-800/40 text-gray-300 rounded-full text-sm font-semibold hover:bg-gray-700/50 transition-colors border border-gray-800"
                         >
-                            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-blue-400" : ""}`} /> Refresh
+                            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-blue-400" : ""}`} /> 
+                            <span className="hidden md:inline">Refresh</span>
                         </button>
                     </div>
 
                     {/* Staff / Admin Profile Badge */}
-                    <div className="flex items-center gap-3 bg-[#1a1a1c] border border-gray-800 px-4 py-2 rounded-full">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-bold text-white">
-                            A
+                    <div className="flex items-center gap-3 bg-[#131B2C] border border-gray-800/60 px-4 py-2 rounded-full">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-bold text-white shadow-sm">
+                            {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : 'A'}
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-bold leading-tight">Admin System</span>
-                            <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">Owner Access</span>
+                        <div className="flex flex-col hidden sm:flex">
+                            <span className="text-sm font-bold leading-tight text-white">{profile?.full_name || 'Admin System'}</span>
+                            <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">{profile?.role || 'Owner Access'}</span>
                         </div>
                     </div>
                 </div>
@@ -430,7 +433,7 @@ export default function AdminDashboard() {
                         <div className="space-y-6">
                             {/* RECONCILIATION TAB */}
                             {activeTab === "reconciliation" && (
-                                <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                     {reconciliation.length === 0 ? (
                                         <p className="p-8 text-gray-500 text-center">Belum ada transaksi hari ini.</p>
                                     ) : (
@@ -466,10 +469,10 @@ export default function AdminDashboard() {
                             {activeTab === "history" && (
                                 <div className="space-y-4">
                                     {transactions.length === 0 ? (
-                                        <p className="p-8 text-gray-500 text-center bg-[#1a1a1c] rounded-2xl border border-gray-800">Belum ada transaksi.</p>
+                                        <p className="p-8 text-gray-500 text-center bg-[#131B2C] rounded-2xl border border-gray-800">Belum ada transaksi.</p>
                                     ) : (
                                         transactions.map((trx: any) => (
-                                            <div key={trx.id} className="p-5 bg-[#1a1a1c] rounded-2xl border border-gray-800 shadow-lg flex flex-col md:flex-row gap-4 justify-between">
+                                            <div key={trx.id} className="p-5 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-lg flex flex-col md:flex-row gap-4 justify-between">
                                                 <div>
                                                     <div className="flex items-center gap-3 mb-2">
                                                         <span className="font-bold text-white text-lg">{trx.order_reference}</span>
@@ -527,7 +530,7 @@ export default function AdminDashboard() {
                             {/* INVENTORY TAB */}
                             {activeTab === "inventory" && (
                                 <div className="space-y-6">
-                                    <form onSubmit={handleCreateProduct} className="p-6 md:p-8 bg-[#1a1a1c] rounded-2xl border border-gray-800 shadow-xl">
+                                    <form onSubmit={handleCreateProduct} className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                         <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Produk Baru</h3>
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-5 mb-6">
                                             <input type="text" placeholder="Nama Produk" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
@@ -545,8 +548,8 @@ export default function AdminDashboard() {
                                             </div>
                                             {newProduct.ingredients.map((ing, i) => (
                                                 <div key={i} className="flex gap-3 items-center mb-3">
-                                                    <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredient(i, 'name', e.target.value)} className="flex-1 p-2 bg-[#121214] border border-gray-800 rounded-lg text-white outline-none" required />
-                                                    <input type="number" placeholder="Biaya" value={ing.cost} onChange={(e) => updateIngredient(i, 'cost', Number(e.target.value))} className="w-32 p-2 bg-[#121214] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                    <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredient(i, 'name', e.target.value)} className="flex-1 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                    <input type="number" placeholder="Biaya" value={ing.cost} onChange={(e) => updateIngredient(i, 'cost', Number(e.target.value))} className="w-32 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
                                                     <button type="button" onClick={() => removeIngredient(i)} className="text-red-400 p-2 hover:bg-red-500/10 rounded-lg">Hapus</button>
                                                 </div>
                                             ))}
@@ -557,7 +560,7 @@ export default function AdminDashboard() {
                                         </button>
                                     </form>
 
-                                    <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                         <div className="overflow-x-auto">
                                             <table className="w-full text-left border-collapse">
                                                 <thead>
@@ -600,7 +603,7 @@ export default function AdminDashboard() {
                                     {/* Edit Product Modal */}
                                     {editingProduct && (
                                         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
-                                            <div className="bg-[#1a1a1c] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl">
                                                 <h3 className="font-bold text-xl text-white mb-6">Edit Produk: {editingProduct.name}</h3>
                                                 <form onSubmit={handleUpdateProduct} className="space-y-4">
                                                     <div>
@@ -634,7 +637,7 @@ export default function AdminDashboard() {
                                     {/* INPUTS ROW */}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                         {/* Bahan Baku */}
-                                        <div className="p-6 md:p-8 bg-[#1a1a1c] rounded-2xl border border-gray-800 shadow-xl">
+                                        <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                             <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Bahan Baku</h3>
                                             <form onSubmit={handleCreateMaterial} className="space-y-4">
                                                 <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
@@ -648,7 +651,7 @@ export default function AdminDashboard() {
                                         </div>
 
                                         {/* Pengeluaran */}
-                                        <div className="p-6 md:p-8 bg-[#1a1a1c] rounded-2xl border border-gray-800 shadow-xl">
+                                        <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                             <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Catat Pengeluaran</h3>
                                             <form onSubmit={handleCreateExpense} className="space-y-4">
                                                 <input type="text" placeholder="Deskripsi Pengeluaran" required value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
@@ -660,7 +663,7 @@ export default function AdminDashboard() {
 
                                     {/* TABLES ROW */}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                        <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                             <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Daftar Bahan Baku</h3>
                                             <table className="w-full text-left">
                                                 <tbody>
@@ -674,7 +677,7 @@ export default function AdminDashboard() {
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                             <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Riwayat Pengeluaran</h3>
                                             <table className="w-full text-left">
                                                 <tbody>
@@ -697,7 +700,7 @@ export default function AdminDashboard() {
                             {/* STAFF TAB */}
                             {activeTab === "staff" && (
                                 <div className="space-y-6">
-                                    <form onSubmit={handleCreateStaff} className="p-6 md:p-8 bg-[#1a1a1c] rounded-2xl border border-gray-800 shadow-xl">
+                                    <form onSubmit={handleCreateStaff} className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                         <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Akun Baru</h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                             <input type="text" placeholder="Nama Lengkap" required value={newStaff.full_name} onChange={e => setNewStaff({...newStaff, full_name: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
@@ -711,7 +714,7 @@ export default function AdminDashboard() {
                                         <button type="submit" disabled={loading} className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors">Buat Akun</button>
                                     </form>
 
-                                    <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                         <table className="w-full text-left border-collapse">
                                             <thead>
                                                 <tr className="bg-gray-800/50 border-b border-gray-800"><th className="p-4 text-gray-400">Nama</th><th className="p-4 text-gray-400">Role</th><th className="p-4 text-gray-400">Status</th></tr>
@@ -734,7 +737,7 @@ export default function AdminDashboard() {
                             {activeTab === "audit" && (
                                 <div className="space-y-4">
                                     {auditLogs.map((log) => (
-                                        <div key={log.id} className="p-5 rounded-2xl bg-[#1a1a1c] border border-gray-800 flex justify-between items-center shadow-lg">
+                                        <div key={log.id} className="p-5 rounded-2xl bg-[#131B2C] border border-gray-800 flex justify-between items-center shadow-lg">
                                             <div>
                                                 <p className="font-bold text-white capitalize text-lg">{log.action.replace('_', ' ')}</p>
                                                 <p className="text-sm text-gray-500 mt-1">Entity: <span className="text-gray-300">{log.entity_type}</span> | Staff: <span className="text-gray-300">{log.staff_id}</span></p>
@@ -749,7 +752,7 @@ export default function AdminDashboard() {
                             {/* SETTINGS TAB */}
                             {activeTab === "settings" && (
                                 <div className="space-y-6">
-                                    <div className="p-6 md:p-8 bg-[#1a1a1c] rounded-2xl border border-gray-800 shadow-xl">
+                                    <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                         <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4">Pengaturan Struk & Toko</h3>
                                         
                                         <div className="space-y-6">
@@ -759,7 +762,7 @@ export default function AdminDashboard() {
                                                     type="text" 
                                                     value={storeSettings.cafe_name}
                                                     onChange={e => setStoreSettings({...storeSettings, cafe_name: e.target.value})}
-                                                    className="w-full bg-[#121214] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none font-bold"
+                                                    className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none font-bold"
                                                     placeholder="Contoh: NexPos Cafe"
                                                 />
                                             </div>
@@ -788,7 +791,7 @@ export default function AdminDashboard() {
                                                     type="text" 
                                                     value={storeSettings.wifi_password}
                                                     onChange={e => setStoreSettings({...storeSettings, wifi_password: e.target.value})}
-                                                    className="w-full bg-[#121214] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none"
+                                                    className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none"
                                                     placeholder="Contoh: KopiEnak123"
                                                 />
                                             </div>
@@ -798,7 +801,7 @@ export default function AdminDashboard() {
                                                 <textarea 
                                                     value={storeSettings.receipt_footer}
                                                     onChange={e => setStoreSettings({...storeSettings, receipt_footer: e.target.value})}
-                                                    className="w-full bg-[#121214] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none h-24 resize-none"
+                                                    className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none h-24 resize-none"
                                                     placeholder="Terima kasih atas kunjungan Anda..."
                                                 ></textarea>
                                             </div>
