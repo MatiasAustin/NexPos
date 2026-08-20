@@ -13,6 +13,14 @@ app.use(express.json());
 
 app.use('/api', apiRouter);
 
+app.get('/', (req, res) => {
+    res.json({
+        message: 'Welcome to NexPos API',
+        version: '1.0.0',
+        docs: 'API is running. Use /api/payments/... for endpoints.'
+    });
+});
+
 app.get('/health', (req, res) => {
     res.json({ status: 'NexPos Payment System API is running' });
 });
