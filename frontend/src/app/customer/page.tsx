@@ -1,19 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ShoppingCart, Send } from "lucide-react";
-
-const DUMMY_PRODUCTS = [
-    { id: "1", name: "Kopi Susu Gula Aren", price: 25000, category: "Coffee", img: "☕" },
-    { id: "2", name: "Americano", price: 20000, category: "Coffee", img: "☕" },
-    { id: "3", name: "Latte", price: 28000, category: "Coffee", img: "☕" },
-    { id: "4", name: "Croissant", price: 30000, category: "Pastry", img: "🥐" },
-    { id: "5", name: "Nasi Goreng", price: 45000, category: "Food", img: "🍛" },
-];
+import { getActiveProducts } from "@/lib/api";
 
 export default function CustomerPage() {
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
+    const [products, setProducts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [sent, setSent] = useState(false);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const data = await getActiveProducts();
+                setProducts(data);
+            } catch (err) {
+                console.error("Failed to fetch products:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchProducts();
+    }, []);
 
     const addToCart = (product: any) => {
         setCart((prev) => {
@@ -52,15 +61,15 @@ export default function CustomerPage() {
                 <p className="text-gray-500 mb-8">Silakan pilih pesanan Anda, tekan tombol pesan di kanan.</p>
 
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-                    {DUMMY_PRODUCTS.map((p) => (
+                    {products.map((prod) => (
                         <div
-                            key={p.id}
-                            onClick={() => addToCart(p)}
+                            key={prod.id}
+                            onClick={() => addToCart(prod)}
                             className="bg-gray-50 p-6 rounded-2xl border border-gray-100 cursor-pointer hover:border-blue-500 hover:shadow-lg transition-all text-center"
                         >
-                            <div className="text-5xl mb-4">{p.img}</div>
-                            <h3 className="font-bold text-xl mb-2">{p.name}</h3>
-                            <p className="text-blue-600 font-bold text-lg">Rp {p.price.toLocaleString("id-ID")}</p>
+                            <div className="text-5xl mb-4">{prod.image_icon || '📦'}</div>
+                            <h3 className="font-bold text-lg text-gray-900">{prod.name}</h3>
+                            <p className="text-gray-500 mb-4">Rp {prod.price.toLocaleString('id-ID')}</p>
                         </div>
                     ))}
                 </div>

@@ -37,4 +37,30 @@ export const getAuditLogs = async () => {
     return res.data;
 };
 
+// Products / Inventory
+export const getActiveProducts = async () => {
+    const res = await api.get(`/products`);
+    return res.data;
+};
+
+export const getAdminProducts = async () => {
+    const res = await api.get(`/admin/products`);
+    return res.data;
+};
+
+export const createProduct = async (payload: any) => {
+    const res = await api.post(`/admin/products`, payload);
+    return res.data;
+};
+
+export const updateProduct = async (id: string, payload: any) => {
+    const res = await api.put(`/admin/products/${id}`, payload);
+    return res.data;
+};
+
+export const deleteProduct = async (id: string) => {
+    const res = await api.delete(`/admin/products/${id}`);
+    return res.data;
+};
+
 export default api;

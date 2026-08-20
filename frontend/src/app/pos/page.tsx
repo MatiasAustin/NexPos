@@ -2,21 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { ShoppingCart, CreditCard, Banknote, Trash2, Clock } from "lucide-react";
-import { processPayment, getPaymentMethods } from "@/lib/api";
+import { processPayment, getPaymentMethods, getActiveProducts } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-
-const DUMMY_PRODUCTS = [
-    { id: "1", name: "Kopi Susu Gula Aren", price: 25000, category: "Coffee" },
-    { id: "2", name: "Americano", price: 20000, category: "Coffee" },
-    { id: "3", name: "Latte", price: 28000, category: "Coffee" },
-    { id: "4", name: "Croissant", price: 30000, category: "Pastry" },
-    { id: "5", name: "Nasi Goreng", price: 45000, category: "Food" },
-];
 
 export default function PosPage() {
     const [hasSession, setHasSession] = useState(false);
     const [openingCash, setOpeningCash] = useState<string>("");
+    const [products, setProducts] = useState<any[]>([]);
     
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
     const [showPayment, setShowPayment] = useState(false);
@@ -62,10 +55,10 @@ export default function PosPage() {
             getPaymentMethods().then(methods => {
                 setPaymentMethods(methods);
                 if (methods && methods.length > 0) {
-                    const cash = methods.find((m: any) => m.type.toLowerCase() === 'cash');
-                    setSelectedMethod(cash || methods[0]);
+                    setSelectedMethod(methods[0].id);
                 }
-            }).catch(console.error);
+            });
+            getActiveProducts().then(prods => setProducts(prods));
             
             // Listen for localStorage changes for incoming customer orders
             const checkOrders = () => {
@@ -120,14 +113,24 @@ export default function PosPage() {
             const payload = {
                 order_reference: `ORD-${Date.now()}`,
                 amount_due: totalAmount,
-                amount_received: Number(amountReceived),
-                payment_method_id: selectedMethod.id
+                amount_received: Number(amountReceived) || totalAmount, // For non-cash, amount received = amount due
+                payment_method_id: selectedMethod.id,
+                items: cart.map(item => ({
+                    product_id: item.product.id,
+                    product_name: item.product.name,
+                    quantity: item.qty,
+                    price: item.product.price,
+                    cogs: item.product.cogs || 0
+                }))
             };
             
             const result = await processPayment(payload);
             setPaymentResult(result);
-            if (result.status === "Paid") {
+            if (result.status === "Paid" || result.status === "Pending") {
                 clearCart();
+                // Clear any pending order from local storage so it clears the list
+                localStorage.removeItem("nexpos_pending_orders");
+                setPendingOrders([]);
             }
         } catch (error: any) {
             alert(error.response?.data?.error || "Payment Failed");
@@ -193,17 +196,22 @@ export default function PosPage() {
                 )}
 
                 <div className="grid grid-cols-3 gap-4">
-                    {DUMMY_PRODUCTS.map((p) => (
-                        <div
-                            key={p.id}
-                            onClick={() => addToCart(p)}
-                            className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-shadow"
-                        >
-                            <h3 className="font-semibold text-lg">{p.name}</h3>
-                            <p className="text-gray-500 text-sm">{p.category}</p>
-                            <p className="text-blue-600 font-bold mt-2">Rp {p.price.toLocaleString("id-ID")}</p>
-                        </div>
-                    ))}
+                    {products.length === 0 ? (
+                        <div className="col-span-3 text-center text-gray-400 py-10">Belum ada produk aktif.</div>
+                    ) : (
+                        products.map((p) => (
+                            <div
+                                key={p.id}
+                                onClick={() => addToCart(p)}
+                                className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden"
+                            >
+                                <h3 className="font-semibold text-lg">{p.name}</h3>
+                                <p className="text-gray-500 text-sm">{p.category}</p>
+                                <p className="text-blue-600 font-bold mt-2">Rp {p.price.toLocaleString("id-ID")}</p>
+                                <div className="absolute top-2 right-2 text-2xl opacity-20">{p.image_icon}</div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
 

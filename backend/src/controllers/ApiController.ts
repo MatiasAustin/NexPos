@@ -4,6 +4,7 @@ import { CashManagementService } from '../services/CashManagementService';
 import { ReconciliationService } from '../services/ReconciliationService';
 import { RefundService } from '../services/RefundService';
 import { AuthService } from '../services/AuthService';
+import { ProductService } from '../services/ProductService';
 import { supabase } from '../config/database';
 
 const router = express.Router();
@@ -12,6 +13,56 @@ const cashService = new CashManagementService();
 const reconciliationService = new ReconciliationService();
 const refundService = new RefundService();
 const authService = new AuthService();
+const productService = new ProductService();
+
+// =======================
+// INVENTORY & PRODUCTS
+// =======================
+router.get('/products', async (req, res) => {
+    try {
+        // POS / Customer view (only active)
+        const products = await productService.getAllProducts(false);
+        res.json(products);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.get('/admin/products', async (req, res) => {
+    try {
+        const products = await productService.getAllProducts(true);
+        res.json(products);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.post('/admin/products', async (req, res) => {
+    try {
+        const product = await productService.createProduct(req.body);
+        res.status(201).json(product);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.put('/admin/products/:id', async (req, res) => {
+    try {
+        const product = await productService.updateProduct(req.params.id, req.body);
+        res.json(product);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.delete('/admin/products/:id', async (req, res) => {
+    try {
+        await productService.deleteProduct(req.params.id);
+        res.status(204).send();
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
 
 // =======================
 // STAFF & AUTH (ADMIN ONLY)
