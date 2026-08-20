@@ -30,8 +30,23 @@ export default function PosPage() {
 
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [isCheckingSession, setIsCheckingSession] = useState(true);
+    const [storeSettings, setStoreSettings] = useState<any>(null);
 
     useEffect(() => {
+        const loadSettings = async () => {
+            const local = localStorage.getItem("nexpos_store_settings");
+            if (local) setStoreSettings(JSON.parse(local));
+            
+            try {
+                const { data } = await supabase.from('store_settings').select('*').limit(1).maybeSingle();
+                if (data) {
+                    setStoreSettings(data);
+                    localStorage.setItem("nexpos_store_settings", JSON.stringify(data));
+                }
+            } catch(e) {}
+        };
+        loadSettings();
+
         // Check Auth & Session
         const checkAuth = async () => {
             const { data: { session } } = await supabase.auth.getSession();
@@ -72,15 +87,32 @@ export default function PosPage() {
         }
     };
 
+    const [allStaff, setAllStaff] = useState<any[]>([]);
+    const [selectedStaffId, setSelectedStaffId] = useState<string>("");
+
+    useEffect(() => {
+        // Fetch staff list for the dropdown
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff`)
+            .then(res => res.json())
+            .then(data => {
+                if(data && Array.isArray(data)) {
+                    setAllStaff(data);
+                }
+            })
+            .catch(console.error);
+    }, []);
+
     const handleOpenSession = async () => {
         if (!openingCash) return;
+        const activeStaffId = selectedStaffId || staff?.id;
+
         setLoading(true);
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/open`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    staffId: staff.id,
+                    staffId: activeStaffId,
                     terminalId: "TERM-01",
                     openingCash: Number(openingCash)
                 })
@@ -88,6 +120,9 @@ export default function PosPage() {
             if (res.ok) {
                 const sess = await res.json();
                 setSessionId(sess.id);
+                // Also update the local 'staff' state so the header shows the selected person
+                const selectedProfile = allStaff.find(s => s.id === activeStaffId);
+                if (selectedProfile) setStaff(selectedProfile);
                 setHasSession(true);
             } else {
                 alert("Gagal membuka shift kasir.");
@@ -254,14 +289,33 @@ export default function PosPage() {
                 <div className="bg-[#1a1a1c] p-8 rounded-2xl w-full max-w-[400px] shadow-2xl border border-gray-800 text-center">
                     <Banknote className="w-12 h-12 text-blue-500 mx-auto mb-4" />
                     <h2 className="text-2xl font-bold mb-2 text-white">Buka Shift Kasir</h2>
-                    <p className="text-gray-400 mb-6 text-sm">Masukkan modal uang fisik awal (Opening Cash) untuk sesi ini.</p>
-                    <input 
-                        type="number"
-                        value={openingCash}
-                        onChange={(e) => setOpeningCash(e.target.value)}
-                        className="w-full bg-[#121214] border border-gray-800 rounded-xl p-4 text-xl mb-6 text-center text-white focus:border-blue-500 outline-none transition-colors font-bold"
-                        placeholder="Rp 0"
-                    />
+                    <p className="text-gray-400 mb-6 text-sm">Pilih nama kasir dan masukkan modal uang fisik awal (Opening Cash).</p>
+                    
+                    <div className="text-left mb-4">
+                        <label className="block text-sm font-bold text-gray-300 mb-2">Kasir Bertugas</label>
+                        <select 
+                            value={selectedStaffId || staff?.id || ""} 
+                            onChange={(e) => setSelectedStaffId(e.target.value)}
+                            className="w-full bg-[#121214] border border-gray-800 rounded-xl p-3 text-white focus:border-blue-500 outline-none font-bold"
+                        >
+                            {allStaff.length === 0 && <option value={staff?.id}>{staff?.full_name}</option>}
+                            {allStaff.map(s => (
+                                <option key={s.id} value={s.id}>{s.full_name} ({s.role})</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="text-left mb-6">
+                        <label className="block text-sm font-bold text-gray-300 mb-2">Modal Awal (Cash)</label>
+                        <input 
+                            type="number"
+                            value={openingCash}
+                            onChange={(e) => setOpeningCash(e.target.value)}
+                            className="w-full bg-[#121214] border border-gray-800 rounded-xl p-4 text-xl text-white focus:border-blue-500 outline-none transition-colors font-bold"
+                            placeholder="Rp 0"
+                        />
+                    </div>
+                    
                     <button 
                         onClick={handleOpenSession}
                         disabled={loading}
@@ -474,18 +528,84 @@ export default function PosPage() {
                                     <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                                 </div>
                                 <h2 className="text-3xl font-black mb-3 text-white">Pembayaran Sukses!</h2>
-                                <p className="text-gray-400 mb-8 text-lg">Kembalian: <span className="font-bold text-white">Rp {paymentResult.change_given?.toLocaleString('id-ID')}</span></p>
-                                <button 
-                                    onClick={() => {
-                                        setPaymentResult(null);
-                                        setShowPayment(false);
-                                    }}
-                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-bold text-lg transition-colors"
-                                >
-                                    Selesai & Lanjut Kasir
-                                </button>
+                                <div className="flex gap-4">
+                                    <button 
+                                        onClick={() => {
+                                            setTimeout(() => window.print(), 100);
+                                        }}
+                                        className="w-full bg-gray-800 hover:bg-gray-700 text-white py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                        Cetak Struk
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setPaymentResult(null);
+                                            setShowPayment(false);
+                                        }}
+                                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-bold text-lg transition-colors"
+                                    >
+                                        Selesai & Lanjut
+                                    </button>
+                                </div>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* HIDDEN RECEIPT FOR PRINTING */}
+            {paymentResult && (
+                <div className="hidden print:block fixed inset-0 bg-white text-black z-[9999] p-4 text-sm font-mono leading-tight">
+                    <div className="max-w-[80mm] mx-auto text-center border-b border-dashed border-black pb-4 mb-4">
+                        {storeSettings?.logo_base64 && (
+                            <img src={storeSettings.logo_base64} alt="Logo" className="w-20 h-20 object-contain mx-auto mb-2 grayscale" />
+                        )}
+                        <h1 className="text-xl font-bold uppercase">{storeSettings?.cafe_name || 'NexPos Cafe'}</h1>
+                        <p className="mt-1">Kasir: {staff?.full_name || 'Staff'}</p>
+                        <p>{new Date().toLocaleString('id-ID')}</p>
+                    </div>
+
+                    <div className="max-w-[80mm] mx-auto">
+                        <table className="w-full text-left mb-4">
+                            <tbody>
+                                {paymentResult.transaction?.items?.map((item: any, idx: number) => (
+                                    <tr key={idx}>
+                                        <td className="py-1">{item.product_name}<br/><span className="text-xs">{item.quantity} x Rp {item.price.toLocaleString('id-ID')}</span></td>
+                                        <td className="text-right align-bottom py-1">Rp {(item.quantity * item.price).toLocaleString('id-ID')}</td>
+                                    </tr>
+                                )) || paymentResult.items?.map((item: any, idx: number) => (
+                                    // Fallback if structure varies
+                                    <tr key={idx}>
+                                        <td className="py-1">{item.product_name}<br/><span className="text-xs">{item.quantity} x Rp {item.price.toLocaleString('id-ID')}</span></td>
+                                        <td className="text-right align-bottom py-1">Rp {(item.quantity * item.price).toLocaleString('id-ID')}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="max-w-[80mm] mx-auto border-t border-dashed border-black pt-2 mb-4">
+                        <div className="flex justify-between font-bold text-base mb-1">
+                            <span>TOTAL</span>
+                            <span>Rp {paymentResult.transaction?.amount_due?.toLocaleString('id-ID') || paymentResult.amount_due?.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span>TUNAI</span>
+                            <span>Rp {paymentResult.transaction?.amount_received?.toLocaleString('id-ID') || paymentResult.amount_received?.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span>KEMBALI</span>
+                            <span>Rp {paymentResult.change_given?.toLocaleString('id-ID') || 0}</span>
+                        </div>
+                    </div>
+
+                    <div className="max-w-[80mm] mx-auto text-center border-t border-dashed border-black pt-4">
+                        <p className="mb-2 font-bold whitespace-pre-wrap">{storeSettings?.receipt_footer || 'Terima kasih atas kunjungan Anda!'}</p>
+                        {storeSettings?.wifi_password && (
+                            <p className="border border-black p-2 mt-2 font-bold">WiFi: {storeSettings.wifi_password}</p>
+                        )}
+                        <p className="mt-4 text-xs">Powered by NexPos</p>
                     </div>
                 </div>
             )}

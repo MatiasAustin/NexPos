@@ -10,6 +10,8 @@ export default function CustomerPage() {
     const [loading, setLoading] = useState(true);
     const [sent, setSent] = useState(false);
 
+    const [storeSettings, setStoreSettings] = useState<any>(null);
+
     useEffect(() => {
         const fetchProducts = async () => {
             try {
@@ -22,6 +24,28 @@ export default function CustomerPage() {
             }
         };
         fetchProducts();
+
+        const loadSettings = async () => {
+            const local = localStorage.getItem("nexpos_store_settings");
+            if (local) setStoreSettings(JSON.parse(local));
+            
+            try {
+                // Must import supabase at the top if it's not imported!
+                // Ah, I'll use fetch since I might not have supabase imported here.
+                const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/store_settings?select=*&limit=1`, {
+                    headers: {
+                        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+                    }
+                });
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    setStoreSettings(data[0]);
+                    localStorage.setItem("nexpos_store_settings", JSON.stringify(data[0]));
+                }
+            } catch(e) {}
+        };
+        loadSettings();
     }, []);
 
     const addToCart = (product: any) => {
@@ -71,10 +95,14 @@ export default function CustomerPage() {
             <div className="flex-1 p-6 md:p-8 overflow-y-auto">
                 <div className="mb-8 flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl md:text-4xl font-black mb-2 text-white">Menu Kami</h1>
+                        <h1 className="text-3xl md:text-4xl font-black mb-2 text-white">Menu {storeSettings?.cafe_name || 'Kami'}</h1>
                         <p className="text-gray-400 text-sm md:text-base">Silakan pilih pesanan Anda, sentuh produk untuk menambah.</p>
                     </div>
-                    <div className="hidden md:flex w-12 h-12 rounded-xl bg-blue-600 items-center justify-center text-white text-2xl font-black shadow-lg shadow-blue-900/20">N</div>
+                    {storeSettings?.logo_base64 ? (
+                        <img src={storeSettings.logo_base64} alt="Brand Logo" className="hidden md:block w-16 h-16 object-contain rounded-xl bg-white p-1" />
+                    ) : (
+                        <div className="hidden md:flex w-12 h-12 rounded-xl bg-blue-600 items-center justify-center text-white text-2xl font-black shadow-lg shadow-blue-900/20">N</div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
