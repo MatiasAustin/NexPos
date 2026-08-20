@@ -1,6 +1,30 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login");
+      } else {
+        setLoading(false);
+      }
+    };
+    checkAuth();
+  }, [router]);
+
+  if (loading) {
+    return <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-400">Memeriksa sesi...</div>;
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-900">
       <h1 className="text-4xl font-bold mb-4">NexPos System</h1>
