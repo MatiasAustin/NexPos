@@ -136,6 +136,24 @@ router.put('/staff/:id/toggle', async (req, res) => {
     }
 });
 
+router.put('/staff/:id', async (req, res) => {
+    try {
+        const result = await authService.updateStaff(req.params.id, req.body);
+        res.json(result);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.delete('/staff/:id', async (req, res) => {
+    try {
+        const result = await authService.deleteStaff(req.params.id);
+        res.json(result);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 // =======================
 // PAYMENT METHODS
 // =======================

@@ -17,6 +17,7 @@ export default function AdminDashboard() {
     
     // Edit & Expenses States
     const [editingProduct, setEditingProduct] = useState<any>(null);
+    const [editingStaff, setEditingStaff] = useState<any>(null);
     const [expenses, setExpenses] = useState<any[]>([]);
     const [rawMaterials, setRawMaterials] = useState<any[]>([]);
     const [newExpense, setNewExpense] = useState({ description: '', amount: 0 });
@@ -344,6 +345,53 @@ export default function AdminDashboard() {
             setNewMaterial({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
             fetchData();
         } catch (e: any) { alert(e.message); }
+        setLoading(false);
+    };
+
+    const handleUpdateStaff = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff/${editingStaff.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    full_name: editingStaff.full_name,
+                    role: editingStaff.role,
+                    password: editingStaff.password // optional
+                })
+            });
+            if(res.ok) {
+                alert("Data staf berhasil diperbarui!");
+                setEditingStaff(null);
+                fetchData();
+            } else {
+                const err = await res.json();
+                alert(err.error);
+            }
+        } catch(error) {
+            alert("Terjadi kesalahan.");
+        }
+        setLoading(false);
+    };
+
+    const handleDeleteStaff = async (id: string) => {
+        if(!confirm("Yakin ingin menghapus staf ini?")) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff/${id}`, {
+                method: 'DELETE'
+            });
+            if(res.ok) {
+                alert("Staf berhasil dihapus!");
+                fetchData();
+            } else {
+                const err = await res.json();
+                alert(err.error);
+            }
+        } catch(error) {
+            alert("Terjadi kesalahan.");
+        }
         setLoading(false);
     };
 
@@ -775,7 +823,12 @@ export default function AdminDashboard() {
                                     <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                         <table className="w-full text-left border-collapse">
                                             <thead>
-                                                <tr className="bg-gray-800/50 border-b border-gray-800"><th className="p-4 text-gray-400">Nama</th><th className="p-4 text-gray-400">Role</th><th className="p-4 text-gray-400">Status</th></tr>
+                                                <tr className="bg-gray-800/50 border-b border-gray-800">
+                                                    <th className="p-4 text-gray-400">Nama</th>
+                                                    <th className="p-4 text-gray-400">Role</th>
+                                                    <th className="p-4 text-gray-400">Status</th>
+                                                    <th className="p-4 text-gray-400 text-right">Aksi</th>
+                                                </tr>
                                             </thead>
                                             <tbody>
                                                 {staffList.map((st: any) => (
@@ -783,11 +836,45 @@ export default function AdminDashboard() {
                                                         <td className="p-4 font-bold text-white">{st.full_name}<p className="text-xs text-gray-500 font-normal">{st.email}</p></td>
                                                         <td className="p-4"><span className={`px-3 py-1 text-xs font-bold rounded-lg ${st.role === 'owner' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-gray-800 text-gray-300'}`}>{st.role.toUpperCase()}</span></td>
                                                         <td className="p-4"><span className="text-green-400 font-bold text-sm">Aktif</span></td>
+                                                        <td className="p-4 text-right flex justify-end gap-2">
+                                                            <button onClick={() => setEditingStaff(st)} className="px-3 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
+                                                            <button onClick={() => handleDeleteStaff(st.id)} className="px-3 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Hapus</button>
+                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
                                     </div>
+
+                                    {/* Edit Staff Modal */}
+                                    {editingStaff && (
+                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl">
+                                                <h3 className="font-bold text-xl text-white mb-6">Edit Staf: {editingStaff.full_name}</h3>
+                                                <form onSubmit={handleUpdateStaff} className="space-y-4">
+                                                    <div>
+                                                        <label className="text-sm font-bold text-gray-400 block mb-2">Nama Lengkap</label>
+                                                        <input type="text" value={editingStaff.full_name} onChange={e => setEditingStaff({...editingStaff, full_name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-sm font-bold text-gray-400 block mb-2">Role</label>
+                                                        <select value={editingStaff.role} onChange={e => setEditingStaff({...editingStaff, role: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500">
+                                                            <option value="staff">Kasir (Staff)</option>
+                                                            <option value="owner">Admin (Owner)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-sm font-bold text-gray-400 block mb-2">Password Baru (Opsional)</label>
+                                                        <input type="password" value={editingStaff.password || ''} onChange={e => setEditingStaff({...editingStaff, password: e.target.value})} placeholder="Biarkan kosong jika tidak diubah" className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" minLength={6} />
+                                                    </div>
+                                                    <div className="flex gap-4 mt-6">
+                                                        <button type="button" onClick={() => setEditingStaff(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
+                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Perubahan</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             
