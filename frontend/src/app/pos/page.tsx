@@ -13,6 +13,9 @@ const DUMMY_PRODUCTS = [
 ];
 
 export default function PosPage() {
+    const [hasSession, setHasSession] = useState(false);
+    const [openingCash, setOpeningCash] = useState<string>("");
+    
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
     const [showPayment, setShowPayment] = useState(false);
     const [amountReceived, setAmountReceived] = useState<string>("");
@@ -57,6 +60,33 @@ export default function PosPage() {
         }
         setLoading(false);
     };
+
+    if (!hasSession) {
+        return (
+            <div className="flex h-screen bg-gray-50 items-center justify-center">
+                <div className="bg-white p-8 rounded-2xl w-[400px] shadow-xl text-center">
+                    <Banknote className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold mb-2">Buka Laci Kasir</h2>
+                    <p className="text-gray-500 mb-6">Masukkan modal uang fisik awal (Opening Cash) untuk sesi ini.</p>
+                    <input 
+                        type="number"
+                        value={openingCash}
+                        onChange={(e) => setOpeningCash(e.target.value)}
+                        className="w-full border-2 border-gray-200 rounded-lg p-3 text-lg mb-6 text-center focus:border-blue-500 outline-none"
+                        placeholder="Rp 0"
+                    />
+                    <button 
+                        onClick={() => {
+                            if(openingCash) setHasSession(true);
+                        }}
+                        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl"
+                    >
+                        Buka Sesi Kasir
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen bg-gray-50 text-gray-900">
