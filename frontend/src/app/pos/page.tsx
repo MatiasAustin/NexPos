@@ -250,11 +250,74 @@ export default function PosPage() {
                 description: newExpense.description,
                 amount: Number(newExpense.amount),
                 recorded_by: staff?.id,
-                staff_name: staff?.full_name // Assuming column is added
+                staff_name: staff?.full_name
             }]);
             if (error) throw error;
             toast.success("Pengeluaran berhasil dicatat.");
             setNewExpense({ description: '', amount: 0 });
+            fetchExpensesAndMaterials();
+        } catch (e: any) { toast.error(e.message); }
+        setLoading(false);
+    };
+
+    const handleUpdateExpense = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('expenses')
+                .update({ description: editingExpense.description, amount: Number(editingExpense.amount) })
+                .eq('id', editingExpense.id);
+            if (error) throw error;
+            toast.success("Pengeluaran diperbarui.");
+            setEditingExpense(null);
+            fetchExpensesAndMaterials();
+        } catch (e: any) { toast.error(e.message); }
+        setLoading(false);
+    };
+
+    const handleDeleteExpense = async (id: string) => {
+        const ok = await confirm({ title: "Hapus Pengeluaran", message: "Hapus data pengeluaran ini secara permanen?", confirmText: "Hapus", variant: "danger" });
+        if (!ok) return;
+        try {
+            const { error } = await supabase.from('expenses').delete().eq('id', id);
+            if (error) throw error;
+            toast.success("Pengeluaran dihapus.");
+            fetchExpensesAndMaterials();
+        } catch (e: any) { toast.error(e.message); }
+    };
+
+    // Permission: can the current staff edit/delete a record?
+    const canEditRecord = (recordStaffName: string | null) => {
+        if (!staff) return false;
+        if (staff.role === 'owner') return true;
+        if (!recordStaffName) return staff.role === 'owner'; // owner-created records, only owner can edit
+        return staff.full_name === recordStaffName;
+    };
+
+    // material mode: 'add' = tambah bahan baru, 'update' = update stok bahan yg ada
+    const [materialMode, setMaterialMode] = useState<'add' | 'update'>('add');
+    const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
+    const [stockAdjustment, setStockAdjustment] = useState<{ delta: number; note: string; price: number }>({ delta: 0, note: '', price: 0 });
+    const [editingExpense, setEditingExpense] = useState<any>(null);
+
+    const handleAdjustStock = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedMaterial) return;
+        setLoading(true);
+        const newStock = selectedMaterial.current_stock + Number(stockAdjustment.delta);
+        if (newStock < 0) { toast.error("Stok tidak boleh negatif!"); setLoading(false); return; }
+        try {
+            const updatePayload: any = {
+                current_stock: newStock,
+                updated_by_name: staff?.full_name
+            };
+            if (stockAdjustment.price > 0) updatePayload.last_price_per_unit = Number(stockAdjustment.price);
+            const { error } = await supabase.from('raw_materials').update(updatePayload).eq('id', selectedMaterial.id);
+            if (error) throw error;
+            const action = stockAdjustment.delta >= 0 ? `+${stockAdjustment.delta}` : `${stockAdjustment.delta}`;
+            toast.success(`Stok ${selectedMaterial.name} diupdate (${action} ${selectedMaterial.unit}).`);
+            setSelectedMaterial(null);
+            setStockAdjustment({ delta: 0, note: '', price: 0 });
             fetchExpensesAndMaterials();
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
@@ -279,34 +342,8 @@ export default function PosPage() {
         setLoading(false);
     };
 
-    const handleUpdateMaterial = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            const { error } = await supabase.from('raw_materials')
-                .update({
-                    name: editingMaterial.name,
-                    unit: editingMaterial.unit,
-                    current_stock: Number(editingMaterial.current_stock),
-                    last_price_per_unit: Number(editingMaterial.last_price_per_unit),
-                    updated_by_name: staff?.full_name
-                })
-                .eq('id', editingMaterial.id);
-            if (error) throw error;
-            toast.success("Bahan Baku berhasil diperbarui.");
-            setEditingMaterial(null);
-            fetchExpensesAndMaterials();
-        } catch (e: any) { toast.error(e.message); }
-        setLoading(false);
-    };
-
     const handleDeleteMaterial = async (id: string) => {
-        const ok = await confirm({
-            title: "Hapus Bahan",
-            message: "Hapus bahan baku ini secara permanen?",
-            confirmText: "Hapus",
-            variant: "danger"
-        });
+        const ok = await confirm({ title: "Hapus Bahan", message: "Hapus bahan baku ini secara permanen?", confirmText: "Hapus", variant: "danger" });
         if (!ok) return;
         try {
             const { error } = await supabase.from('raw_materials').delete().eq('id', id);
@@ -856,17 +893,42 @@ export default function PosPage() {
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div className="space-y-8">
-                                <div className="p-6 bg-[#131B2C] rounded-2xl border border-gray-800">
-                                    <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Bahan Baku / Update Stok</h3>
-                                    <form onSubmit={handleCreateMaterial} className="space-y-4">
-                                        <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <input type="text" placeholder="Unit (kg/lt)" required value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                            <input type="number" placeholder="Stok" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                            <input type="number" placeholder="Harga/Unit" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                        </div>
-                                        <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Bahan</button>
-                                    </form>
+                                <div className="p-6 bg-[#131B2C] rounded-2xl border border-gray-800 transition-all">
+                                    <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-3">
+                                        <h3 className="font-bold text-lg text-white">
+                                            {materialMode === 'add' ? 'Tambah Bahan Baku Baru' : `Update Stok: ${selectedMaterial?.name}`}
+                                        </h3>
+                                        {materialMode === 'update' && (
+                                            <button onClick={() => { setMaterialMode('add'); setSelectedMaterial(null); }} className="text-xs text-blue-400 hover:text-blue-300">Batal Update</button>
+                                        )}
+                                    </div>
+                                    
+                                    {materialMode === 'add' ? (
+                                        <form onSubmit={handleCreateMaterial} className="space-y-4">
+                                            <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <input type="text" placeholder="Unit (kg/lt)" required value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                <input type="number" placeholder="Stok" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                <input type="number" placeholder="Harga/Unit" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                            </div>
+                                            <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Bahan</button>
+                                        </form>
+                                    ) : (
+                                        <form onSubmit={handleAdjustStock} className="space-y-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-xs text-gray-500 mb-1 block">Penambahan/Pengurangan Stok</label>
+                                                    <input type="number" placeholder="Contoh: 5 atau -2" required value={stockAdjustment.delta || ''} onChange={e => setStockAdjustment({...stockAdjustment, delta: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-500 mb-1 block">Harga Beli Baru (Opsional)</label>
+                                                    <input type="number" placeholder="Biarkan kosong jika tetap" value={stockAdjustment.price || ''} onChange={e => setStockAdjustment({...stockAdjustment, price: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                </div>
+                                            </div>
+                                            <p className="text-xs text-gray-500">Gunakan angka minus (-) jika bahan terpakai/dibuang.</p>
+                                            <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Update Stok</button>
+                                        </form>
+                                    )}
                                 </div>
 
                                 <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden">
@@ -885,7 +947,12 @@ export default function PosPage() {
                                                             </td>
                                                             <td className="p-4 text-center"><span className="px-3 py-1 bg-gray-800 rounded-lg text-sm font-bold">{mat.current_stock} {mat.unit}</span></td>
                                                             <td className="p-4 text-right">
-                                                                <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                <div className="flex gap-1 justify-end">
+                                                                    <button onClick={() => { setMaterialMode('update'); setSelectedMaterial(mat); setStockAdjustment({ delta: 0, note: '', price: mat.last_price_per_unit }); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
+                                                                    {canEditRecord(mat.updated_by_name) && (
+                                                                        <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                    )}
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -897,12 +964,21 @@ export default function PosPage() {
                             </div>
 
                             <div className="space-y-8">
-                                <div className="p-6 bg-[#131B2C] rounded-2xl border border-gray-800">
-                                    <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Catat Pengeluaran Operasional</h3>
-                                    <form onSubmit={handleCreateExpense} className="space-y-4">
-                                        <input type="text" placeholder="Deskripsi Pengeluaran (contoh: Beli Es Batu)" required value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                        <input type="number" placeholder="Nominal (Rp)" required value={newExpense.amount || ''} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                        <button type="submit" disabled={loading} className="w-full py-3 bg-orange-600/20 text-orange-400 border border-orange-500/30 rounded-xl font-bold hover:bg-orange-500/30 mt-2">Simpan Pengeluaran</button>
+                                <div className="p-6 bg-[#131B2C] rounded-2xl border border-gray-800 transition-all">
+                                    <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-3">
+                                        <h3 className="font-bold text-lg text-white">
+                                            {editingExpense ? 'Edit Pengeluaran' : 'Catat Pengeluaran Operasional'}
+                                        </h3>
+                                        {editingExpense && (
+                                            <button onClick={() => { setEditingExpense(null); setNewExpense({description: '', amount: 0}); }} className="text-xs text-blue-400 hover:text-blue-300">Batal Edit</button>
+                                        )}
+                                    </div>
+                                    <form onSubmit={editingExpense ? handleUpdateExpense : handleCreateExpense} className="space-y-4">
+                                        <input type="text" placeholder="Deskripsi Pengeluaran (contoh: Beli Es Batu)" required value={editingExpense ? editingExpense.description : newExpense.description} onChange={e => editingExpense ? setEditingExpense({...editingExpense, description: e.target.value}) : setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                        <input type="number" placeholder="Nominal (Rp)" required value={editingExpense ? editingExpense.amount || '' : newExpense.amount || ''} onChange={e => editingExpense ? setEditingExpense({...editingExpense, amount: Number(e.target.value)}) : setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                        <button type="submit" disabled={loading} className="w-full py-3 bg-orange-600/20 text-orange-400 border border-orange-500/30 rounded-xl font-bold hover:bg-orange-500/30 mt-2">
+                                            {editingExpense ? 'Simpan Perubahan' : 'Simpan Pengeluaran'}
+                                        </button>
                                     </form>
                                 </div>
 
@@ -918,7 +994,7 @@ export default function PosPage() {
                                                         <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
                                                             <td className="p-4">
                                                                 <div className="font-bold text-white">{exp.description}</div>
-                                                                <div className="text-[10px] text-gray-500 mt-1">{new Date(exp.expense_date).toLocaleDateString('id-ID')}</div>
+                                                                <div className="text-[10px] text-gray-500 mt-1">{new Date(exp.expense_date || exp.created_at).toLocaleDateString('id-ID')} {new Date(exp.expense_date || exp.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</div>
                                                             </td>
                                                             <td className="p-4 text-center">
                                                                 {exp.staff_name ? (
@@ -928,7 +1004,13 @@ export default function PosPage() {
                                                                 )}
                                                             </td>
                                                             <td className="p-4 text-right text-orange-400 font-bold">
-                                                                Rp {exp.amount.toLocaleString('id-ID')}
+                                                                <div className="mb-2">Rp {exp.amount.toLocaleString('id-ID')}</div>
+                                                                {canEditRecord(exp.staff_name) && (
+                                                                    <div className="flex gap-1 justify-end">
+                                                                        <button onClick={() => setEditingExpense({...exp})} className="px-2 py-1 text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
+                                                                        <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 rounded-md hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                    </div>
+                                                                )}
                                                             </td>
                                                         </tr>
                                                     ))}
