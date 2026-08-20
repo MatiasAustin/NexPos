@@ -96,4 +96,48 @@ export class TransactionService {
         if (error) throw new Error(error.message);
         return data;
     }
+
+    async getPaymentProviderConfig(payment_method_id: string): Promise<PaymentProviderConfig> {
+        const { data, error } = await supabase
+            .from('payment_methods')
+            .select('*')
+            .eq('id', payment_method_id)
+            .single();
+            
+        if (error) throw new Error(error.message);
+        return data as PaymentProviderConfig;
+    }
+
+    async createTransaction(payload: {
+        order_reference: string;
+        amount_due: number;
+        amount_received: number;
+        payment_method_id: string;
+        provider_transaction_id?: string;
+        payment_reference?: string;
+        items?: any[];
+    }) {
+        // We can just reuse processPayment for createTransaction as it essentially does the same DB insert
+        // but typically createTransaction leaves it as Pending. Our processPayment handles status automatically.
+        // Let's explicitly set amount_received to 0 for creation if not provided so it stays Pending
+        return this.processPayment({
+            ...payload,
+            amount_received: payload.amount_received || 0
+        });
+    }
+
+    async updateTransactionStatus(transaction_id: string, status: string, provider_data?: any) {
+        const { data, error } = await supabase
+            .from('transactions')
+            .update({ 
+                status,
+                ...(provider_data ? { provider_transaction_id: provider_data.id } : {})
+            })
+            .eq('id', transaction_id)
+            .select('*')
+            .single();
+
+        if (error) throw new Error(`Failed to update transaction: ${error.message}`);
+        return data;
+    }
 }
