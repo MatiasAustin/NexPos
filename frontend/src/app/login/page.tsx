@@ -4,19 +4,19 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Lock, User, Eye, EyeOff } from "lucide-react";
+import { useToast } from "@/components/Toast";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
     const router = useRouter();
+    const toast = useToast();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setError("");
 
         try {
             const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -45,7 +45,7 @@ export default function LoginPage() {
                 router.push('/pos');
             }
         } catch (err: any) {
-            setError(err.message || "Gagal login. Periksa kembali email dan password Anda.");
+            toast.error(err.message || "Gagal login. Periksa kembali email dan password Anda.");
         } finally {
             setLoading(false);
         }
@@ -59,12 +59,6 @@ export default function LoginPage() {
                     <h1 className="text-3xl font-black text-white tracking-tight">NexPos App</h1>
                     <p className="text-gray-400 mt-2 text-sm">Masuk dengan akun Staff atau Admin Anda.</p>
                 </div>
-
-                {error && (
-                    <div className="mb-6 p-4 bg-red-500/10 text-red-400 rounded-xl text-sm font-bold text-center border border-red-500/20">
-                        {error}
-                    </div>
-                )}
 
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div>

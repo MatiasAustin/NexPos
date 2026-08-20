@@ -5,6 +5,9 @@ import { ShoppingCart, CreditCard, Banknote, Trash2, Clock, Minus, Plus, LayoutG
 import { processPayment, getPaymentMethods, getActiveProducts } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
+import { LoadingSpinner } from "@/components/Loading";
 
 export default function PosPage() {
     const [hasSession, setHasSession] = useState(false);
@@ -27,6 +30,8 @@ export default function PosPage() {
     // Auth State
     const [staff, setStaff] = useState<any>(null);
     const router = useRouter();
+    const toast = useToast();
+    const { confirm, ConfirmDialog } = useConfirm();
 
     // Merged Auth & Session check below
 
@@ -127,7 +132,7 @@ export default function PosPage() {
                 if (selectedProfile) setStaff(selectedProfile);
                 setHasSession(true);
             } else {
-                alert("Gagal membuka shift kasir.");
+                toast.error("Gagal membuka shift kasir.");
             }
         } catch (error) {
             console.error("Error opening session:", error);
@@ -136,8 +141,13 @@ export default function PosPage() {
     };
 
     const handleCloseSession = async () => {
-        const confirm = window.confirm("Yakin ingin menutup shift sekarang? Uang laci harus dihitung.");
-        if (!confirm) return;
+        const isConfirmed = await confirm({
+            title: "Tutup Shift",
+            message: "Yakin ingin menutup shift sekarang? Uang laci harus dihitung.",
+            variant: "warning",
+            confirmText: "Tutup Shift"
+        });
+        if (!isConfirmed) return;
 
         const actualCash = window.prompt("Masukkan jumlah uang tunai fisik yang ada di laci saat ini:");
         if (actualCash === null) return; // Cancel
@@ -154,13 +164,13 @@ export default function PosPage() {
                 })
             });
             if (res.ok) {
-                alert("Shift berhasil ditutup.");
+                toast.success("Shift berhasil ditutup.");
                 setHasSession(false);
                 setSessionId(null);
                 setOpeningCash("");
             } else {
                 const err = await res.json();
-                alert(`Gagal menutup shift: ${err.error}`);
+                toast.error(`Gagal menutup shift: ${err.error}`);
             }
         } catch (error) {
             console.error(error);
@@ -240,7 +250,7 @@ export default function PosPage() {
 
     const handlePayment = async () => {
         if (!selectedMethod) {
-            alert("Belum ada Metode Pembayaran di Database. Silakan tambahkan via database/admin terlebih dahulu.");
+            toast.warning("Belum ada Metode Pembayaran di Database. Silakan tambahkan via database/admin terlebih dahulu.");
             return;
         }
         
@@ -288,18 +298,19 @@ export default function PosPage() {
                 }
             }
         } catch (error: any) {
-            alert(error.response?.data?.error || "Payment Failed");
+            toast.error(error.response?.data?.error || "Payment Failed");
         }
         setLoading(false);
     };
 
     if (isCheckingSession) {
-        return <div className="flex min-h-screen bg-[#121214] text-gray-400 items-center justify-center p-4">Memuat data shift kasir...</div>;
+        return <div className="flex min-h-screen bg-[#121214] text-gray-400 items-center justify-center p-4"><LoadingSpinner size="lg" text="Memuat data shift kasir..." /></div>;
     }
 
     if (!hasSession) {
         return (
             <div className="flex min-h-screen bg-[#121214] items-center justify-center p-4">
+                <ConfirmDialog />
                 <div className="bg-[#1a1a1c] p-8 rounded-2xl w-full max-w-[400px] shadow-2xl border border-gray-800 text-center">
                     <Banknote className="w-12 h-12 text-blue-500 mx-auto mb-4" />
                     <h2 className="text-2xl font-bold mb-2 text-white">Buka Shift Kasir</h2>
@@ -347,6 +358,7 @@ export default function PosPage() {
 
     return (
         <div className="flex flex-col md:flex-row h-screen bg-[#121214] text-gray-100 overflow-hidden">
+            <ConfirmDialog />
             {/* LEFT: PRODUCTS LIST */}
             <div className="flex-1 flex flex-col overflow-y-auto">
                 <div className="p-6 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#1a1a1c]">

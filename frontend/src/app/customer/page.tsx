@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ShoppingCart, Send, Trash2, Minus, Plus, LayoutGrid, List } from "lucide-react";
 import { getActiveProducts } from "@/lib/api";
+import { SkeletonCard } from "@/components/Loading";
 
 export default function CustomerPage() {
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
@@ -147,7 +148,12 @@ export default function CustomerPage() {
                 </div>
 
                 <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" : "flex flex-col gap-4"}>
-                    {filteredProducts.map((prod) => (
+                    {loading ? (
+                        Array.from({ length: 8 }).map((_, idx) => <SkeletonCard key={idx} />)
+                    ) : filteredProducts.length === 0 ? (
+                        <div className="col-span-full text-center text-gray-500 py-10 bg-[#131B2C] rounded-2xl border border-gray-800">Belum ada produk di kategori ini.</div>
+                    ) : (
+                        filteredProducts.map((prod) => (
                         <div
                             key={prod.id}
                             onClick={() => addToCart(prod)}
@@ -175,7 +181,7 @@ export default function CustomerPage() {
                                 <div className="absolute -bottom-4 -right-4 text-7xl opacity-5 group-hover:opacity-10 transition-opacity z-0">{prod.image_icon || '☕'}</div>
                             )}
                         </div>
-                    ))}
+                    )))}
                 </div>
             </div>
 

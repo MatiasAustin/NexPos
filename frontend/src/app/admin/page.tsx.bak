@@ -1,15 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { getReconciliationReport, getAuditLogs } from "@/lib/api";
 import Link from "next/link";
-import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload, Loader2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import ReportChart from "@/components/ReportChart";
-import { useToast } from "@/components/Toast";
-import { useConfirm } from "@/components/ConfirmModal";
-import { LoadingSpinner, SkeletonCard, SkeletonTable } from "@/components/Loading";
 
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses">("reconciliation");
@@ -52,23 +49,19 @@ export default function AdminDashboard() {
     // Inventory states
     const [products, setProducts] = useState<any[]>([]);
     const [newProduct, setNewProduct] = useState<{name: string, category: string, price: number, cogs: number, stock: number, image_icon: string, ingredients: {name: string, cost: number}[]}>({ 
-        name: '', category: '', price: 0, cogs: 0, stock: 0, image_icon: '📦', ingredients: [] 
+        name: '', category: '', price: 0, cogs: 0, stock: 0, image_icon: 'ðŸ“¦', ingredients: [] 
     });
     
     const [loading, setLoading] = useState(false);
-    const [tabLoading, setTabLoading] = useState(false);
     const [profile, setProfile] = useState<any>(null);
     const router = useRouter();
-    const toast = useToast();
-    const { confirm, ConfirmDialog } = useConfirm();
-
 
     useEffect(() => {
         fetchData();
     }, [activeTab]);
 
     const fetchData = async () => {
-        setTabLoading(true);
+        setLoading(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -78,7 +71,7 @@ export default function AdminDashboard() {
 
             const { data: prof } = await supabase.from('staff_profiles').select('*').eq('id', session.user.id).single();
             if (!prof || prof.role !== 'owner') {
-                toast.error("Akses ditolak. Anda bukan Admin/Owner.");
+                alert("Akses ditolak. Anda bukan Admin/Owner.");
                 router.push('/pos');
                 return;
             }
@@ -87,10 +80,12 @@ export default function AdminDashboard() {
             if (activeTab === "reconciliation") {
                 const today = new Date().toISOString().split('T')[0];
                 const res = await getReconciliationReport(today, today);
+                // Ensure it's an array
                 setReconciliation(Array.isArray(res) ? res : (res?.sessions || []));
             } else if (activeTab === "audit") {
                 await fetchAuditLogs();
             } else if (activeTab === "staff") {
+                // Fetch staff list from backend (requires API endpoint)
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff`);
                 if(res.ok) setStaffList(await res.json());
             } else if (activeTab === "inventory") {
@@ -101,7 +96,7 @@ export default function AdminDashboard() {
                 if(res.ok) setTransactions(await res.json());
             } else if (activeTab === "settings") {
                 try {
-                    const { data } = await supabase.from('store_settings').select('*').limit(1).maybeSingle();
+                    const { data, error } = await supabase.from('store_settings').select('*').limit(1).maybeSingle();
                     if (data) {
                         setStoreSettings({
                             logo_base64: data.logo_base64 || "",
@@ -127,15 +122,14 @@ export default function AdminDashboard() {
             }
         } catch (error) {
             console.error("Error fetching data", error);
-            toast.error("Terjadi kesalahan saat memuat data.");
         }
-        setTabLoading(false);
+        setLoading(false);
     };
 
     const handleSaveSettings = async () => {
         setLoading(true);
         try {
-            const { data } = await supabase.from('store_settings').select('id').maybeSingle();
+            const { data, error: selectErr } = await supabase.from('store_settings').select('id').maybeSingle();
             
             if (data?.id) {
                 const { error } = await supabase.from('store_settings').update(storeSettings).eq('id', data.id);
@@ -144,10 +138,11 @@ export default function AdminDashboard() {
                 const { error } = await supabase.from('store_settings').insert([storeSettings]);
                 if (error) throw error;
             }
-            toast.success("Pengaturan Toko berhasil disimpan!");
+            alert("Pengaturan Toko berhasil disimpan!");
+            // Sync locally to avoid waiting for db if used locally
             localStorage.setItem("nexpos_store_settings", JSON.stringify(storeSettings));
         } catch(e: any) {
-            toast.error("Gagal menyimpan: " + (e.message || "Pastikan script SQL dijalankan."));
+            alert("Gagal menyimpan. Error: " + (e.message || "Pastikan script SQL dijalankan."));
         }
         setLoading(false);
     };
@@ -217,15 +212,15 @@ export default function AdminDashboard() {
                 body: JSON.stringify(newStaff)
             });
             if(res.ok) {
-                toast.success("Staf berhasil ditambahkan!");
+                alert("Staf berhasil ditambahkan!");
                 setNewStaff({ full_name: '', email: '', password: '', role: 'staff' });
                 fetchData();
             } else {
                 const err = await res.json();
-                toast.error(err.error || "Gagal menambahkan staf.");
+                alert(err.error);
             }
         } catch(error) {
-            toast.error("Terjadi kesalahan jaringan.");
+            alert("Terjadi kesalahan.");
         }
         setLoading(false);
     };
@@ -234,6 +229,7 @@ export default function AdminDashboard() {
         e.preventDefault();
         setLoading(true);
         
+        // Hitung total HPP otomatis dari bahan baku (jika ada)
         const computedCogs = newProduct.ingredients.length > 0 
             ? newProduct.ingredients.reduce((sum, item) => sum + item.cost, 0)
             : Number(newProduct.cogs);
@@ -251,63 +247,50 @@ export default function AdminDashboard() {
                 })
             });
             if(res.ok) {
-                toast.success("Produk berhasil ditambahkan!");
-                setNewProduct({ name: '', category: '', price: 0, cogs: 0, stock: 0, image_icon: '📦', ingredients: [] });
+                alert("Produk berhasil ditambahkan!");
+                setNewProduct({ name: '', category: '', price: 0, cogs: 0, stock: 0, image_icon: 'ðŸ“¦', ingredients: [] });
                 fetchData();
             } else {
                 const err = await res.json();
-                toast.error(err.error || "Gagal menambahkan produk.");
+                alert(err.error);
             }
         } catch(error) {
-            toast.error("Terjadi kesalahan jaringan.");
+            alert("Terjadi kesalahan.");
         }
         setLoading(false);
     };
 
-    const [refundReason, setRefundReason] = useState('');
-    const [refundTarget, setRefundTarget] = useState<any>(null);
-
     const handleRefund = async (trx: any) => {
-        setRefundTarget(trx);
-        setRefundReason('');
-    };
-
-    const handleConfirmRefund = async () => {
-        if (!refundReason.trim()) {
-            toast.warning("Masukkan alasan refund terlebih dahulu.");
-            return;
-        }
-        const ok = await confirm({
-            title: "Konfirmasi Refund",
-            message: `Anda yakin ingin melakukan refund Rp ${Number(refundTarget?.amount_received || 0).toLocaleString('id-ID')}?`,
-            confirmText: "Ya, Proses Refund",
-            variant: "warning"
-        });
-        if (!ok) return;
+        const reason = prompt(`Masukkan alasan refund untuk transaksi ${trx.order_reference}:`);
+        if (!reason) return; // Cancelled
+        
+        const confirm = window.confirm(`Anda yakin ingin melakukan refund senilai Rp ${trx.amount_received.toLocaleString('id-ID')}?`);
+        if (!confirm) return;
 
         setLoading(true);
-        setRefundTarget(null);
         try {
+            // Kita butuh staff/owner id yang saat ini login
             const { data: { session } } = await supabase.auth.getSession();
+            
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/refunds`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    transaction_id: refundTarget.id,
-                    refund_amount: refundTarget.amount_received,
-                    reason: refundReason,
+                    transaction_id: trx.id,
+                    refund_amount: trx.amount_received, // Full refund
+                    reason: reason,
                     requested_by: session?.user?.id
                 })
             });
             if(res.ok) {
-                toast.success("Refund berhasil diproses!");
-                fetchData();
+                alert("Refund berhasil diproses!");
+                fetchData(); // reload history
             } else {
                 const err = await res.json();
-                toast.error(err.error || "Refund gagal.");
+                alert(err.error);
             }
         } catch(error) {
-            toast.error("Terjadi kesalahan sistem saat memproses refund.");
+            alert("Terjadi kesalahan sistem saat memproses refund.");
         }
         setLoading(false);
     };
@@ -334,41 +317,35 @@ export default function AdminDashboard() {
                 })
             });
             if(res.ok) {
-                toast.success("Produk berhasil diperbarui!");
+                alert("Produk berhasil diperbarui!");
                 setEditingProduct(null);
                 fetchData();
             } else {
                 const err = await res.json();
-                toast.error(err.error || "Gagal memperbarui produk.");
+                alert(err.error);
             }
         } catch(error) {
-            toast.error("Terjadi kesalahan jaringan.");
+            alert("Terjadi kesalahan.");
         }
         setLoading(false);
     };
 
     const handleDeleteTransaction = async (trx: any) => {
-        const ok = await confirm({
-            title: "Hapus Transaksi",
-            message: `Hapus transaksi ${trx.order_reference} secara permanen? Data laporan akan ikut terhapus.`,
-            confirmText: "Ya, Hapus Permanen",
-            variant: "danger"
-        });
-        if (!ok) return;
+        if (!window.confirm(`Hapus transaksi ${trx.order_reference} secara permanen? Laporan akan ikut terhapus.`)) return;
         setLoading(true);
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/transactions/${trx.id}`, {
                 method: 'DELETE'
             });
             if(res.ok || res.status === 204) {
-                toast.success("Transaksi berhasil dihapus.");
+                alert("Transaksi berhasil dihapus.");
                 fetchData();
             } else {
                 const err = await res.json();
-                toast.error(err.error || "Gagal menghapus.");
+                alert(err.error);
             }
         } catch(error) {
-            toast.error("Terjadi kesalahan sistem saat menghapus.");
+            alert("Terjadi kesalahan sistem saat menghapus.");
         }
         setLoading(false);
     };
@@ -383,10 +360,10 @@ export default function AdminDashboard() {
                 recorded_by: profile?.id
             }]);
             if (error) throw error;
-            toast.success("Pengeluaran berhasil dicatat.");
+            alert("Pengeluaran dicatat.");
             setNewExpense({ description: '', amount: 0 });
             fetchData();
-        } catch (e: any) { toast.error(e.message); }
+        } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
 
@@ -398,25 +375,19 @@ export default function AdminDashboard() {
                 .update({ description: editingExpense.description, amount: Number(editingExpense.amount) })
                 .eq('id', editingExpense.id);
             if (error) throw error;
-            toast.success("Pengeluaran berhasil diperbarui.");
+            alert("Pengeluaran diperbarui.");
             setEditingExpense(null);
             fetchData();
-        } catch (e: any) { toast.error(e.message); }
+        } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
 
     const handleDeleteExpense = async (id: string) => {
-        const ok = await confirm({
-            title: "Hapus Pengeluaran",
-            message: "Hapus data pengeluaran ini secara permanen?",
-            confirmText: "Ya, Hapus",
-            variant: "danger"
-        });
-        if (!ok) return;
+        if (!window.confirm("Hapus pengeluaran ini secara permanen?")) return;
         setLoading(true);
         const { error } = await supabase.from('expenses').delete().eq('id', id);
-        if (error) toast.error(error.message);
-        else { toast.success("Pengeluaran dihapus."); fetchData(); }
+        if (error) alert(error.message);
+        else { fetchData(); }
         setLoading(false);
     };
 
@@ -431,10 +402,10 @@ export default function AdminDashboard() {
                 last_price_per_unit: Number(newMaterial.last_price_per_unit)
             }]);
             if (error) throw error;
-            toast.success("Bahan Baku berhasil ditambahkan.");
+            alert("Bahan Baku ditambahkan.");
             setNewMaterial({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
             fetchData();
-        } catch (e: any) { toast.error(e.message); }
+        } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
 
@@ -451,29 +422,24 @@ export default function AdminDashboard() {
                 })
                 .eq('id', editingMaterial.id);
             if (error) throw error;
-            toast.success("Bahan Baku berhasil diperbarui.");
+            alert("Bahan Baku diperbarui.");
             setEditingMaterial(null);
             fetchData();
-        } catch (e: any) { toast.error(e.message); }
+        } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
 
     const handleDeleteMaterial = async (id: string) => {
-        const ok = await confirm({
-            title: "Hapus Bahan Baku",
-            message: "Hapus bahan baku ini secara permanen dari daftar?",
-            confirmText: "Ya, Hapus",
-            variant: "danger"
-        });
-        if (!ok) return;
+        if (!window.confirm("Hapus bahan baku ini secara permanen?")) return;
         setLoading(true);
         const { error } = await supabase.from('raw_materials').delete().eq('id', id);
-        if (error) toast.error(error.message);
-        else { toast.success("Bahan baku dihapus."); fetchData(); }
+        if (error) alert(error.message);
+        else { fetchData(); }
         setLoading(false);
     };
 
     const fetchAuditLogs = async () => {
+        // Fetch directly from Supabase to bypass any backend RLS issues
         const { data, error } = await supabase
             .from('audit_logs')
             .select('*')
@@ -482,6 +448,7 @@ export default function AdminDashboard() {
         if (!error && data) {
             setAuditLogs(data);
         } else {
+            // Fallback: also try via backend
             try {
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/audit-logs?limit=100`);
                 if (res.ok) setAuditLogs(await res.json());
@@ -499,45 +466,39 @@ export default function AdminDashboard() {
                 body: JSON.stringify({
                     full_name: editingStaff.full_name,
                     role: editingStaff.role,
-                    password: editingStaff.password
+                    password: editingStaff.password // optional
                 })
             });
             if(res.ok) {
-                toast.success("Data staf berhasil diperbarui!");
+                alert("Data staf berhasil diperbarui!");
                 setEditingStaff(null);
                 fetchData();
             } else {
                 const err = await res.json();
-                toast.error(err.error || "Gagal memperbarui staf.");
+                alert(err.error);
             }
         } catch(error) {
-            toast.error("Terjadi kesalahan jaringan.");
+            alert("Terjadi kesalahan.");
         }
         setLoading(false);
     };
 
     const handleDeleteStaff = async (id: string) => {
-        const ok = await confirm({
-            title: "Hapus Staf",
-            message: "Akun staf ini akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.",
-            confirmText: "Ya, Hapus Staf",
-            variant: "danger"
-        });
-        if(!ok) return;
+        if(!confirm("Yakin ingin menghapus staf ini?")) return;
         setLoading(true);
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff/${id}`, {
                 method: 'DELETE'
             });
             if(res.ok) {
-                toast.success("Staf berhasil dihapus!");
+                alert("Staf berhasil dihapus!");
                 fetchData();
             } else {
                 const err = await res.json();
-                toast.error(err.error || "Gagal menghapus staf.");
+                alert(err.error);
             }
         } catch(error) {
-            toast.error("Terjadi kesalahan jaringan.");
+            alert("Terjadi kesalahan.");
         }
         setLoading(false);
     };
@@ -594,7 +555,6 @@ export default function AdminDashboard() {
 
     return (
         <>
-        <ConfirmDialog />
         <style dangerouslySetInnerHTML={{__html: `
             @media print {
                 body * { visibility: hidden; }
@@ -682,40 +642,6 @@ export default function AdminDashboard() {
                         <div className="flex items-center justify-center h-full text-gray-500">Memuat data dari server...</div>
                     ) : (
                         <div className="space-y-6">
-                            {/* Refund Modal */}
-                            {refundTarget && (
-                                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                                    <div className="bg-[#131B2C] border border-gray-800 rounded-3xl p-6 w-full max-w-md shadow-2xl">
-                                        <h3 className="font-bold text-xl text-white mb-1">Proses Refund</h3>
-                                        <p className="text-gray-400 text-sm mb-5">Transaksi: <span className="text-white font-semibold">{refundTarget.order_reference}</span></p>
-                                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 mb-5">
-                                            <p className="text-yellow-400 text-sm font-semibold">Nominal Refund: Rp {Number(refundTarget.amount_received || 0).toLocaleString('id-ID')}</p>
-                                        </div>
-                                        <label className="text-sm text-gray-400 font-semibold block mb-2">Alasan Refund *</label>
-                                        <textarea
-                                            value={refundReason}
-                                            onChange={e => setRefundReason(e.target.value)}
-                                            placeholder="Masukkan alasan refund..."
-                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-yellow-500 resize-none h-24 mb-5"
-                                        />
-                                        <div className="flex gap-3">
-                                            <button onClick={() => setRefundTarget(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
-                                            <button onClick={handleConfirmRefund} className="flex-1 py-3 bg-yellow-600 text-white rounded-xl font-bold hover:bg-yellow-500">Proses Refund</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Tab Loading Skeleton */}
-                            {tabLoading ? (
-                                <div className="space-y-4">
-                                    <SkeletonTable rows={3} cols={4} />
-                                    <div className="grid grid-cols-3 gap-4">
-                                        {[1,2,3].map(i => <div key={i} className="h-24 bg-[#131B2C] border border-gray-800 rounded-2xl animate-pulse" />)}
-                                    </div>
-                                </div>
-                            ) : (<>
-
                             {/* RECONCILIATION TAB */}
                             {activeTab === "reconciliation" && (
                                 <div className="space-y-6">
@@ -1447,8 +1373,6 @@ export default function AdminDashboard() {
                                     </div>
                                 </div>
                             )}
-                            </>
-                        )}
                         </div>
                     )}
                 </div>
