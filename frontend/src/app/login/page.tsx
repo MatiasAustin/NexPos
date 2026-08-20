@@ -30,9 +30,13 @@ export default function LoginPage() {
                 .from('staff_profiles')
                 .select('role')
                 .eq('id', data.user.id)
-                .single();
+                .maybeSingle();
 
             if (profileError) throw profileError;
+            
+            if (!profile) {
+                throw new Error("Profil Staf tidak ditemukan di database. Pastikan SQL INSERT berhasil dijalankan dengan UID yang benar.");
+            }
 
             if (profile.role === 'owner') {
                 router.push('/admin');
@@ -69,7 +73,7 @@ export default function LoginPage() {
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
                                 placeholder="budi@nexpos.local"
                                 required
                             />
@@ -84,7 +88,7 @@ export default function LoginPage() {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
                                 placeholder="••••••••"
                                 required
                             />

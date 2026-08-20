@@ -225,21 +225,21 @@ export default function AdminDashboard() {
                                             <input 
                                                 type="text" placeholder="Nama Lengkap" required
                                                 value={newStaff.full_name} onChange={e => setNewStaff({...newStaff, full_name: e.target.value})}
-                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none"
+                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
                                             />
                                             <input 
                                                 type="email" placeholder="Email (misal: budi@nexpos.local)" required
                                                 value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})}
-                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none"
+                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
                                             />
                                             <input 
                                                 type="password" placeholder="Password (min 6 karakter)" required minLength={6}
                                                 value={newStaff.password} onChange={e => setNewStaff({...newStaff, password: e.target.value})}
-                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none"
+                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
                                             />
                                             <select 
                                                 value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})}
-                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none"
+                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
                                             >
                                                 <option value="staff">Kasir (Staff)</option>
                                                 <option value="owner">Admin (Owner)</option>
