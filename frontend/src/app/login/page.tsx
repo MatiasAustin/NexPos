@@ -52,51 +52,52 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-            <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">NexPos Login</h1>
-                    <p className="text-gray-500 mt-2">Selamat datang! Silakan masuk untuk memulai shift Anda.</p>
+        <div className="min-h-screen bg-[#121214] flex items-center justify-center p-4">
+            <div className="bg-[#1a1a1c] p-8 rounded-3xl shadow-2xl border border-gray-800 w-full max-w-md">
+                <div className="text-center mb-10">
+                    <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-3xl font-black mx-auto mb-6 shadow-lg shadow-blue-900/20">N</div>
+                    <h1 className="text-3xl font-black text-white tracking-tight">NexPos App</h1>
+                    <p className="text-gray-400 mt-2 text-sm">Masuk dengan akun Staff atau Admin Anda.</p>
                 </div>
 
                 {error && (
-                    <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg text-sm font-semibold text-center border border-red-200">
+                    <div className="mb-6 p-4 bg-red-500/10 text-red-400 rounded-xl text-sm font-bold text-center border border-red-500/20">
                         {error}
                     </div>
                 )}
 
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Username / Email</label>
-                        <div className="relative">
-                            <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <label className="block text-sm font-bold text-gray-300 mb-2">Username / Email</label>
+                        <div className="relative group">
+                            <User className="absolute left-4 top-4 w-5 h-5 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
                             <input 
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
-                                placeholder="Email Kasir..."
+                                className="w-full bg-[#121214] pl-12 pr-4 py-4 border border-gray-800 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-white font-bold transition-all"
+                                placeholder="budi@nexpos.local"
                                 required
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <label className="block text-sm font-bold text-gray-300 mb-2">Password</label>
+                        <div className="relative group">
+                            <Lock className="absolute left-4 top-4 w-5 h-5 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
                             <input 
                                 type={showPassword ? "text" : "password"}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
+                                className="w-full bg-[#121214] pl-12 pr-12 py-4 border border-gray-800 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-white font-bold transition-all"
                                 placeholder="••••••••"
                                 required
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                                className="absolute right-4 top-4 text-gray-500 hover:text-white transition-colors"
                             >
                                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
@@ -106,9 +107,9 @@ export default function LoginPage() {
                     <button 
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 disabled:opacity-70 transition-colors"
+                        className="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-500 disabled:opacity-50 transition-all shadow-lg shadow-blue-900/20 mt-8 hover:scale-[1.02] active:scale-[0.98]"
                     >
-                        {loading ? "Memverifikasi..." : "Masuk ke Sistem"}
+                        {loading ? "Memverifikasi..." : "Login ke Sistem"}
                     </button>
                 </form>
             </div>

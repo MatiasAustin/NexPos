@@ -192,349 +192,106 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-900 p-8">
-            <div className="max-w-6xl mx-auto">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
+        <div className="min-h-screen bg-[#121214] text-gray-100 flex flex-col md:flex-row">
+            {/* Sidebar */}
+            <div className="w-full md:w-[280px] bg-[#1a1a1c] border-r border-gray-800 flex flex-col shrink-0">
+                <div className="p-6 border-b border-gray-800 flex items-center justify-between">
                     <div>
-                        <Link href="/" className="flex items-center text-gray-500 hover:text-blue-600 mb-2">
-                            <ArrowLeft className="w-4 h-4 mr-1" /> Kembali ke Home
-                        </Link>
-                        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                        <p className="text-gray-500">NexPos Control Center</p>
+                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white text-lg">N</span>
+                            NexPos
+                        </h1>
+                        <p className="text-gray-500 text-sm mt-1">Control Center</p>
                     </div>
-                    <button 
-                        onClick={fetchData}
-                        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
-                    </button>
+                    <Link href="/" className="md:hidden p-2 text-gray-500 hover:text-white bg-gray-800 rounded-lg">
+                        <ArrowLeft className="w-5 h-5" />
+                    </Link>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                    {[
+                        { id: "reconciliation", label: "Laporan Rekonsiliasi", icon: AlertTriangle },
+                        { id: "history", label: "Riwayat Transaksi", icon: FileText },
+                        { id: "inventory", label: "Produk & Stok", icon: Package },
+                        { id: "staff", label: "Manajemen Staf", icon: Users },
+                        { id: "audit", label: "Security Log", icon: ShieldCheck },
+                    ].map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === tab.id ? "bg-blue-600/10 text-blue-500 border border-blue-500/20" : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"}`}
+                        >
+                            <tab.icon className="w-5 h-5" /> {tab.label}
+                        </button>
+                    ))}
+                </div>
+                
+                <div className="p-4 border-t border-gray-800">
+                    <Link href="/" className="hidden md:flex items-center gap-2 text-gray-500 hover:text-gray-300 transition-colors w-full px-4 py-2 font-medium">
+                        <ArrowLeft className="w-4 h-4" /> Kembali ke Home
+                    </Link>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col h-screen overflow-hidden">
+                {/* Top Header */}
+                <div className="h-20 border-b border-gray-800 px-8 flex items-center justify-between shrink-0 bg-[#121214]">
+                    <div className="flex items-center gap-4">
+                        <h2 className="text-xl font-bold text-white capitalize">
+                            {activeTab.replace('reconciliation', 'Rekonsiliasi').replace('history', 'Riwayat Transaksi')}
+                        </h2>
+                        <button 
+                            onClick={fetchData}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 text-gray-300 rounded-lg text-sm hover:bg-gray-700 transition-colors"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-blue-400" : ""}`} /> Refresh
+                        </button>
+                    </div>
+
+                    {/* Staff / Admin Profile Badge */}
+                    <div className="flex items-center gap-3 bg-[#1a1a1c] border border-gray-800 px-4 py-2 rounded-full">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-bold text-white">
+                            A
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold leading-tight">Admin System</span>
+                            <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">Owner Access</span>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex gap-4 mb-6 border-b border-gray-200 overflow-x-auto whitespace-nowrap hide-scrollbar pb-1">
-                    <button 
-                        onClick={() => setActiveTab("reconciliation")}
-                        className={`pb-3 px-2 font-semibold transition-colors ${activeTab === "reconciliation" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-800"}`}
-                    >
-                        Laporan Rekonsiliasi
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab("audit")}
-                        className={`pb-4 px-2 font-semibold ${activeTab === "audit" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-800"}`}
-                    >
-                        Audit & Security Log
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab("staff")}
-                        className={`pb-4 px-2 font-semibold ${activeTab === "staff" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-800"}`}
-                    >
-                        Manajemen Staf
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab("inventory")}
-                        className={`pb-4 px-2 font-semibold ${activeTab === "inventory" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-800"}`}
-                    >
-                        Produk & Stok
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab("history")}
-                        className={`pb-4 px-2 font-semibold ${activeTab === "history" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-800"}`}
-                    >
-                        Riwayat & Refund
-                    </button>
-                </div>
-
-                {/* Content */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-h-[400px]">
+                {/* Content Scrollable Area */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8">
                     {loading ? (
-                        <div className="flex items-center justify-center h-[300px] text-gray-400">Loading data...</div>
+                        <div className="flex items-center justify-center h-full text-gray-500">Memuat data dari server...</div>
                     ) : (
-                        <>
+                        <div className="space-y-6">
                             {/* RECONCILIATION TAB */}
                             {activeTab === "reconciliation" && (
-                                <div>
-                                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                                        <AlertTriangle className="w-5 h-5 text-orange-500" />
-                                        Bandingkan POS vs Aktual
-                                    </h2>
+                                <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                     {reconciliation.length === 0 ? (
-                                        <p className="text-gray-500">Belum ada transaksi hari ini.</p>
+                                        <p className="p-8 text-gray-500 text-center">Belum ada transaksi hari ini.</p>
                                     ) : (
                                         <div className="overflow-x-auto">
                                             <table className="w-full text-left border-collapse">
                                                 <thead>
-                                                    <tr className="bg-gray-50 border-b border-gray-200">
-                                                        <th className="p-4 font-semibold text-gray-600">Metode Pembayaran</th>
-                                                        <th className="p-4 font-semibold text-gray-600">Jml Transaksi</th>
-                                                        <th className="p-4 font-semibold text-gray-600 text-right">Total POS (Rp)</th>
-                                                        <th className="p-4 font-semibold text-gray-600 text-right">Tercatat di Provider (Rp)</th>
-                                                        <th className="p-4 font-semibold text-gray-600 text-right">Selisih</th>
+                                                    <tr className="bg-gray-800/50 border-b border-gray-800">
+                                                        <th className="p-4 font-semibold text-gray-400">Metode</th>
+                                                        <th className="p-4 font-semibold text-gray-400">Trx</th>
+                                                        <th className="p-4 font-semibold text-gray-400 text-right">POS Total</th>
+                                                        <th className="p-4 font-semibold text-gray-400 text-right">Provider Total</th>
+                                                        <th className="p-4 font-semibold text-gray-400 text-right">Selisih</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {reconciliation.map((row, idx) => (
-                                                        <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                                                            <td className="p-4 font-medium">{row.method_name}</td>
-                                                            <td className="p-4 text-gray-600">{row.transaction_count}</td>
-                                                            <td className="p-4 text-right font-bold text-blue-600">
-                                                                {row.pos_total.toLocaleString('id-ID')}
-                                                            </td>
-                                                            <td className="p-4 text-right text-gray-600">
-                                                                {/* Simulasi data aktual provider, aslinya diambil dari integrasi */}
-                                                                {row.pos_total.toLocaleString('id-ID')}
-                                                            </td>
-                                                            <td className="p-4 text-right font-bold text-green-500">0</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* AUDIT LOG TAB */}
-                            {activeTab === "audit" && (
-                                <div>
-                                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                                        <ShieldCheck className="w-5 h-5 text-green-600" />
-                                        Jejak Audit Sistem
-                                    </h2>
-                                    {auditLogs.length === 0 ? (
-                                        <p className="text-gray-500">Belum ada jejak audit yang terekam.</p>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {auditLogs.map((log) => (
-                                                <div key={log.id} className="p-4 rounded-lg bg-gray-50 border border-gray-200 flex justify-between items-center">
-                                                    <div>
-                                                        <p className="font-bold text-gray-800 capitalize">
-                                                            Aksi: {log.action.replace('_', ' ')}
-                                                        </p>
-                                                        <p className="text-sm text-gray-500">
-                                                            Entity: {log.entity_type} | Staff ID: {log.staff_id}
-                                                        </p>
-                                                    </div>
-                                                    <div className="text-right text-xs text-gray-400">
-                                                        {new Date(log.created_at).toLocaleString('id-ID')}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* STAFF MANAGEMENT TAB */}
-                            {activeTab === "staff" && (
-                                <div>
-                                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                                        <Users className="w-5 h-5 text-purple-600" />
-                                        Manajemen Staf
-                                    </h2>
-                                    
-                                    <form onSubmit={handleCreateStaff} className="mb-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
-                                        <h3 className="font-bold mb-4">Tambah Akun Baru</h3>
-                                        <div className="grid grid-cols-2 gap-4 mb-4">
-                                            <input 
-                                                type="text" placeholder="Nama Lengkap" required
-                                                value={newStaff.full_name} onChange={e => setNewStaff({...newStaff, full_name: e.target.value})}
-                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
-                                            />
-                                            <input 
-                                                type="email" placeholder="Email (misal: budi@nexpos.local)" required
-                                                value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})}
-                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
-                                            />
-                                            <input 
-                                                type="password" placeholder="Password (min 6 karakter)" required minLength={6}
-                                                value={newStaff.password} onChange={e => setNewStaff({...newStaff, password: e.target.value})}
-                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
-                                            />
-                                            <select 
-                                                value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})}
-                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
-                                            >
-                                                <option value="staff">Kasir (Staff)</option>
-                                                <option value="owner">Admin (Owner)</option>
-                                            </select>
-                                        </div>
-                                        <button type="submit" disabled={loading} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-bold">
-                                            {loading ? 'Menyimpan...' : 'Buat Akun'}
-                                        </button>
-                                    </form>
-
-                                    {staffList.length === 0 ? (
-                                        <p className="text-gray-500">Belum ada data staf.</p>
-                                    ) : (
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-left border-collapse">
-                                                <thead>
-                                                    <tr className="bg-gray-50 border-b border-gray-200">
-                                                        <th className="p-4 font-semibold text-gray-600">Nama</th>
-                                                        <th className="p-4 font-semibold text-gray-600">Role</th>
-                                                        <th className="p-4 font-semibold text-gray-600">Status</th>
-                                                        <th className="p-4 font-semibold text-gray-600 text-right">Terdaftar</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {staffList.map((st: any) => (
-                                                        <tr key={st.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                                            <td className="p-4 font-bold">{st.full_name}</td>
-                                                            <td className="p-4">
-                                                                <span className={`px-2 py-1 text-xs font-bold rounded-full ${st.role === 'owner' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
-                                                                    {st.role.toUpperCase()}
-                                                                </span>
-                                                            </td>
-                                                            <td className="p-4">
-                                                                {st.is_active ? <span className="text-green-600 font-bold">Aktif</span> : <span className="text-red-500">Nonaktif</span>}
-                                                            </td>
-                                                            <td className="p-4 text-right text-gray-500 text-sm">
-                                                                {new Date(st.created_at).toLocaleDateString('id-ID')}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* INVENTORY MANAGEMENT TAB */}
-                            {activeTab === "inventory" && (
-                                <div>
-                                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                                        <Package className="w-5 h-5 text-orange-600" />
-                                        Manajemen Produk & Stok
-                                    </h2>
-                                    
-                                    <form onSubmit={handleCreateProduct} className="mb-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
-                                        <h3 className="font-bold mb-4">Tambah Produk Baru</h3>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                                            <input 
-                                                type="text" placeholder="Nama Produk (Cth: Kopi Hitam)" required
-                                                value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})}
-                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
-                                            />
-                                            <input 
-                                                type="text" placeholder="Kategori (Cth: Coffee)" required
-                                                value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})}
-                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
-                                            />
-                                            <input 
-                                                type="text" placeholder="Icon / Emoji (Cth: ☕)"
-                                                value={newProduct.image_icon} onChange={e => setNewProduct({...newProduct, image_icon: e.target.value})}
-                                                className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
-                                            />
-                                            <div className="flex flex-col">
-                                                <label className="text-xs text-gray-500 mb-1">Harga Jual (Rp)</label>
-                                                <input 
-                                                    type="number" placeholder="Harga Jual" required min={0}
-                                                    value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})}
-                                                    className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
-                                                />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <label className="text-xs text-gray-500 mb-1">HPP / Modal (Rp)</label>
-                                                <input 
-                                                    type="number" placeholder="HPP / Modal" required min={0}
-                                                    value={newProduct.cogs} onChange={e => setNewProduct({...newProduct, cogs: Number(e.target.value)})}
-                                                    className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
-                                                />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <label className="text-xs text-gray-500 mb-1">Stok Awal</label>
-                                                <input 
-                                                    type="number" placeholder="Stok" required min={0}
-                                                    value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})}
-                                                    className="p-3 border rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Dynamic Ingredients Section */}
-                                        <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg">
-                                            <div className="flex justify-between items-center mb-4">
-                                                <h4 className="font-bold text-gray-800">Detail Bahan Baku / Resep</h4>
-                                                <button type="button" onClick={addIngredient} className="text-sm px-3 py-1 bg-blue-100 text-blue-700 font-bold rounded-lg hover:bg-blue-200">
-                                                    + Tambah Bahan Baku
-                                                </button>
-                                            </div>
-                                            
-                                            {newProduct.ingredients.length === 0 ? (
-                                                <p className="text-sm text-gray-500">Anda dapat membiarkan ini kosong jika ingin mengisi HPP Manual di atas.</p>
-                                            ) : (
-                                                <div className="space-y-3">
-                                                    {newProduct.ingredients.map((ing, i) => (
-                                                        <div key={i} className="flex gap-3 items-center">
-                                                            <input 
-                                                                type="text" placeholder="Nama Bahan (Cth: Susu 100ml)" 
-                                                                value={ing.name} onChange={(e) => updateIngredient(i, 'name', e.target.value)}
-                                                                className="flex-1 p-2 border rounded focus:border-blue-500 outline-none" required
-                                                            />
-                                                            <input 
-                                                                type="number" placeholder="Biaya (Rp)" min={0}
-                                                                value={ing.cost} onChange={(e) => updateIngredient(i, 'cost', Number(e.target.value))}
-                                                                className="w-32 p-2 border rounded focus:border-blue-500 outline-none" required
-                                                            />
-                                                            <button type="button" onClick={() => removeIngredient(i)} className="p-2 text-red-500 hover:bg-red-50 rounded">
-                                                                Hapus
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                    <div className="pt-3 border-t text-right font-bold text-gray-800">
-                                                        Total HPP Otomatis: Rp {newProduct.ingredients.reduce((sum, item) => sum + item.cost, 0).toLocaleString('id-ID')}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <button type="submit" disabled={loading} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-bold w-full md:w-auto">
-                                            {loading ? 'Menyimpan...' : 'Simpan Produk'}
-                                        </button>
-                                    </form>
-
-                                    {products.length === 0 ? (
-                                        <p className="text-gray-500">Belum ada data produk.</p>
-                                    ) : (
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-left border-collapse">
-                                                <thead>
-                                                    <tr className="bg-gray-50 border-b border-gray-200">
-                                                        <th className="p-4 font-semibold text-gray-600">Produk</th>
-                                                        <th className="p-4 font-semibold text-gray-600 text-right">Harga Jual</th>
-                                                        <th className="p-4 font-semibold text-gray-600 text-right">HPP</th>
-                                                        <th className="p-4 font-semibold text-gray-600 text-right">Profit</th>
-                                                        <th className="p-4 font-semibold text-gray-600 text-center">Stok</th>
-                                                        <th className="p-4 font-semibold text-gray-600 text-center">Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {products.map((p: any) => (
-                                                        <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                                            <td className="p-4">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="w-10 h-10 bg-white border border-gray-200 rounded flex items-center justify-center text-xl">
-                                                                        {p.image_icon}
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="font-bold text-gray-900">{p.name}</p>
-                                                                        <p className="text-xs text-gray-500">{p.category}</p>
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                            <td className="p-4 text-right font-medium">Rp {p.price.toLocaleString('id-ID')}</td>
-                                                            <td className="p-4 text-right text-gray-500">Rp {p.cogs.toLocaleString('id-ID')}</td>
-                                                            <td className="p-4 text-right text-green-600 font-bold">Rp {(p.price - p.cogs).toLocaleString('id-ID')}</td>
-                                                            <td className="p-4 text-center">
-                                                                <span className={`px-3 py-1 rounded-full text-sm font-bold ${p.stock <= 5 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-700'}`}>
-                                                                    {p.stock}
-                                                                </span>
-                                                            </td>
-                                                            <td className="p-4 text-center">
-                                                                {p.is_active ? <span className="text-green-600 font-bold text-sm">Aktif</span> : <span className="text-gray-400 text-sm">Nonaktif</span>}
-                                                            </td>
+                                                        <tr key={idx} className="border-b border-gray-800 hover:bg-gray-800/30">
+                                                            <td className="p-4 font-medium text-gray-200">{row.method_name}</td>
+                                                            <td className="p-4 text-gray-400">{row.transaction_count}</td>
+                                                            <td className="p-4 text-right font-bold text-blue-400">{row.pos_total.toLocaleString('id-ID')}</td>
+                                                            <td className="p-4 text-right text-gray-400">{row.pos_total.toLocaleString('id-ID')}</td>
+                                                            <td className="p-4 text-right font-bold text-green-400">0</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -546,65 +303,180 @@ export default function AdminDashboard() {
 
                             {/* HISTORY & REFUND TAB */}
                             {activeTab === "history" && (
-                                <div>
-                                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                                        <FileText className="w-5 h-5 text-blue-600" />
-                                        Riwayat Transaksi & Refund
-                                    </h2>
-                                    
+                                <div className="space-y-4">
                                     {transactions.length === 0 ? (
-                                        <p className="text-gray-500">Belum ada transaksi.</p>
+                                        <p className="p-8 text-gray-500 text-center bg-[#1a1a1c] rounded-2xl border border-gray-800">Belum ada transaksi.</p>
                                     ) : (
-                                        <div className="space-y-4">
-                                            {transactions.map((trx: any) => (
-                                                <div key={trx.id} className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between">
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <span className="font-bold text-gray-900">{trx.order_reference}</span>
-                                                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${trx.status === 'Paid' ? 'bg-green-100 text-green-700' : trx.status === 'Refunded' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
-                                                                {trx.status}
-                                                            </span>
+                                        transactions.map((trx: any) => (
+                                            <div key={trx.id} className="p-5 bg-[#1a1a1c] rounded-2xl border border-gray-800 shadow-lg flex flex-col md:flex-row gap-4 justify-between">
+                                                <div>
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <span className="font-bold text-white text-lg">{trx.order_reference}</span>
+                                                        <span className={`px-2.5 py-1 text-xs font-bold rounded-lg ${trx.status === 'Paid' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : trx.status === 'Refunded' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-gray-300'}`}>
+                                                            {trx.status}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-400 mb-3">Metode: <span className="text-gray-200">{trx.payment_methods?.name || 'Unknown'}</span> | {new Date(trx.created_at).toLocaleString('id-ID')}</p>
+                                                    
+                                                    {trx.order_items && trx.order_items.length > 0 && (
+                                                        <div className="bg-gray-800/30 p-3 rounded-xl border border-gray-800">
+                                                            <ul className="text-sm space-y-1.5">
+                                                                {trx.order_items.map((item: any, idx: number) => (
+                                                                    <li key={idx} className="flex justify-between text-gray-300">
+                                                                        <span><span className="text-gray-500 mr-2">{item.quantity}x</span> {item.product_name}</span>
+                                                                        <span className="text-gray-400">Rp {(item.quantity * item.price_at_time).toLocaleString('id-ID')}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
                                                         </div>
-                                                        <p className="text-sm text-gray-500 mb-2">Metode: <span className="font-semibold text-gray-700">{trx.payment_methods?.name || 'Unknown'}</span> | Waktu: {new Date(trx.created_at).toLocaleString('id-ID')}</p>
-                                                        
-                                                        {/* Detail Items */}
-                                                        {trx.order_items && trx.order_items.length > 0 && (
-                                                            <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                                                <p className="text-xs font-bold text-gray-600 mb-2">Detail Pesanan:</p>
-                                                                <ul className="text-sm space-y-1">
-                                                                    {trx.order_items.map((item: any, idx: number) => (
-                                                                        <li key={idx} className="flex justify-between">
-                                                                            <span>{item.quantity}x {item.product_name}</span>
-                                                                            <span className="text-gray-500">Rp {(item.quantity * item.price_at_time).toLocaleString('id-ID')}</span>
-                                                                        </li>
-                                                                    ))}
-                                                                </ul>
-                                                            </div>
-                                                        )}
+                                                    )}
+                                                </div>
+                                                
+                                                <div className="text-right min-w-[150px] flex flex-col justify-between">
+                                                    <div>
+                                                        <p className="text-sm text-gray-500 mb-1">Total</p>
+                                                        <p className="font-bold text-2xl text-white">Rp {trx.amount_received.toLocaleString('id-ID')}</p>
                                                     </div>
                                                     
-                                                    <div className="text-right min-w-[150px] flex flex-col justify-between">
-                                                        <div>
-                                                            <p className="text-sm text-gray-500">Total Diterima</p>
-                                                            <p className="font-bold text-xl text-blue-600">Rp {trx.amount_received.toLocaleString('id-ID')}</p>
-                                                        </div>
-                                                        
-                                                        {trx.status === 'Paid' && (
-                                                            <button 
-                                                                onClick={() => handleRefund(trx)}
-                                                                className="mt-4 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-bold hover:bg-red-100 transition-colors"
-                                                            >
-                                                                Refund Pesanan
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                                    {trx.status === 'Paid' && (
+                                                        <button 
+                                                            onClick={() => handleRefund(trx)}
+                                                            className="mt-4 px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-sm font-bold hover:bg-red-500/20 transition-colors"
+                                                        >
+                                                            Refund
+                                                        </button>
+                                                    )}
                                                 </div>
-                                            ))}
-                                        </div>
+                                            </div>
+                                        ))
                                     )}
                                 </div>
                             )}
-                        </>
+
+                            {/* INVENTORY TAB */}
+                            {activeTab === "inventory" && (
+                                <div className="space-y-6">
+                                    <form onSubmit={handleCreateProduct} className="p-6 md:p-8 bg-[#1a1a1c] rounded-2xl border border-gray-800 shadow-xl">
+                                        <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Produk Baru</h3>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-5 mb-6">
+                                            <input type="text" placeholder="Nama Produk" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
+                                            <input type="text" placeholder="Kategori" required value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
+                                            <input type="text" placeholder="Icon (Emoji)" value={newProduct.image_icon} onChange={e => setNewProduct({...newProduct, image_icon: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
+                                            <div><label className="text-xs text-gray-500 mb-2 block">Harga Jual (Rp)</label><input type="number" placeholder="0" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
+                                            <div><label className="text-xs text-gray-500 mb-2 block">HPP / Modal (Rp)</label><input type="number" placeholder="0" required value={newProduct.cogs} onChange={e => setNewProduct({...newProduct, cogs: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
+                                            <div><label className="text-xs text-gray-500 mb-2 block">Stok Awal</label><input type="number" placeholder="0" required value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
+                                        </div>
+                                        
+                                        <div className="mb-6 p-5 bg-gray-900 border border-gray-800 rounded-xl">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h4 className="font-bold text-gray-300">Bahan Baku (Opsional)</h4>
+                                                <button type="button" onClick={addIngredient} className="text-sm px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold rounded-lg hover:bg-blue-500/20">+ Tambah</button>
+                                            </div>
+                                            {newProduct.ingredients.map((ing, i) => (
+                                                <div key={i} className="flex gap-3 items-center mb-3">
+                                                    <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredient(i, 'name', e.target.value)} className="flex-1 p-2 bg-[#121214] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                    <input type="number" placeholder="Biaya" value={ing.cost} onChange={(e) => updateIngredient(i, 'cost', Number(e.target.value))} className="w-32 p-2 bg-[#121214] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                    <button type="button" onClick={() => removeIngredient(i)} className="text-red-400 p-2 hover:bg-red-500/10 rounded-lg">Hapus</button>
+                                                </div>
+                                            ))}
+                                            {newProduct.ingredients.length > 0 && <div className="mt-4 pt-4 border-t border-gray-800 text-right font-bold text-blue-400">Total HPP Otomatis: Rp {newProduct.ingredients.reduce((sum, item) => sum + item.cost, 0).toLocaleString('id-ID')}</div>}
+                                        </div>
+                                        <button type="submit" disabled={loading} className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors">
+                                            {loading ? 'Menyimpan...' : 'Simpan Produk'}
+                                        </button>
+                                    </form>
+
+                                    <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-gray-800/50 border-b border-gray-800">
+                                                        <th className="p-4 font-semibold text-gray-400">Produk</th>
+                                                        <th className="p-4 font-semibold text-gray-400 text-right">Harga Jual</th>
+                                                        <th className="p-4 font-semibold text-gray-400 text-right">Profit</th>
+                                                        <th className="p-4 font-semibold text-gray-400 text-center">Stok</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {products.map((p: any) => (
+                                                        <tr key={p.id} className="border-b border-gray-800 hover:bg-gray-800/30">
+                                                            <td className="p-4 flex items-center gap-4">
+                                                                <div className="w-12 h-12 bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center text-2xl">{p.image_icon}</div>
+                                                                <div>
+                                                                    <p className="font-bold text-white text-base">{p.name}</p>
+                                                                    <p className="text-xs text-gray-500">{p.category}</p>
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-4 text-right">
+                                                                <p className="font-bold text-gray-200">Rp {p.price.toLocaleString('id-ID')}</p>
+                                                                <p className="text-xs text-gray-500">HPP: Rp {p.cogs.toLocaleString('id-ID')}</p>
+                                                            </td>
+                                                            <td className="p-4 text-right font-bold text-green-400">Rp {(p.price - p.cogs).toLocaleString('id-ID')}</td>
+                                                            <td className="p-4 text-center">
+                                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-gray-300'}`}>{p.stock}</span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* STAFF TAB */}
+                            {activeTab === "staff" && (
+                                <div className="space-y-6">
+                                    <form onSubmit={handleCreateStaff} className="p-6 md:p-8 bg-[#1a1a1c] rounded-2xl border border-gray-800 shadow-xl">
+                                        <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Akun Baru</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                            <input type="text" placeholder="Nama Lengkap" required value={newStaff.full_name} onChange={e => setNewStaff({...newStaff, full_name: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
+                                            <input type="email" placeholder="Email" required value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
+                                            <input type="password" placeholder="Password" required minLength={6} value={newStaff.password} onChange={e => setNewStaff({...newStaff, password: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
+                                            <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white">
+                                                <option value="staff">Kasir (Staff)</option>
+                                                <option value="owner">Admin (Owner)</option>
+                                            </select>
+                                        </div>
+                                        <button type="submit" disabled={loading} className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors">Buat Akun</button>
+                                    </form>
+
+                                    <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-gray-800/50 border-b border-gray-800"><th className="p-4 text-gray-400">Nama</th><th className="p-4 text-gray-400">Role</th><th className="p-4 text-gray-400">Status</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                {staffList.map((st: any) => (
+                                                    <tr key={st.id} className="border-b border-gray-800 hover:bg-gray-800/30">
+                                                        <td className="p-4 font-bold text-white">{st.full_name}<p className="text-xs text-gray-500 font-normal">{st.email}</p></td>
+                                                        <td className="p-4"><span className={`px-3 py-1 text-xs font-bold rounded-lg ${st.role === 'owner' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-gray-800 text-gray-300'}`}>{st.role.toUpperCase()}</span></td>
+                                                        <td className="p-4"><span className="text-green-400 font-bold text-sm">Aktif</span></td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* AUDIT TAB */}
+                            {activeTab === "audit" && (
+                                <div className="space-y-4">
+                                    {auditLogs.map((log) => (
+                                        <div key={log.id} className="p-5 rounded-2xl bg-[#1a1a1c] border border-gray-800 flex justify-between items-center shadow-lg">
+                                            <div>
+                                                <p className="font-bold text-white capitalize text-lg">{log.action.replace('_', ' ')}</p>
+                                                <p className="text-sm text-gray-500 mt-1">Entity: <span className="text-gray-300">{log.entity_type}</span> | Staff: <span className="text-gray-300">{log.staff_id}</span></p>
+                                            </div>
+                                            <div className="text-right text-sm text-gray-500 bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-800">
+                                                {new Date(log.created_at).toLocaleString('id-ID')}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>
