@@ -413,16 +413,43 @@ export default function AdminDashboard() {
         }));
     };
 
-    const updateIngredient = (index: number, field: 'name' | 'cost', value: any) => {
-        const updated = [...newProduct.ingredients];
-        updated[index] = { ...updated[index], [field]: value };
-        setNewProduct({ ...newProduct, ingredients: updated });
+    const updateIngredient = (index: number, field: string, value: any) => {
+        setNewProduct(prev => {
+            const newIngs = [...prev.ingredients];
+            newIngs[index] = { ...newIngs[index], [field]: value };
+            return { ...prev, ingredients: newIngs };
+        });
     };
 
     const removeIngredient = (index: number) => {
-        const updated = [...newProduct.ingredients];
-        updated.splice(index, 1);
-        setNewProduct({ ...newProduct, ingredients: updated });
+        setNewProduct(prev => {
+            const newIngs = [...prev.ingredients];
+            newIngs.splice(index, 1);
+            return { ...prev, ingredients: newIngs };
+        });
+    };
+
+    const addIngredientEdit = () => {
+        setEditingProduct((prev: any) => ({
+            ...prev,
+            ingredients: [...(prev.ingredients || []), { name: '', cost: 0 }]
+        }));
+    };
+
+    const updateIngredientEdit = (index: number, field: string, value: any) => {
+        setEditingProduct((prev: any) => {
+            const newIngs = [...(prev.ingredients || [])];
+            newIngs[index] = { ...newIngs[index], [field]: value };
+            return { ...prev, ingredients: newIngs };
+        });
+    };
+
+    const removeIngredientEdit = (index: number) => {
+        setEditingProduct((prev: any) => {
+            const newIngs = [...(prev.ingredients || [])];
+            newIngs.splice(index, 1);
+            return { ...prev, ingredients: newIngs };
+        });
     };
 
     return (
@@ -704,7 +731,10 @@ export default function AdminDashboard() {
                                                             </td>
                                                             <td className="p-4 text-right">
                                                                 <p className="font-bold text-gray-200">Rp {p.price.toLocaleString('id-ID')}</p>
-                                                                <p className="text-xs text-gray-500">HPP: Rp {p.cogs.toLocaleString('id-ID')}</p>
+                                                                <p className="text-xs text-gray-500">
+                                                                    HPP: Rp {p.cogs.toLocaleString('id-ID')}
+                                                                    {p.ingredients && p.ingredients.length > 0 && ` (${p.ingredients.length} Bahan)`}
+                                                                </p>
                                                             </td>
                                                             <td className="p-4 text-right font-bold text-green-400">Rp {(p.price - p.cogs).toLocaleString('id-ID')}</td>
                                                             <td className="p-4 text-center">
@@ -740,6 +770,21 @@ export default function AdminDashboard() {
                                                             <input type="number" value={editingProduct.cogs} onChange={e => setEditingProduct({...editingProduct, cogs: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
                                                         </div>
                                                     </div>
+
+                                                    <div className="mb-6 p-5 bg-gray-900 border border-gray-800 rounded-xl">
+                                                        <div className="flex justify-between items-center mb-4">
+                                                            <h4 className="font-bold text-gray-300">Bahan Baku (Opsional)</h4>
+                                                            <button type="button" onClick={addIngredientEdit} className="text-sm px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold rounded-lg hover:bg-blue-500/20">+ Tambah</button>
+                                                        </div>
+                                                        {(editingProduct.ingredients || []).map((ing: any, i: number) => (
+                                                            <div key={i} className="flex gap-3 items-center mb-3">
+                                                                <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredientEdit(i, 'name', e.target.value)} className="flex-1 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                                <input type="number" placeholder="Biaya" value={ing.cost} onChange={(e) => updateIngredientEdit(i, 'cost', Number(e.target.value))} className="w-32 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                                <button type="button" onClick={() => removeIngredientEdit(i)} className="text-red-400 p-2 hover:bg-red-500/10 rounded-lg">Hapus</button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
                                                     <div className="flex gap-4 mt-6">
                                                         <button type="button" onClick={() => setEditingProduct(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
                                                         <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Perubahan</button>
