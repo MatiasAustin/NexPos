@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart, Send, Trash2, Minus, Plus } from "lucide-react";
+import { ShoppingCart, Send, Trash2, Minus, Plus, LayoutGrid, List } from "lucide-react";
 import { getActiveProducts } from "@/lib/api";
 
 export default function CustomerPage() {
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
     const [products, setProducts] = useState<any[]>([]);
+    const [activeCategory, setActiveCategory] = useState("Semua");
+    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [loading, setLoading] = useState(true);
     const [sent, setSent] = useState(false);
 
@@ -96,37 +98,80 @@ export default function CustomerPage() {
         }, 8000);
     };
 
+    const categories = ["Semua", ...Array.from(new Set(products.map(p => p.category || "Uncategorized")))];
+    const filteredProducts = activeCategory === "Semua" ? products : products.filter(p => (p.category || "Uncategorized") === activeCategory);
+
     return (
-        <div className="flex flex-col md:flex-row h-screen bg-[#121214] text-gray-100 font-['Funnel_Display'] overflow-hidden">
+        <div className="flex flex-col md:flex-row h-screen bg-[#0B0F19] text-gray-100 font-['Funnel_Display'] overflow-hidden selection:bg-blue-500/30">
             {/* LEFT: PRODUCTS LIST */}
-            <div className="flex-1 p-6 md:p-8 overflow-y-auto">
-                <div className="mb-8 flex items-center justify-between">
+            <div className="flex-1 p-6 md:p-8 overflow-y-auto no-scrollbar">
+                <div className="mb-6 flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl md:text-4xl font-black mb-2 text-white">Menu {storeSettings?.cafe_name || 'Kami'}</h1>
+                        <h1 className="text-3xl md:text-4xl font-black mb-2 text-white tracking-tight">Menu {storeSettings?.cafe_name || 'Kami'}</h1>
                         <p className="text-gray-400 text-sm md:text-base">Silakan pilih pesanan Anda, sentuh produk untuk menambah.</p>
                     </div>
                     {storeSettings?.logo_base64 ? (
-                        <img src={storeSettings.logo_base64} alt="Brand Logo" className="hidden md:block w-16 h-16 object-contain rounded-xl bg-white p-1" />
+                        <img src={storeSettings.logo_base64} alt="Brand Logo" className="hidden md:block w-16 h-16 object-contain rounded-2xl bg-white p-1 shadow-lg shadow-white/5" />
                     ) : (
-                        <div className="hidden md:flex w-12 h-12 rounded-xl bg-blue-600 items-center justify-center text-white text-2xl font-black shadow-lg shadow-blue-900/20">N</div>
+                        <div className="hidden md:flex w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 items-center justify-center text-white text-3xl font-black shadow-lg shadow-blue-900/20">N</div>
                     )}
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                    {products.map((prod) => (
+                {/* Categories & View Mode Toggle */}
+                <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-8">
+                    <div className="flex overflow-x-auto gap-2 pb-2 w-full sm:w-auto no-scrollbar">
+                        {categories.map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => setActiveCategory(cat)}
+                                className={`px-5 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-all ${
+                                    activeCategory === cat 
+                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20 border-blue-500" 
+                                    : "bg-[#131B2C] text-gray-400 hover:text-white border border-gray-800/60"
+                                }`}
+                            >
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex bg-[#131B2C] rounded-xl border border-gray-800/60 p-1 shrink-0">
+                        <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                            <LayoutGrid className="w-5 h-5" />
+                        </button>
+                        <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                            <List className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+
+                <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" : "flex flex-col gap-4"}>
+                    {filteredProducts.map((prod) => (
                         <div
                             key={prod.id}
                             onClick={() => addToCart(prod)}
-                            className="bg-[#1a1a1c] p-5 md:p-6 rounded-3xl border border-gray-800 cursor-pointer hover:border-blue-500/50 hover:bg-gray-800/30 transition-all text-center flex flex-col h-full justify-between shadow-lg relative overflow-hidden group"
+                            className={`bg-[#131B2C] rounded-3xl border border-gray-800/60 cursor-pointer hover:border-blue-500/50 hover:bg-gray-800/30 transition-all shadow-lg relative overflow-hidden group ${
+                                viewMode === 'grid' 
+                                ? "p-5 md:p-6 text-center flex flex-col h-full justify-between"
+                                : "p-4 md:p-5 flex items-center justify-between gap-4"
+                            }`}
                         >
-                            <div className="relative z-10">
-                                <div className="text-5xl md:text-6xl mb-4 transform group-hover:scale-110 transition-transform">{prod.image_icon || '📦'}</div>
-                                <h3 className="font-bold text-lg md:text-xl text-white leading-tight mb-2">{prod.name}</h3>
+                            <div className={viewMode === 'grid' ? "relative z-10" : "flex items-center gap-4 relative z-10"}>
+                                <div className={`${viewMode === 'grid' ? "text-5xl md:text-6xl mb-4" : "text-4xl bg-gray-800/50 w-16 h-16 rounded-2xl flex items-center justify-center"} transform group-hover:scale-110 transition-transform`}>
+                                    {prod.image_icon || '☕'}
+                                </div>
+                                <div className={viewMode === 'list' ? "text-left" : ""}>
+                                    <h3 className="font-bold text-lg md:text-xl text-white leading-tight mb-1">{prod.name}</h3>
+                                    {viewMode === 'list' && <p className="text-gray-500 text-sm">{prod.category || 'Uncategorized'}</p>}
+                                </div>
                             </div>
-                            <p className="text-blue-400 font-bold text-base md:text-lg mt-auto relative z-10">Rp {prod.price.toLocaleString('id-ID')}</p>
+                            <p className={`text-blue-400 font-bold ${viewMode === 'grid' ? "text-base md:text-lg mt-auto" : "text-lg md:text-xl shrink-0"} relative z-10`}>
+                                Rp {prod.price.toLocaleString('id-ID')}
+                            </p>
                             
-                            {/* Decorative Background Icon */}
-                            <div className="absolute -bottom-4 -right-4 text-7xl opacity-5 group-hover:opacity-10 transition-opacity z-0">{prod.image_icon || '📦'}</div>
+                            {/* Decorative Background Icon (Grid Only) */}
+                            {viewMode === 'grid' && (
+                                <div className="absolute -bottom-4 -right-4 text-7xl opacity-5 group-hover:opacity-10 transition-opacity z-0">{prod.image_icon || '☕'}</div>
+                            )}
                         </div>
                     ))}
                 </div>

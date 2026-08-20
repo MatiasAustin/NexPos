@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart, CreditCard, Banknote, Trash2, Clock, Minus, Plus } from "lucide-react";
+import { ShoppingCart, CreditCard, Banknote, Trash2, Clock, Minus, Plus, LayoutGrid, List } from "lucide-react";
 import { processPayment, getPaymentMethods, getActiveProducts } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -10,6 +10,8 @@ export default function PosPage() {
     const [hasSession, setHasSession] = useState(false);
     const [openingCash, setOpeningCash] = useState<string>("");
     const [products, setProducts] = useState<any[]>([]);
+    const [activeCategory, setActiveCategory] = useState("Semua");
+    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
     const [showPayment, setShowPayment] = useState(false);
@@ -337,6 +339,9 @@ export default function PosPage() {
         );
     }
 
+    const categories = ["Semua", ...Array.from(new Set(products.map(p => p.category || "Uncategorized")))];
+    const filteredProducts = activeCategory === "Semua" ? products : products.filter(p => (p.category || "Uncategorized") === activeCategory);
+
     return (
         <div className="flex flex-col md:flex-row h-screen bg-[#121214] text-gray-100 overflow-hidden">
             {/* LEFT: PRODUCTS LIST */}
@@ -365,7 +370,7 @@ export default function PosPage() {
                     </div>
                 </div>
 
-                <div className="p-6 flex-1 overflow-y-auto">
+                <div className="p-6 flex-1 overflow-y-auto no-scrollbar">
                     {/* INCOMING ORDERS NOTIFICATION */}
                     {pendingOrders.length > 0 && (
                         <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl shadow-lg">
@@ -385,22 +390,68 @@ export default function PosPage() {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5">
-                        {products.length === 0 ? (
-                            <div className="col-span-full text-center text-gray-500 py-10 bg-[#1a1a1c] rounded-2xl border border-gray-800">Belum ada produk aktif.</div>
+                    {/* Categories & View Mode Toggle */}
+                    <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center mb-6">
+                        <div className="flex overflow-x-auto gap-2 pb-2 w-full xl:w-auto no-scrollbar">
+                            {categories.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setActiveCategory(cat)}
+                                    className={`px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all ${
+                                        activeCategory === cat 
+                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" 
+                                        : "bg-[#1a1a1c] text-gray-400 hover:text-white border border-gray-800"
+                                    }`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="flex bg-[#1a1a1c] rounded-xl border border-gray-800 p-1 shrink-0">
+                            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                                <LayoutGrid className="w-5 h-5" />
+                            </button>
+                            <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                                <List className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5" : "flex flex-col gap-3"}>
+                        {filteredProducts.length === 0 ? (
+                            <div className="col-span-full text-center text-gray-500 py-10 bg-[#1a1a1c] rounded-2xl border border-gray-800">Belum ada produk di kategori ini.</div>
                         ) : (
-                            products.map((p) => (
+                            filteredProducts.map((p) => (
                                 <div
                                     key={p.id}
                                     onClick={() => addToCart(p)}
-                                    className="bg-[#1a1a1c] p-4 rounded-2xl border border-gray-800 cursor-pointer hover:border-blue-500/50 hover:bg-gray-800/50 transition-all relative overflow-hidden group flex flex-col h-full shadow-lg"
+                                    className={`bg-[#1a1a1c] rounded-2xl border border-gray-800 cursor-pointer hover:border-blue-500/50 hover:bg-gray-800/50 transition-all shadow-lg group overflow-hidden ${
+                                        viewMode === 'grid' 
+                                        ? "p-4 flex flex-col h-full relative text-left" 
+                                        : "p-3 flex items-center justify-between gap-4"
+                                    }`}
                                 >
-                                    <div className="flex-1">
-                                        <h3 className="font-bold text-base md:text-lg leading-tight mb-1 text-white">{p.name}</h3>
-                                        <p className="text-gray-500 text-xs md:text-sm">{p.category}</p>
+                                    <div className={viewMode === 'grid' ? "flex-1 relative z-10" : "flex items-center gap-4 relative z-10"}>
+                                        {viewMode === 'list' && (
+                                            <div className="text-3xl bg-gray-800/50 w-12 h-12 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                                                {p.image_icon || '☕'}
+                                            </div>
+                                        )}
+                                        <div>
+                                            <h3 className="font-bold text-base md:text-lg leading-tight mb-1 text-white">{p.name}</h3>
+                                            {viewMode === 'list' && <p className="text-gray-500 text-xs md:text-sm">{p.category || 'Uncategorized'}</p>}
+                                        </div>
                                     </div>
-                                    <p className="text-blue-400 font-bold mt-4 text-lg">Rp {p.price.toLocaleString("id-ID")}</p>
-                                    <div className="absolute -bottom-2 -right-2 text-6xl opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all">{p.image_icon}</div>
+                                    <p className={`text-blue-400 font-bold ${viewMode === 'grid' ? "mt-4 text-lg" : "text-lg shrink-0"} relative z-10`}>
+                                        Rp {p.price.toLocaleString("id-ID")}
+                                    </p>
+                                    
+                                    {/* Decorative Background Icon (Grid Only) */}
+                                    {viewMode === 'grid' && (
+                                        <div className="absolute -bottom-2 -right-2 text-6xl opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all z-0">
+                                            {p.image_icon || '☕'}
+                                        </div>
+                                    )}
                                 </div>
                             ))
                         )}
