@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart, Send } from "lucide-react";
+import { ShoppingCart, Send, Trash2, Minus, Plus } from "lucide-react";
 import { getActiveProducts } from "@/lib/api";
 
 export default function CustomerPage() {
@@ -30,8 +30,6 @@ export default function CustomerPage() {
             if (local) setStoreSettings(JSON.parse(local));
             
             try {
-                // Must import supabase at the top if it's not imported!
-                // Ah, I'll use fetch since I might not have supabase imported here.
                 const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/store_settings?select=*&limit=1`, {
                     headers: {
                         'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
@@ -58,6 +56,15 @@ export default function CustomerPage() {
             }
             return [...prev, { product, qty: 1 }];
         });
+    };
+
+    const updateCartQty = (productId: string, newQty: number) => {
+        if (newQty < 1) return;
+        setCart(prev => prev.map(p => p.product.id === productId ? { ...p, qty: newQty } : p));
+    };
+
+    const removeFromCart = (productId: string) => {
+        setCart(prev => prev.filter(p => p.product.id !== productId));
     };
 
     const totalAmount = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
@@ -142,16 +149,44 @@ export default function CustomerPage() {
                     ) : (
                         <div className="space-y-4">
                             {cart.map((item, idx) => (
-                                <div key={idx} className="flex justify-between pb-4 border-b border-gray-800/50">
-                                    <div className="flex-1 pr-3">
-                                        <p className="font-bold text-base md:text-lg leading-tight text-white mb-1">{item.product.name}</p>
-                                        <p className="text-gray-500 text-sm md:text-base">
-                                            {item.qty} x <span className="mx-1">•</span> Rp {item.product.price.toLocaleString("id-ID")}
-                                        </p>
+                                <div key={idx} className="flex flex-col gap-3 pb-4 border-b border-gray-800/50">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1 pr-3">
+                                            <p className="font-bold text-base md:text-lg leading-tight text-white mb-1">{item.product.name}</p>
+                                            <p className="text-blue-400 font-bold text-sm md:text-base">
+                                                Rp {item.product.price.toLocaleString("id-ID")}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-bold text-base md:text-lg whitespace-nowrap text-white mb-2">
+                                                Rp {(item.product.price * item.qty).toLocaleString("id-ID")}
+                                            </p>
+                                            <button onClick={() => removeFromCart(item.product.id)} className="text-red-400 hover:text-red-300 p-1.5 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors inline-flex">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <p className="font-bold text-base md:text-lg whitespace-nowrap text-white">
-                                        Rp {(item.product.price * item.qty).toLocaleString("id-ID")}
-                                    </p>
+                                    <div className="flex items-center gap-3">
+                                        <button 
+                                            onClick={() => updateCartQty(item.product.id, item.qty - 1)}
+                                            disabled={item.qty <= 1}
+                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl transition-colors border border-gray-700"
+                                        >
+                                            <Minus className="w-5 h-5" />
+                                        </button>
+                                        <input 
+                                            type="number" 
+                                            value={item.qty}
+                                            onChange={(e) => updateCartQty(item.product.id, parseInt(e.target.value) || 1)}
+                                            className="w-16 h-10 bg-[#121214] text-center font-bold text-white border border-gray-800 rounded-xl outline-none focus:border-blue-500"
+                                        />
+                                        <button 
+                                            onClick={() => updateCartQty(item.product.id, item.qty + 1)}
+                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition-colors border border-gray-700"
+                                        >
+                                            <Plus className="w-5 h-5" />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
