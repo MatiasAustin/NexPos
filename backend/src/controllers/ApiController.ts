@@ -76,6 +76,23 @@ router.get('/transactions', async (req, res) => {
     }
 });
 
+router.delete('/admin/transactions/:id', async (req, res) => {
+    try {
+        const trxId = req.params.id;
+        
+        // Hapus child table (transaction_items) terlebih dahulu jika tidak ada CASCADE
+        await supabase.from('transaction_items').delete().eq('transaction_id', trxId);
+        
+        // Hapus master table (transactions)
+        const { error } = await supabase.from('transactions').delete().eq('id', trxId);
+        if (error) throw error;
+        
+        res.status(204).send();
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 router.post('/refunds', async (req, res) => {
     try {
         const { transaction_id, refund_amount, reason, requested_by } = req.body;

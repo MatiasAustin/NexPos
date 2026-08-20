@@ -8,13 +8,20 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function AdminDashboard() {
-    const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings">("reconciliation");
+    const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses">("reconciliation");
     const [reconciliation, setReconciliation] = useState<any[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
-    
-    // Staff states
     const [staffList, setStaffList] = useState<any[]>([]);
+    const [products, setProducts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    
+    // Edit & Expenses States
+    const [editingProduct, setEditingProduct] = useState<any>(null);
+    const [expenses, setExpenses] = useState<any[]>([]);
+    const [rawMaterials, setRawMaterials] = useState<any[]>([]);
+    const [newExpense, setNewExpense] = useState({ description: '', amount: 0 });
+    const [newMaterial, setNewMaterial] = useState({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
     const [newStaff, setNewStaff] = useState({ full_name: '', email: '', password: '', role: 'staff' });
     
     // Store Settings
@@ -88,6 +95,16 @@ export default function AdminDashboard() {
                     }
                 } catch(e) {
                     console.error("Store settings table might not exist yet", e);
+                }
+            } else if (activeTab === "expenses") {
+                try {
+                    const { data: exp } = await supabase.from('expenses').select('*').order('expense_date', { ascending: false });
+                    if(exp) setExpenses(exp);
+                    
+                    const { data: raw } = await supabase.from('raw_materials').select('*').order('name');
+                    if(raw) setRawMaterials(raw);
+                } catch(e) {
+                    console.error("Tables might not exist", e);
                 }
             }
         } catch (error) {
@@ -220,6 +237,94 @@ export default function AdminDashboard() {
         setLoading(false);
     };
 
+    const handleUpdateProduct = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        const computedCogs = editingProduct.ingredients.length > 0 
+            ? editingProduct.ingredients.reduce((sum: number, item: any) => sum + item.cost, 0)
+            : Number(editingProduct.cogs);
+
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${editingProduct.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: editingProduct.name,
+                    category: editingProduct.category,
+                    price: Number(editingProduct.price),
+                    cogs: computedCogs,
+                    stock: Number(editingProduct.stock),
+                    image_icon: editingProduct.image_icon,
+                    ingredients: editingProduct.ingredients
+                })
+            });
+            if(res.ok) {
+                alert("Produk berhasil diperbarui!");
+                setEditingProduct(null);
+                fetchData();
+            } else {
+                const err = await res.json();
+                alert(err.error);
+            }
+        } catch(error) {
+            alert("Terjadi kesalahan.");
+        }
+        setLoading(false);
+    };
+
+    const handleDeleteTransaction = async (trx: any) => {
+        if (!window.confirm(`Hapus transaksi ${trx.order_reference} secara permanen? Laporan akan ikut terhapus.`)) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/transactions/${trx.id}`, {
+                method: 'DELETE'
+            });
+            if(res.ok || res.status === 204) {
+                alert("Transaksi berhasil dihapus.");
+                fetchData();
+            } else {
+                const err = await res.json();
+                alert(err.error);
+            }
+        } catch(error) {
+            alert("Terjadi kesalahan sistem saat menghapus.");
+        }
+        setLoading(false);
+    };
+
+    const handleCreateExpense = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await supabase.from('expenses').insert([{
+                description: newExpense.description,
+                amount: Number(newExpense.amount),
+                recorded_by: profile?.id
+            }]);
+            alert("Pengeluaran dicatat.");
+            setNewExpense({ description: '', amount: 0 });
+            fetchData();
+        } catch (e: any) { alert(e.message); }
+        setLoading(false);
+    };
+
+    const handleCreateMaterial = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await supabase.from('raw_materials').insert([{
+                name: newMaterial.name,
+                unit: newMaterial.unit,
+                current_stock: Number(newMaterial.current_stock),
+                last_price_per_unit: Number(newMaterial.last_price_per_unit)
+            }]);
+            alert("Bahan Baku ditambahkan.");
+            setNewMaterial({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
+            fetchData();
+        } catch (e: any) { alert(e.message); }
+        setLoading(false);
+    };
+
     useEffect(() => {
         fetchData();
     }, [activeTab]);
@@ -265,6 +370,7 @@ export default function AdminDashboard() {
                         { id: "reconciliation", label: "Laporan Rekonsiliasi", icon: AlertTriangle },
                         { id: "history", label: "Riwayat Transaksi", icon: FileText },
                         { id: "inventory", label: "Produk & Stok", icon: Package },
+                        { id: "expenses", label: "Bahan & Pengeluaran", icon: FileText },
                         { id: "staff", label: "Manajemen Staf", icon: Users },
                         { id: "audit", label: "Security Log", icon: ShieldCheck },
                         { id: "settings", label: "Pengaturan Toko", icon: Settings },
@@ -391,14 +497,24 @@ export default function AdminDashboard() {
                                                         <p className="font-bold text-2xl text-white">Rp {trx.amount_received.toLocaleString('id-ID')}</p>
                                                     </div>
                                                     
-                                                    {trx.status === 'Paid' && (
-                                                        <button 
-                                                            onClick={() => handleRefund(trx)}
-                                                            className="mt-4 px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-sm font-bold hover:bg-red-500/20 transition-colors"
-                                                        >
-                                                            Refund
-                                                        </button>
-                                                    )}
+                                                    <div className="flex flex-col gap-2 mt-4">
+                                                        {trx.status === 'Paid' && (
+                                                            <button 
+                                                                onClick={() => handleRefund(trx)}
+                                                                className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-sm font-bold hover:bg-red-500/20 transition-colors"
+                                                            >
+                                                                Refund
+                                                            </button>
+                                                        )}
+                                                        {profile?.role === 'owner' && (
+                                                            <button 
+                                                                onClick={() => handleDeleteTransaction(trx)}
+                                                                className="px-4 py-2 bg-red-900/40 text-red-300 border border-red-500/30 rounded-xl text-sm font-bold hover:bg-red-800 transition-colors"
+                                                            >
+                                                                Hapus Permanen
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))
@@ -448,6 +564,7 @@ export default function AdminDashboard() {
                                                         <th className="p-4 font-semibold text-gray-400 text-right">Harga Jual</th>
                                                         <th className="p-4 font-semibold text-gray-400 text-right">Profit</th>
                                                         <th className="p-4 font-semibold text-gray-400 text-center">Stok</th>
+                                                        <th className="p-4 font-semibold text-gray-400 text-center">Aksi</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -468,6 +585,104 @@ export default function AdminDashboard() {
                                                             <td className="p-4 text-center">
                                                                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-gray-300'}`}>{p.stock}</span>
                                                             </td>
+                                                            <td className="p-4 text-center">
+                                                                <button onClick={() => setEditingProduct(p)} className="px-3 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Edit Product Modal */}
+                                    {editingProduct && (
+                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
+                                            <div className="bg-[#1a1a1c] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl">
+                                                <h3 className="font-bold text-xl text-white mb-6">Edit Produk: {editingProduct.name}</h3>
+                                                <form onSubmit={handleUpdateProduct} className="space-y-4">
+                                                    <div>
+                                                        <label className="text-sm font-bold text-gray-400 block mb-2">Nama Produk</label>
+                                                        <input type="text" value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="text-sm font-bold text-gray-400 block mb-2">Harga Jual</label>
+                                                            <input type="number" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-sm font-bold text-gray-400 block mb-2">HPP Dasar</label>
+                                                            <input type="number" value={editingProduct.cogs} onChange={e => setEditingProduct({...editingProduct, cogs: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-4 mt-6">
+                                                        <button type="button" onClick={() => setEditingProduct(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
+                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Perubahan</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* EXPENSES & RAW MATERIALS TAB */}
+                            {activeTab === "expenses" && (
+                                <div className="space-y-8">
+                                    {/* INPUTS ROW */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        {/* Bahan Baku */}
+                                        <div className="p-6 md:p-8 bg-[#1a1a1c] rounded-2xl border border-gray-800 shadow-xl">
+                                            <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Bahan Baku</h3>
+                                            <form onSubmit={handleCreateMaterial} className="space-y-4">
+                                                <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    <input type="text" placeholder="Unit (kg/lt)" required value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                    <input type="number" placeholder="Stok" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                    <input type="number" placeholder="Harga/Unit" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                </div>
+                                                <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Bahan</button>
+                                            </form>
+                                        </div>
+
+                                        {/* Pengeluaran */}
+                                        <div className="p-6 md:p-8 bg-[#1a1a1c] rounded-2xl border border-gray-800 shadow-xl">
+                                            <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Catat Pengeluaran</h3>
+                                            <form onSubmit={handleCreateExpense} className="space-y-4">
+                                                <input type="text" placeholder="Deskripsi Pengeluaran" required value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                <input type="number" placeholder="Nominal (Rp)" required value={newExpense.amount || ''} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                <button type="submit" disabled={loading} className="w-full py-3 bg-red-600/20 text-red-400 border border-red-500/30 rounded-xl font-bold hover:bg-red-500/30 mt-2">Catat Pengeluaran</button>
+                                            </form>
+                                        </div>
+                                    </div>
+
+                                    {/* TABLES ROW */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                            <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Daftar Bahan Baku</h3>
+                                            <table className="w-full text-left">
+                                                <tbody>
+                                                    {rawMaterials.map((mat: any) => (
+                                                        <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/30">
+                                                            <td className="p-4 font-bold text-white">{mat.name}</td>
+                                                            <td className="p-4 text-center"><span className="px-3 py-1 bg-gray-800 rounded-lg text-sm">{mat.current_stock} {mat.unit}</span></td>
+                                                            <td className="p-4 text-right text-gray-400">Rp {mat.last_price_per_unit.toLocaleString('id-ID')}/{mat.unit}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                            <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Riwayat Pengeluaran</h3>
+                                            <table className="w-full text-left">
+                                                <tbody>
+                                                    {expenses.map((exp: any) => (
+                                                        <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/30">
+                                                            <td className="p-4">
+                                                                <p className="font-bold text-white">{exp.description}</p>
+                                                                <p className="text-xs text-gray-500">{new Date(exp.expense_date).toLocaleString('id-ID')}</p>
+                                                            </td>
+                                                            <td className="p-4 text-right font-bold text-red-400">- Rp {exp.amount.toLocaleString('id-ID')}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
