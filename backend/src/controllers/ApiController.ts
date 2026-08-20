@@ -3,6 +3,7 @@ import { TransactionService } from '../services/TransactionService';
 import { CashManagementService } from '../services/CashManagementService';
 import { ReconciliationService } from '../services/ReconciliationService';
 import { RefundService } from '../services/RefundService';
+import { AuthService } from '../services/AuthService';
 import { supabase } from '../config/database';
 
 const router = express.Router();
@@ -10,6 +11,38 @@ const transactionService = new TransactionService();
 const cashService = new CashManagementService();
 const reconciliationService = new ReconciliationService();
 const refundService = new RefundService();
+const authService = new AuthService();
+
+// =======================
+// STAFF & AUTH (ADMIN ONLY)
+// =======================
+router.get('/staff', async (req, res) => {
+    try {
+        const staff = await authService.getStaffList();
+        res.json(staff);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.post('/staff', async (req, res) => {
+    try {
+        const staff = await authService.createStaff(req.body);
+        res.status(201).json(staff);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.put('/staff/:id/toggle', async (req, res) => {
+    try {
+        const { is_active } = req.body;
+        const staff = await authService.toggleStaffStatus(req.params.id, is_active);
+        res.json(staff);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
 
 // =======================
 // PAYMENT METHODS

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { ShoppingCart, CreditCard, Banknote, Trash2, Clock } from "lucide-react";
 import { processPayment, getPaymentMethods } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 const DUMMY_PRODUCTS = [
     { id: "1", name: "Kopi Susu Gula Aren", price: 25000, category: "Coffee" },
@@ -26,9 +28,37 @@ export default function PosPage() {
     const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
     const [selectedMethod, setSelectedMethod] = useState<any>(null);
     const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+    
+    // Auth State
+    const [staff, setStaff] = useState<any>(null);
+    const router = useRouter();
 
     useEffect(() => {
-        if (hasSession) {
+        // Check Auth
+        const checkAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                router.push('/login');
+                return;
+            }
+            
+            const { data: profile } = await supabase
+                .from('staff_profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+                
+            if (profile) {
+                setStaff(profile);
+            } else {
+                router.push('/login');
+            }
+        };
+        checkAuth();
+    }, [router]);
+
+    useEffect(() => {
+        if (hasSession && staff) {
             getPaymentMethods().then(methods => {
                 setPaymentMethods(methods);
                 if (methods && methods.length > 0) {
