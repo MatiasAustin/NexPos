@@ -463,37 +463,7 @@ export default function AdminDashboard() {
         setLoading(false);
     };
 
-    const handleCreateExpense = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            const { error } = await supabase.from('expenses').insert([{
-                description: newExpense.description,
-                amount: Number(newExpense.amount),
-                recorded_by: profile?.id
-            }]);
-            if (error) throw error;
-            toast.success("Pengeluaran berhasil dicatat.");
-            setNewExpense({ description: '', amount: 0 });
-            fetchData();
-        } catch (e: any) { toast.error(e.message); }
-        setLoading(false);
-    };
 
-    const handleUpdateExpense = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            const { error } = await supabase.from('expenses')
-                .update({ description: editingExpense.description, amount: Number(editingExpense.amount) })
-                .eq('id', editingExpense.id);
-            if (error) throw error;
-            toast.success("Pengeluaran berhasil diperbarui.");
-            setEditingExpense(null);
-            fetchData();
-        } catch (e: any) { toast.error(e.message); }
-        setLoading(false);
-    };
 
     const handleDeleteExpense = async (id: string) => {
         const ok = await confirm({
@@ -518,7 +488,8 @@ export default function AdminDashboard() {
                 name: newMaterial.name,
                 unit: newMaterial.unit,
                 current_stock: Number(newMaterial.current_stock),
-                last_price_per_unit: Number(newMaterial.last_price_per_unit)
+                last_price_per_unit: Number(newMaterial.last_price_per_unit),
+                updated_by_name: profile?.full_name
             }]);
             if (error) throw error;
             toast.success("Bahan Baku berhasil ditambahkan.");
@@ -537,7 +508,8 @@ export default function AdminDashboard() {
                     name: editingMaterial.name,
                     unit: editingMaterial.unit,
                     current_stock: Number(editingMaterial.current_stock),
-                    last_price_per_unit: Number(editingMaterial.last_price_per_unit)
+                    last_price_per_unit: Number(editingMaterial.last_price_per_unit),
+                    updated_by_name: profile?.full_name
                 })
                 .eq('id', editingMaterial.id);
             if (error) throw error;
@@ -551,15 +523,52 @@ export default function AdminDashboard() {
     const handleDeleteMaterial = async (id: string) => {
         const ok = await confirm({
             title: "Hapus Bahan Baku",
-            message: "Hapus bahan baku ini secara permanen dari daftar?",
-            confirmText: "Ya, Hapus",
+            message: "Yakin ingin menghapus bahan baku ini?",
             variant: "danger"
         });
         if (!ok) return;
+        try {
+            const { error } = await supabase.from('raw_materials').delete().eq('id', id);
+            if (error) throw error;
+            toast.success("Bahan Baku dihapus.");
+            fetchData();
+        } catch (e: any) { toast.error(e.message); }
+    };
+
+    const handleCreateExpense = async (e: React.FormEvent) => {
+        e.preventDefault();
         setLoading(true);
-        const { error } = await supabase.from('raw_materials').delete().eq('id', id);
-        if (error) toast.error(error.message);
-        else { toast.success("Bahan baku dihapus."); fetchData(); }
+        try {
+            const { error } = await supabase.from('expenses').insert([{
+                description: newExpense.description,
+                amount: Number(newExpense.amount),
+                recorded_by: profile?.id,
+                staff_name: profile?.full_name
+            }]);
+            if (error) throw error;
+            toast.success("Pengeluaran berhasil dicatat.");
+            setNewExpense({ description: '', amount: 0 });
+            fetchData();
+        } catch (e: any) { toast.error(e.message); }
+        setLoading(false);
+    };
+
+    const handleUpdateExpense = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('expenses')
+                .update({
+                    description: editingExpense.description,
+                    amount: Number(editingExpense.amount),
+                    staff_name: profile?.full_name
+                })
+                .eq('id', editingExpense.id);
+            if (error) throw error;
+            toast.success("Pengeluaran berhasil diperbarui.");
+            setEditingExpense(null);
+            fetchData();
+        } catch (e: any) { toast.error(e.message); }
         setLoading(false);
     };
 
@@ -1184,7 +1193,10 @@ export default function AdminDashboard() {
                                                     <tbody>
                                                         {rawMaterials.map((mat: any) => (
                                                             <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
-                                                                <td className="p-4 font-bold text-white">{mat.name}</td>
+                                                                <td className="p-4">
+                                                                    <div className="font-bold text-white">{mat.name}</div>
+                                                                    {mat.updated_by_name && <div className="text-[10px] text-blue-400 mt-1">Oleh: {mat.updated_by_name}</div>}
+                                                                </td>
                                                                 <td className="p-4 text-center"><span className="px-3 py-1 bg-gray-800 rounded-lg text-sm">{mat.current_stock} {mat.unit}</span></td>
                                                                 <td className="p-4 text-right text-gray-400 text-sm">Rp {mat.last_price_per_unit.toLocaleString('id-ID')}/{mat.unit}</td>
                                                                 <td className="p-3 text-right">
@@ -1211,6 +1223,13 @@ export default function AdminDashboard() {
                                                                 <td className="p-4">
                                                                     <p className="font-bold text-white">{exp.description}</p>
                                                                     <p className="text-xs text-gray-500">{new Date(exp.expense_date || exp.created_at).toLocaleString('id-ID')}</p>
+                                                                </td>
+                                                                <td className="p-4 text-center">
+                                                                    {exp.staff_name ? (
+                                                                        <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{exp.staff_name}</span>
+                                                                    ) : (
+                                                                        <span className="px-2 py-1 bg-gray-800 text-gray-400 rounded-md text-[10px] border border-gray-700">Owner</span>
+                                                                    )}
                                                                 </td>
                                                                 <td className="p-4 text-right font-bold text-red-400 whitespace-nowrap">- Rp {Number(exp.amount).toLocaleString('id-ID')}</td>
                                                                 <td className="p-3 text-right">

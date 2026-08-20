@@ -27,6 +27,14 @@ export default function PosPage() {
     const [selectedMethod, setSelectedMethod] = useState<any>(null);
     const [pendingOrders, setPendingOrders] = useState<any[]>([]);
     
+    // Expenses & Raw Materials State
+    const [showExpensesModal, setShowExpensesModal] = useState(false);
+    const [expenses, setExpenses] = useState<any[]>([]);
+    const [rawMaterials, setRawMaterials] = useState<any[]>([]);
+    const [newExpense, setNewExpense] = useState({ description: '', amount: 0 });
+    const [newMaterial, setNewMaterial] = useState({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
+    const [editingMaterial, setEditingMaterial] = useState<any>(null);
+    
     // Auth State
     const [staff, setStaff] = useState<any>(null);
     const router = useRouter();
@@ -217,6 +225,97 @@ export default function PosPage() {
         localStorage.setItem("nexpos_pending_orders", JSON.stringify(newPending));
     };
 
+    const fetchExpensesAndMaterials = async () => {
+        try {
+            const [expRes, matRes] = await Promise.all([
+                supabase.from('expenses').select('*').order('created_at', { ascending: false }),
+                supabase.from('raw_materials').select('*').order('name', { ascending: true })
+            ]);
+            setExpenses(expRes.data || []);
+            setRawMaterials(matRes.data || []);
+        } catch (e) { console.error("Error fetching data", e); }
+    };
+
+    useEffect(() => {
+        if (showExpensesModal) {
+            fetchExpensesAndMaterials();
+        }
+    }, [showExpensesModal]);
+
+    const handleCreateExpense = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('expenses').insert([{
+                description: newExpense.description,
+                amount: Number(newExpense.amount),
+                recorded_by: staff?.id,
+                staff_name: staff?.full_name // Assuming column is added
+            }]);
+            if (error) throw error;
+            toast.success("Pengeluaran berhasil dicatat.");
+            setNewExpense({ description: '', amount: 0 });
+            fetchExpensesAndMaterials();
+        } catch (e: any) { toast.error(e.message); }
+        setLoading(false);
+    };
+
+    const handleCreateMaterial = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('raw_materials').insert([{
+                name: newMaterial.name,
+                unit: newMaterial.unit,
+                current_stock: Number(newMaterial.current_stock),
+                last_price_per_unit: Number(newMaterial.last_price_per_unit),
+                updated_by_name: staff?.full_name
+            }]);
+            if (error) throw error;
+            toast.success("Bahan Baku berhasil ditambahkan.");
+            setNewMaterial({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
+            fetchExpensesAndMaterials();
+        } catch (e: any) { toast.error(e.message); }
+        setLoading(false);
+    };
+
+    const handleUpdateMaterial = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('raw_materials')
+                .update({
+                    name: editingMaterial.name,
+                    unit: editingMaterial.unit,
+                    current_stock: Number(editingMaterial.current_stock),
+                    last_price_per_unit: Number(editingMaterial.last_price_per_unit),
+                    updated_by_name: staff?.full_name
+                })
+                .eq('id', editingMaterial.id);
+            if (error) throw error;
+            toast.success("Bahan Baku berhasil diperbarui.");
+            setEditingMaterial(null);
+            fetchExpensesAndMaterials();
+        } catch (e: any) { toast.error(e.message); }
+        setLoading(false);
+    };
+
+    const handleDeleteMaterial = async (id: string) => {
+        const ok = await confirm({
+            title: "Hapus Bahan",
+            message: "Hapus bahan baku ini secara permanen?",
+            confirmText: "Hapus",
+            variant: "danger"
+        });
+        if (!ok) return;
+        try {
+            const { error } = await supabase.from('raw_materials').delete().eq('id', id);
+            if (error) throw error;
+            toast.success("Bahan Baku dihapus.");
+            fetchExpensesAndMaterials();
+        } catch (e: any) { toast.error(e.message); }
+    };
+
     const addToCart = (product: any) => {
         setCart((prev) => {
             const existing = prev.find((p) => p.product.id === product.id);
@@ -379,7 +478,10 @@ export default function PosPage() {
                             <span className="text-white text-xs leading-tight">Kasir</span>
                             <span className="text-gray-400 text-xs">{staff?.full_name}</span>
                         </div>
-                        <button onClick={handleCloseSession} className="ml-3 px-3 py-1 bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20 font-bold text-[10px] uppercase tracking-wider border border-red-500/20 transition-colors">
+                        <button onClick={() => setShowExpensesModal(true)} className="ml-3 px-3 py-1 bg-orange-500/10 text-orange-400 rounded-full hover:bg-orange-500/20 font-bold text-[10px] uppercase tracking-wider border border-orange-500/20 transition-colors">
+                            Catat Pengeluaran
+                        </button>
+                        <button onClick={handleCloseSession} className="px-3 py-1 bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20 font-bold text-[10px] uppercase tracking-wider border border-red-500/20 transition-colors">
                             Tutup Shift
                         </button>
                     </div>
@@ -725,6 +827,111 @@ export default function PosPage() {
                             <p className="border border-black p-2 mt-2 font-bold">WiFi: {storeSettings.wifi_password}</p>
                         )}
                         <p className="mt-4 text-xs">Powered by NexPos</p>
+                    </div>
+                </div>
+            )}
+
+            {/* EXPENSES & RAW MATERIALS MODAL */}
+            {showExpensesModal && (
+                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4 backdrop-blur-sm overflow-y-auto">
+                    <div className="bg-[#1a1a1c] border border-gray-800 rounded-3xl w-full max-w-6xl shadow-2xl p-6 md:p-8 my-8 relative">
+                        <button 
+                            onClick={() => setShowExpensesModal(false)}
+                            className="absolute top-6 right-6 w-10 h-10 bg-gray-800 hover:bg-red-500 hover:text-white rounded-full flex items-center justify-center text-gray-400 transition-colors"
+                        >
+                            ✕
+                        </button>
+                        
+                        <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+                            <Banknote className="text-orange-500" /> Kelola Bahan Baku & Pengeluaran 
+                            <span className="text-sm font-normal text-gray-500 px-3 py-1 bg-gray-800 rounded-full ml-auto mr-12">Staff: {staff?.full_name}</span>
+                        </h2>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div className="space-y-8">
+                                <div className="p-6 bg-[#131B2C] rounded-2xl border border-gray-800">
+                                    <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Bahan Baku / Update Stok</h3>
+                                    <form onSubmit={handleCreateMaterial} className="space-y-4">
+                                        <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <input type="text" placeholder="Unit (kg/lt)" required value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                            <input type="number" placeholder="Stok" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                            <input type="number" placeholder="Harga/Unit" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                        </div>
+                                        <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Bahan</button>
+                                    </form>
+                                </div>
+
+                                <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden">
+                                    <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Daftar Bahan Baku</h3>
+                                    <div className="max-h-[300px] overflow-y-auto">
+                                        {rawMaterials.length === 0 ? (
+                                            <p className="p-6 text-gray-500 text-center text-sm">Belum ada bahan baku.</p>
+                                        ) : (
+                                            <table className="w-full text-left">
+                                                <tbody>
+                                                    {rawMaterials.map((mat: any) => (
+                                                        <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
+                                                            <td className="p-4">
+                                                                <div className="font-bold text-white">{mat.name}</div>
+                                                                {mat.updated_by_name && <div className="text-[10px] text-blue-400 mt-1">Oleh: {mat.updated_by_name}</div>}
+                                                            </td>
+                                                            <td className="p-4 text-center"><span className="px-3 py-1 bg-gray-800 rounded-lg text-sm font-bold">{mat.current_stock} {mat.unit}</span></td>
+                                                            <td className="p-4 text-right">
+                                                                <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-8">
+                                <div className="p-6 bg-[#131B2C] rounded-2xl border border-gray-800">
+                                    <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Catat Pengeluaran Operasional</h3>
+                                    <form onSubmit={handleCreateExpense} className="space-y-4">
+                                        <input type="text" placeholder="Deskripsi Pengeluaran (contoh: Beli Es Batu)" required value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                        <input type="number" placeholder="Nominal (Rp)" required value={newExpense.amount || ''} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                        <button type="submit" disabled={loading} className="w-full py-3 bg-orange-600/20 text-orange-400 border border-orange-500/30 rounded-xl font-bold hover:bg-orange-500/30 mt-2">Simpan Pengeluaran</button>
+                                    </form>
+                                </div>
+
+                                <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden">
+                                    <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Riwayat Pengeluaran</h3>
+                                    <div className="max-h-[300px] overflow-y-auto">
+                                        {expenses.length === 0 ? (
+                                            <p className="p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran dicatat.</p>
+                                        ) : (
+                                            <table className="w-full text-left">
+                                                <tbody>
+                                                    {expenses.map((exp: any) => (
+                                                        <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
+                                                            <td className="p-4">
+                                                                <div className="font-bold text-white">{exp.description}</div>
+                                                                <div className="text-[10px] text-gray-500 mt-1">{new Date(exp.expense_date).toLocaleDateString('id-ID')}</div>
+                                                            </td>
+                                                            <td className="p-4 text-center">
+                                                                {exp.staff_name ? (
+                                                                    <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{exp.staff_name}</span>
+                                                                ) : (
+                                                                    <span className="px-2 py-1 bg-gray-800 text-gray-400 rounded-md text-[10px] border border-gray-700">Owner</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="p-4 text-right text-orange-400 font-bold">
+                                                                Rp {exp.amount.toLocaleString('id-ID')}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
