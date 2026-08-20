@@ -19,6 +19,12 @@ export default function Home() {
         >
             Dashboard Admin
         </Link>
+        <Link 
+            href="/customer"
+            className="px-8 py-4 bg-orange-100 border border-orange-200 text-orange-700 rounded-xl font-bold hover:bg-orange-200 shadow-sm"
+        >
+            Kiosk Customer
+        </Link>
       </div>
     </div>
   );

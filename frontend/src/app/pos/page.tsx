@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { ShoppingCart, CreditCard, Banknote, Trash2 } from "lucide-react";
-import { processPayment } from "@/lib/api";
+import { useState, useEffect } from "react";
+import { ShoppingCart, CreditCard, Banknote, Trash2, Clock } from "lucide-react";
+import { processPayment, getPaymentMethods } from "@/lib/api";
 
 const DUMMY_PRODUCTS = [
     { id: "1", name: "Kopi Susu Gula Aren", price: 25000, category: "Coffee" },
@@ -21,6 +21,47 @@ export default function PosPage() {
     const [amountReceived, setAmountReceived] = useState<string>("");
     const [paymentResult, setPaymentResult] = useState<any>(null);
     const [loading, setLoading] = useState(false);
+    
+    // New States
+    const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+    const [selectedMethod, setSelectedMethod] = useState<any>(null);
+    const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (hasSession) {
+            getPaymentMethods().then(methods => {
+                setPaymentMethods(methods);
+                if (methods && methods.length > 0) {
+                    const cash = methods.find((m: any) => m.type.toLowerCase() === 'cash');
+                    setSelectedMethod(cash || methods[0]);
+                }
+            }).catch(console.error);
+            
+            // Listen for localStorage changes for incoming customer orders
+            const checkOrders = () => {
+                const orders = JSON.parse(localStorage.getItem("nexpos_pending_orders") || "[]");
+                setPendingOrders(orders);
+            };
+            checkOrders();
+            window.addEventListener('storage', checkOrders);
+            // Polling fallback just in case
+            const interval = setInterval(checkOrders, 2000);
+            return () => {
+                window.removeEventListener('storage', checkOrders);
+                clearInterval(interval);
+            };
+        }
+    }, [hasSession]);
+
+    const loadCustomerOrder = (order: any, idx: number) => {
+        setCart(order.items);
+        
+        // Remove from pending
+        const newPending = [...pendingOrders];
+        newPending.splice(idx, 1);
+        setPendingOrders(newPending);
+        localStorage.setItem("nexpos_pending_orders", JSON.stringify(newPending));
+    };
 
     const addToCart = (product: any) => {
         setCart((prev) => {
@@ -39,15 +80,18 @@ export default function PosPage() {
     const totalAmount = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
 
     const handlePayment = async () => {
+        if (!selectedMethod) {
+            alert("Belum ada Metode Pembayaran di Database. Silakan tambahkan via database/admin terlebih dahulu.");
+            return;
+        }
+        
         setLoading(true);
         try {
-            // Hardcoding Cash Payment Method ID for demo. 
-            // In real app, fetch from /api/payment-methods
             const payload = {
                 order_reference: `ORD-${Date.now()}`,
                 amount_due: totalAmount,
                 amount_received: Number(amountReceived),
-                payment_method_id: "00000000-0000-0000-0000-000000000000" // Requires actual DB ID
+                payment_method_id: selectedMethod.id
             };
             
             const result = await processPayment(payload);
@@ -94,10 +138,29 @@ export default function PosPage() {
             <div className="flex-1 p-6 flex flex-col overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-gray-800">NexPos Terminal</h1>
-                    <div className="bg-white p-2 rounded-lg shadow-sm font-semibold">
-                        Shift: Pagi | Kasir: Budi
+                    <div className="bg-white p-2 rounded-lg shadow-sm font-semibold flex items-center gap-4">
+                        <span className="text-sm text-gray-500"><Clock className="w-4 h-4 inline" /> {new Date().toLocaleTimeString()}</span>
+                        <span className="border-l pl-4">Shift: Pagi | Kasir: Budi</span>
                     </div>
                 </div>
+
+                {/* INCOMING ORDERS NOTIFICATION */}
+                {pendingOrders.length > 0 && (
+                    <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+                        <h3 className="font-bold text-orange-800 mb-2">🔔 Pesanan Baru dari Customer (Tab Sebelah)</h3>
+                        <div className="flex gap-2 overflow-x-auto">
+                            {pendingOrders.map((order: any, idx: number) => (
+                                <button 
+                                    key={order.id}
+                                    onClick={() => loadCustomerOrder(order, idx)}
+                                    className="bg-white px-4 py-2 rounded-lg border border-orange-300 text-orange-700 font-bold hover:bg-orange-100 flex-shrink-0"
+                                >
+                                    {order.id} - Rp {order.total.toLocaleString('id-ID')}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-3 gap-4">
                     {DUMMY_PRODUCTS.map((p) => (
@@ -173,21 +236,48 @@ export default function PosPage() {
                                     <p className="text-4xl font-bold text-blue-600">Rp {totalAmount.toLocaleString("id-ID")}</p>
                                 </div>
                                 
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold mb-2">Uang Diterima (Cash)</label>
-                                    <input 
-                                        type="number"
-                                        value={amountReceived}
-                                        onChange={(e) => setAmountReceived(e.target.value)}
-                                        className="w-full border-2 border-gray-200 rounded-lg p-3 text-lg focus:border-blue-500 focus:outline-none"
-                                        placeholder="Masukkan jumlah..."
-                                    />
-                                    {Number(amountReceived) >= totalAmount && (
-                                        <div className="mt-2 text-green-600 font-bold">
-                                            Kembalian: Rp {(Number(amountReceived) - totalAmount).toLocaleString("id-ID")}
+                                {paymentMethods.length > 0 ? (
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-semibold mb-2">Metode Pembayaran</label>
+                                        <div className="flex gap-2">
+                                            {paymentMethods.map(m => (
+                                                <button
+                                                    key={m.id}
+                                                    onClick={() => setSelectedMethod(m)}
+                                                    className={`flex-1 py-2 rounded-lg border-2 font-bold ${selectedMethod?.id === m.id ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                                                >
+                                                    {m.name}
+                                                </button>
+                                            ))}
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-4 bg-red-50 text-red-600 rounded-lg mb-6 text-sm">
+                                        ⚠️ Tidak ada Metode Pembayaran. Silakan tambahkan di Supabase.
+                                    </div>
+                                )}
+
+                                {selectedMethod?.type?.toLowerCase() === 'cash' ? (
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-semibold mb-2">Uang Diterima (Cash)</label>
+                                        <input 
+                                            type="number"
+                                            value={amountReceived}
+                                            onChange={(e) => setAmountReceived(e.target.value)}
+                                            className="w-full border-2 border-gray-200 rounded-lg p-3 text-lg focus:border-blue-500 focus:outline-none"
+                                            placeholder="Masukkan jumlah..."
+                                        />
+                                        {Number(amountReceived) >= totalAmount && (
+                                            <div className="mt-2 text-green-600 font-bold">
+                                                Kembalian: Rp {(Number(amountReceived) - totalAmount).toLocaleString("id-ID")}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="mb-6 p-4 bg-gray-50 rounded-lg text-center text-sm text-gray-500">
+                                        Akan membuka jendela pembayaran {selectedMethod?.name}...
+                                    </div>
+                                )}
 
                                 <div className="flex gap-4">
                                     <button 
@@ -198,10 +288,10 @@ export default function PosPage() {
                                     </button>
                                     <button 
                                         onClick={handlePayment}
-                                        disabled={loading || Number(amountReceived) < totalAmount}
+                                        disabled={loading || !selectedMethod || (selectedMethod?.type?.toLowerCase() === 'cash' && Number(amountReceived) < totalAmount)}
                                         className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50"
                                     >
-                                        {loading ? "Memproses..." : <><Banknote className="w-5 h-5"/> Proses Cash</>}
+                                        {loading ? "Memproses..." : <><CreditCard className="w-5 h-5"/> Proses Pembayaran</>}
                                     </button>
                                 </div>
                             </>
