@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Lock, User } from "lucide-react";
+import { Lock, User, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const router = useRouter();
@@ -35,7 +36,7 @@ export default function LoginPage() {
             if (profileError) throw profileError;
             
             if (!profile) {
-                throw new Error("Profil Staf tidak ditemukan di database. Pastikan SQL INSERT berhasil dijalankan dengan UID yang benar.");
+                throw new Error("Akun Anda belum memiliki akses ke aplikasi Kasir. Silakan hubungi Owner/Admin.");
             }
 
             if (profile.role === 'owner') {
@@ -55,7 +56,7 @@ export default function LoginPage() {
             <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">NexPos Login</h1>
-                    <p className="text-gray-500 mt-2">Silakan masuk menggunakan akun Staff/Owner Anda.</p>
+                    <p className="text-gray-500 mt-2">Selamat datang! Silakan masuk untuk memulai shift Anda.</p>
                 </div>
 
                 {error && (
@@ -74,7 +75,7 @@ export default function LoginPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
-                                placeholder="budi@nexpos.local"
+                                placeholder="Email Kasir..."
                                 required
                             />
                         </div>
@@ -85,13 +86,20 @@ export default function LoginPage() {
                         <div className="relative">
                             <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                             <input 
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
+                                className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-gray-900 font-medium"
                                 placeholder="••••••••"
                                 required
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                            >
+                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
                         </div>
                     </div>
 
