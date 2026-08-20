@@ -12,6 +12,7 @@ export default function AdminDashboard() {
     const [reconciliation, setReconciliation] = useState<any[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
+    const [historyFilter, setHistoryFilter] = useState<"daily" | "weekly" | "monthly">("daily");
     const [staffList, setStaffList] = useState<any[]>([]);
     
     // Edit & Expenses States
@@ -466,21 +467,49 @@ export default function AdminDashboard() {
                             )}
 
                             {/* HISTORY & REFUND TAB */}
-                            {activeTab === "history" && (
-                                <div className="space-y-4">
-                                    {transactions.length === 0 ? (
-                                        <p className="p-8 text-gray-500 text-center bg-[#131B2C] rounded-2xl border border-gray-800">Belum ada transaksi.</p>
-                                    ) : (
-                                        transactions.map((trx: any) => (
-                                            <div key={trx.id} className="p-5 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-lg flex flex-col md:flex-row gap-4 justify-between">
-                                                <div>
-                                                    <div className="flex items-center gap-3 mb-2">
-                                                        <span className="font-bold text-white text-lg">{trx.order_reference}</span>
-                                                        <span className={`px-2.5 py-1 text-xs font-bold rounded-lg ${trx.status === 'Paid' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : trx.status === 'Refunded' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-gray-300'}`}>
-                                                            {trx.status}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-gray-400 mb-3">Metode: <span className="text-gray-200">{trx.payment_methods?.name || 'Unknown'}</span> | {new Date(trx.created_at).toLocaleString('id-ID')}</p>
+                            {activeTab === "history" && (() => {
+                                const filteredTransactions = transactions.filter(trx => {
+                                    const trxDate = new Date(trx.created_at);
+                                    const now = new Date();
+                                    if (historyFilter === 'daily') {
+                                        return trxDate.toDateString() === now.toDateString();
+                                    } else if (historyFilter === 'weekly') {
+                                        const diff = now.getTime() - trxDate.getTime();
+                                        return diff <= 7 * 24 * 60 * 60 * 1000;
+                                    } else {
+                                        return trxDate.getMonth() === now.getMonth() && trxDate.getFullYear() === now.getFullYear();
+                                    }
+                                });
+
+                                return (
+                                    <div className="space-y-6">
+                                        <div className="flex justify-between items-center bg-[#131B2C] p-4 rounded-2xl border border-gray-800/60 shadow-lg">
+                                            <h3 className="font-bold text-white">Filter Laporan</h3>
+                                            <select 
+                                                value={historyFilter}
+                                                onChange={(e) => setHistoryFilter(e.target.value as any)}
+                                                className="bg-[#0B0F19] text-white border border-gray-800 rounded-xl px-4 py-2 outline-none focus:border-blue-500 font-semibold"
+                                            >
+                                                <option value="daily">Hari Ini</option>
+                                                <option value="weekly">7 Hari Terakhir</option>
+                                                <option value="monthly">Bulan Ini</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            {filteredTransactions.length === 0 ? (
+                                                <p className="p-8 text-gray-500 text-center bg-[#131B2C] rounded-2xl border border-gray-800/60 shadow-lg">Belum ada transaksi pada periode ini.</p>
+                                            ) : (
+                                                filteredTransactions.map((trx: any) => (
+                                                    <div key={trx.id} className="p-5 bg-[#131B2C] rounded-2xl border border-gray-800/60 shadow-lg flex flex-col md:flex-row gap-4 justify-between transition-colors hover:border-blue-500/30">
+                                                        <div>
+                                                            <div className="flex items-center gap-3 mb-2">
+                                                                <span className="font-bold text-white text-lg">{trx.order_reference}</span>
+                                                                <span className={`px-2.5 py-1 text-xs font-bold rounded-lg ${trx.status === 'Paid' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : trx.status === 'Refunded' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-gray-300'}`}>
+                                                                    {trx.status}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-sm text-gray-400 mb-3">Metode: <span className="text-gray-200">{trx.payment_methods?.name || 'Unknown'}</span> | {new Date(trx.created_at).toLocaleString('id-ID')}</p>
                                                     
                                                     {trx.order_items && trx.order_items.length > 0 && (
                                                         <div className="bg-gray-800/30 p-3 rounded-xl border border-gray-800">
@@ -524,8 +553,10 @@ export default function AdminDashboard() {
                                             </div>
                                         ))
                                     )}
-                                </div>
-                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* INVENTORY TAB */}
                             {activeTab === "inventory" && (
