@@ -11,9 +11,14 @@ import ReportChart from "@/components/ReportChart";
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses">("reconciliation");
     const [reconciliation, setReconciliation] = useState<any[]>([]);
+    const [reconciliationMode, setReconciliationMode] = useState<"daily" | "weekly" | "monthly" | "yearly">("daily");
+    const [reconciliationDate, setReconciliationDate] = useState(new Date().toISOString().split('T')[0]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
-    const [historyFilter, setHistoryFilter] = useState<"daily" | "weekly" | "monthly">("daily");
+    const [historyFilterType, setHistoryFilterType] = useState<"date" | "month" | "year">("date");
+    const [historyFilterDate, setHistoryFilterDate] = useState(new Date().toISOString().split('T')[0]);
+    const [historyFilterMonth, setHistoryFilterMonth] = useState(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
+    const [historyFilterYear, setHistoryFilterYear] = useState(String(new Date().getFullYear()));
     const [staffList, setStaffList] = useState<any[]>([]);
     
     // Edit & Expenses States
@@ -34,7 +39,9 @@ export default function AdminDashboard() {
         wifi_name: "",
         wifi_password: "",
         tax_enabled: false,
-        tax_rate: 0
+        tax_rate: 0,
+        logo_size: 60,
+        qris_size: 120
     });
 
     // Inventory states
@@ -48,39 +55,34 @@ export default function AdminDashboard() {
     const router = useRouter();
 
     useEffect(() => {
-        const checkAuth = async () => {
+        fetchData();
+    }, [activeTab]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 router.push('/login');
                 return;
             }
-            
-            const { data: prof } = await supabase
-                .from('staff_profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-                
+
+            const { data: prof } = await supabase.from('staff_profiles').select('*').eq('id', session.user.id).single();
             if (!prof || prof.role !== 'owner') {
                 alert("Akses ditolak. Anda bukan Admin/Owner.");
                 router.push('/pos');
-            } else {
-                setProfile(prof);
+                return;
             }
-        };
-        checkAuth();
-    }, [router]);
+            setProfile(prof);
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
             if (activeTab === "reconciliation") {
                 const today = new Date().toISOString().split('T')[0];
-                const report = await getReconciliationReport(today, today + "T23:59:59Z");
-                setReconciliation(Array.isArray(report) ? report : report.sessions || []);
+                const res = await getReconciliationReport(today, today);
+                // Ensure it's an array
+                setReconciliation(Array.isArray(res) ? res : (res?.sessions || []));
             } else if (activeTab === "audit") {
-                const logs = await getAuditLogs();
-                setAuditLogs(logs);
+                const logs = await getAuditLogs(50);
+                setAuditLogs(Array.isArray(logs) ? logs : []);
             } else if (activeTab === "staff") {
                 // Fetch staff list from backend (requires API endpoint)
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff`);
@@ -103,22 +105,19 @@ export default function AdminDashboard() {
                             wifi_name: data.wifi_name || "",
                             wifi_password: data.wifi_password || "",
                             tax_enabled: !!data.tax_enabled,
-                            tax_rate: Number(data.tax_rate) || 0
+                            tax_rate: Number(data.tax_rate) || 0,
+                            logo_size: Number(data.logo_size) || 60,
+                            qris_size: Number(data.qris_size) || 120
                         });
                     }
                 } catch(e) {
                     console.error("Store settings table might not exist yet", e);
                 }
             } else if (activeTab === "expenses") {
-                try {
-                    const { data: exp } = await supabase.from('expenses').select('*').order('expense_date', { ascending: false });
-                    if(exp) setExpenses(exp);
-                    
-                    const { data: raw } = await supabase.from('raw_materials').select('*').order('name');
-                    if(raw) setRawMaterials(raw);
-                } catch(e) {
-                    console.error("Tables might not exist", e);
-                }
+                const { data: exp } = await supabase.from('expenses').select('*').order('created_at', { ascending: false });
+                setExpenses(exp || []);
+                const { data: mat } = await supabase.from('raw_materials').select('*').order('name', { ascending: true });
+                setRawMaterials(mat || []);
             }
         } catch (error) {
             console.error("Error fetching data", error);
@@ -129,17 +128,20 @@ export default function AdminDashboard() {
     const handleSaveSettings = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.from('store_settings').select('id').maybeSingle();
+            const { data, error: selectErr } = await supabase.from('store_settings').select('id').maybeSingle();
+            
             if (data?.id) {
-                await supabase.from('store_settings').update(storeSettings).eq('id', data.id);
+                const { error } = await supabase.from('store_settings').update(storeSettings).eq('id', data.id);
+                if (error) throw error;
             } else {
-                await supabase.from('store_settings').insert([storeSettings]);
+                const { error } = await supabase.from('store_settings').insert([storeSettings]);
+                if (error) throw error;
             }
             alert("Pengaturan Toko berhasil disimpan!");
             // Sync locally to avoid waiting for db if used locally
             localStorage.setItem("nexpos_store_settings", JSON.stringify(storeSettings));
         } catch(e: any) {
-            alert("Gagal menyimpan. Pastikan tabel store_settings sudah dibuat di Supabase: " + e.message);
+            alert("Gagal menyimpan. Error: " + (e.message || "Pastikan script SQL dijalankan."));
         }
         setLoading(false);
     };
@@ -172,6 +174,31 @@ export default function AdminDashboard() {
 
     const handleTestPrint = () => {
         window.print();
+    };
+
+    const fetchReconciliation = async (date: string) => {
+        setLoading(true);
+        try {
+            const res = await getReconciliationReport(date, date);
+            setReconciliation(Array.isArray(res) ? res : []);
+        } catch (e) {
+            console.error(e);
+        }
+        setLoading(false);
+    };
+
+    const getFilteredTransactions = () => {
+        return transactions.filter(trx => {
+            const trxDate = new Date(trx.created_at);
+            if (historyFilterType === 'date') {
+                return trx.created_at?.startsWith(historyFilterDate);
+            } else if (historyFilterType === 'month') {
+                const ym = `${trxDate.getFullYear()}-${String(trxDate.getMonth() + 1).padStart(2, '0')}`;
+                return ym === historyFilterMonth;
+            } else {
+                return String(trxDate.getFullYear()) === historyFilterYear;
+            }
+        });
     };
 
     const handleCreateStaff = async (e: React.FormEvent) => {
@@ -547,8 +574,22 @@ export default function AdminDashboard() {
                                     <ReportChart />
 
                                     <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                        <div className="p-6 border-b border-gray-800">
-                                            <h3 className="font-bold text-xl text-white">Data Rekonsiliasi Hari Ini</h3>
+                                        <div className="p-6 border-b border-gray-800 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
+                                            <h3 className="font-bold text-xl text-white">Data Rekonsiliasi Berdasarkan Tanggal</h3>
+                                            <div className="flex gap-2 items-center">
+                                                <input
+                                                    type="date"
+                                                    value={reconciliationDate}
+                                                    onChange={e => setReconciliationDate(e.target.value)}
+                                                    className="bg-gray-900 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500"
+                                                />
+                                                <button
+                                                    onClick={() => fetchReconciliation(reconciliationDate)}
+                                                    className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500"
+                                                >
+                                                    Tampilkan
+                                                </button>
+                                            </div>
                                         </div>
                                         {reconciliation.length === 0 ? (
                                             <p className="p-8 text-gray-500 text-center">Belum ada transaksi hari ini.</p>
@@ -584,32 +625,41 @@ export default function AdminDashboard() {
 
                             {/* HISTORY & REFUND TAB */}
                             {activeTab === "history" && (() => {
-                                const filteredTransactions = transactions.filter(trx => {
-                                    const trxDate = new Date(trx.created_at);
-                                    const now = new Date();
-                                    if (historyFilter === 'daily') {
-                                        return trxDate.toDateString() === now.toDateString();
-                                    } else if (historyFilter === 'weekly') {
-                                        const diff = now.getTime() - trxDate.getTime();
-                                        return diff <= 7 * 24 * 60 * 60 * 1000;
-                                    } else {
-                                        return trxDate.getMonth() === now.getMonth() && trxDate.getFullYear() === now.getFullYear();
-                                    }
-                                });
+                                const filteredTransactions = getFilteredTransactions();
 
                                 return (
                                     <div className="space-y-6">
-                                        <div className="flex justify-between items-center bg-[#131B2C] p-4 rounded-2xl border border-gray-800/60 shadow-lg">
-                                            <h3 className="font-bold text-white">Filter Laporan</h3>
-                                            <select 
-                                                value={historyFilter}
-                                                onChange={(e) => setHistoryFilter(e.target.value as any)}
-                                                className="bg-[#0B0F19] text-white border border-gray-800 rounded-xl px-4 py-2 outline-none focus:border-blue-500 font-semibold"
-                                            >
-                                                <option value="daily">Hari Ini</option>
-                                                <option value="weekly">7 Hari Terakhir</option>
-                                                <option value="monthly">Bulan Ini</option>
-                                            </select>
+                                        <div className="bg-[#131B2C] p-5 rounded-2xl border border-gray-800/60 shadow-lg">
+                                            <h3 className="font-bold text-white mb-4">Filter Riwayat Transaksi</h3>
+                                            <div className="flex flex-wrap gap-3 items-end">
+                                                <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-800">
+                                                    {[{k:'date',l:'Per Tanggal'},{k:'month',l:'Per Bulan'},{k:'year',l:'Per Tahun'}].map(f => (
+                                                        <button key={f.k} onClick={() => setHistoryFilterType(f.k as any)}
+                                                            className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${historyFilterType === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                                                            {f.l}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                {historyFilterType === 'date' && (
+                                                    <input type="date" value={historyFilterDate}
+                                                        onChange={e => setHistoryFilterDate(e.target.value)}
+                                                        className="bg-gray-900 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                                                )}
+                                                {historyFilterType === 'month' && (
+                                                    <input type="month" value={historyFilterMonth}
+                                                        onChange={e => setHistoryFilterMonth(e.target.value)}
+                                                        className="bg-gray-900 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                                                )}
+                                                {historyFilterType === 'year' && (
+                                                    <select value={historyFilterYear} onChange={e => setHistoryFilterYear(e.target.value)}
+                                                        className="bg-gray-900 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500">
+                                                        {Array.from({length: 5}, (_, i) => new Date().getFullYear() - i).map(y => (
+                                                            <option key={y} value={y}>{y}</option>
+                                                        ))}
+                                                    </select>
+                                                )}
+                                                <span className="text-gray-500 text-sm">{filteredTransactions.length} transaksi ditemukan</span>
+                                            </div>
                                         </div>
 
                                         <div className="space-y-4">
@@ -981,11 +1031,17 @@ export default function AdminDashboard() {
                                                         ) : (
                                                             <div className="w-24 h-24 bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center text-gray-500 text-xs text-center p-2">No Logo</div>
                                                         )}
-                                                        <div>
-                                                            <label className="cursor-pointer bg-blue-600/10 text-blue-500 border border-blue-500/20 px-4 py-2 rounded-lg font-bold hover:bg-blue-600 hover:text-white transition-colors flex items-center gap-2">
+                                                        <div className="flex-1">
+                                                            <label className="cursor-pointer bg-blue-600/10 text-blue-500 border border-blue-500/20 px-4 py-2 rounded-lg font-bold hover:bg-blue-600 hover:text-white transition-colors inline-flex items-center gap-2 mb-3">
                                                                 <Upload className="w-4 h-4" /> Upload Logo
                                                                 <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={handleLogoUpload} />
                                                             </label>
+                                                            {storeSettings.logo_base64 && (
+                                                                <div>
+                                                                    <label className="text-xs text-gray-500 block mb-1 font-semibold">Ukuran Logo di Struk: {storeSettings.logo_size}px</label>
+                                                                    <input type="range" min="30" max="150" value={storeSettings.logo_size} onChange={e => setStoreSettings({...storeSettings, logo_size: Number(e.target.value)})} className="w-full accent-blue-500" />
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1063,11 +1119,17 @@ export default function AdminDashboard() {
                                                         ) : (
                                                             <div className="w-24 h-24 bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center text-gray-500 text-xs text-center p-2">Belum ada QRIS</div>
                                                         )}
-                                                        <div>
-                                                            <label className="cursor-pointer bg-blue-600/10 text-blue-500 border border-blue-500/20 px-4 py-2 rounded-lg font-bold hover:bg-blue-600 hover:text-white transition-colors flex items-center gap-2">
+                                                        <div className="flex-1">
+                                                            <label className="cursor-pointer bg-blue-600/10 text-blue-500 border border-blue-500/20 px-4 py-2 rounded-lg font-bold hover:bg-blue-600 hover:text-white transition-colors inline-flex items-center gap-2 mb-3">
                                                                 <Upload className="w-4 h-4" /> Upload QRIS
                                                                 <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={handleQrisUpload} />
                                                             </label>
+                                                            {storeSettings.qris_image_base64 && (
+                                                                <div>
+                                                                    <label className="text-xs text-gray-500 block mb-1 font-semibold">Ukuran QRIS di Struk: {storeSettings.qris_size}px</label>
+                                                                    <input type="range" min="60" max="200" value={storeSettings.qris_size} onChange={e => setStoreSettings({...storeSettings, qris_size: Number(e.target.value)})} className="w-full accent-blue-500" />
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1090,7 +1152,7 @@ export default function AdminDashboard() {
                                         <div className="bg-white p-6 text-black font-mono text-sm w-[300px] shadow-2xl rounded-sm">
                                             {storeSettings.logo_base64 && (
                                                 <div className="flex justify-center mb-4">
-                                                    <img src={storeSettings.logo_base64} alt="Logo" className="w-16 h-16 object-contain grayscale" />
+                                                    <img src={storeSettings.logo_base64} alt="Logo" style={{ width: storeSettings.logo_size, height: storeSettings.logo_size }} className="object-contain grayscale" />
                                                 </div>
                                             )}
                                             <div className="text-center font-bold text-lg mb-1">{storeSettings.cafe_name || 'Nama Cafe'}</div>
@@ -1134,7 +1196,7 @@ export default function AdminDashboard() {
                                             {storeSettings.qris_image_base64 && (
                                                 <div className="flex flex-col items-center justify-center my-6">
                                                     <p className="font-bold text-xs mb-2 text-center">SCAN QRIS UNTUK BAYAR</p>
-                                                    <img src={storeSettings.qris_image_base64} alt="QRIS" className="w-32 h-32 object-contain" />
+                                                    <img src={storeSettings.qris_image_base64} alt="QRIS" style={{ width: storeSettings.qris_size, height: storeSettings.qris_size }} className="object-contain" />
                                                 </div>
                                             )}
 
@@ -1171,7 +1233,7 @@ export default function AdminDashboard() {
         <div className="hidden print:block print-receipt">
             {storeSettings.logo_base64 && (
                 <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                    <img src={storeSettings.logo_base64} alt="Logo" style={{ width: '60px', filter: 'grayscale(100%)', margin: '0 auto' }} />
+                    <img src={storeSettings.logo_base64} alt="Logo" style={{ width: `${storeSettings.logo_size}px`, filter: 'grayscale(100%)', margin: '0 auto' }} />
                 </div>
             )}
             <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '18px' }}>

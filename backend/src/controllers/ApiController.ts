@@ -268,8 +268,12 @@ router.post('/cash-movements', async (req, res) => {
 // =======================
 router.get('/reconciliation', async (req, res) => {
     try {
-        const { startDate, endDate } = req.query as any;
-        const report = await reconciliationService.getReconciliationReport(startDate, endDate);
+        const { startDate, endDate, mode } = req.query as any;
+        // Default: today if no date given
+        const today = new Date().toISOString().split('T')[0];
+        const start = startDate || today;
+        const end = endDate || today;
+        const report = await reconciliationService.getReconciliationReport(start, end, mode);
         res.json(report);
     } catch (error: any) {
          res.status(400).json({ error: error.message });
@@ -277,7 +281,12 @@ router.get('/reconciliation', async (req, res) => {
 });
 
 router.get('/audit-logs', async (req, res) => {
-    const { data, error } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false });
+    const limit = parseInt(String(req.query.limit || '50'));
+    const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
     if (error) return res.status(400).json({ error: error.message });
     res.json(data);
 });

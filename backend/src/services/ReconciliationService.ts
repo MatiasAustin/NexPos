@@ -1,16 +1,20 @@
 import { supabase } from '../config/database';
 
 export class ReconciliationService {
-    async getReconciliationReport(startDate: string, endDate: string) {
+    async getReconciliationReport(startDate: string, endDate: string, mode?: string) {
+        // Build date range. endDate should cover the end of the day.
+        const startISO = new Date(startDate + 'T00:00:00Z').toISOString();
+        const endISO = new Date(endDate + 'T23:59:59Z').toISOString();
+
         // Fetch all transactions within the date range
         const { data: transactions, error } = await supabase
             .from('transactions')
             .select(`
-                id, amount_due, status, payment_method_id,
+                id, amount_due, status, payment_method_id, created_at,
                 payment_methods ( name, type )
             `)
-            .gte('created_at', startDate)
-            .lte('created_at', endDate)
+            .gte('created_at', startISO)
+            .lte('created_at', endISO)
             .eq('status', 'Paid');
 
         if (error) throw error;
@@ -22,10 +26,10 @@ export class ReconciliationService {
             transaction_count: number;
         }> = {};
 
-        transactions.forEach((trx: any) => {
-            const methodId = trx.payment_method_id;
-            const methodName = trx.payment_methods.name;
-            const amount = parseFloat(trx.amount_due);
+        (transactions || []).forEach((trx: any) => {
+            const methodId = trx.payment_method_id || 'unknown';
+            const methodName = trx.payment_methods?.name || 'Unknown';
+            const amount = parseFloat(trx.amount_due) || 0;
 
             if (!report[methodId]) {
                 report[methodId] = {
@@ -39,8 +43,6 @@ export class ReconciliationService {
             report[methodId].transaction_count += 1;
         });
 
-        // In a real application, you would also fetch data from provider APIs
-        // to compare POS Total vs Provider Total. We return POS totals here.
         return Object.values(report);
     }
 }

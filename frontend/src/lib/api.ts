@@ -27,13 +27,16 @@ export const closeCashSession = async (data: any) => {
     return res.data;
 };
 
-export const getReconciliationReport = async (startDate: string, endDate: string) => {
-    const res = await api.get(`/reconciliation?startDate=${startDate}&endDate=${endDate}`);
+export const getReconciliationReport = async (startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate || startDate!);
+    const res = await api.get(`/reconciliation?${params.toString()}`);
     return res.data;
 };
 
-export const getAuditLogs = async () => {
-    const res = await api.get('/audit-logs');
+export const getAuditLogs = async (limit = 50) => {
+    const res = await api.get(`/audit-logs?limit=${limit}`);
     return res.data;
 };
 
