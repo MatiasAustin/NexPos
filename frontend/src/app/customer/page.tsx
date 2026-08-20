@@ -50,6 +50,7 @@ export default function CustomerPage() {
     }, []);
 
     const addToCart = (product: any) => {
+        if (sent) return;
         setCart((prev) => {
             const existing = prev.find((p) => p.product.id === product.id);
             if (existing) {
@@ -62,11 +63,12 @@ export default function CustomerPage() {
     };
 
     const updateCartQty = (productId: string, newQty: number) => {
-        if (newQty < 1) return;
+        if (sent || newQty < 1) return;
         setCart(prev => prev.map(p => p.product.id === productId ? { ...p, qty: newQty } : p));
     };
 
     const removeFromCart = (productId: string) => {
+        if (sent) return;
         setCart(prev => prev.filter(p => p.product.id !== productId));
     };
 
@@ -78,9 +80,19 @@ export default function CustomerPage() {
     const [queueNumber, setQueueNumber] = useState<string | null>(null);
 
     const sendOrderToCashier = () => {
-        if (cart.length === 0) return;
+        if (cart.length === 0 || sent) return;
         
-        const qNumber = Math.floor(100 + Math.random() * 900).toString(); // Generate 3 digit queue
+        // Generate Sequential Queue Number based on Date
+        const today = new Date().toISOString().split('T')[0];
+        const counterData = JSON.parse(localStorage.getItem("nexpos_queue_counter") || "{}");
+        let nextNumber = 1;
+        if (counterData.date === today) {
+            nextNumber = (counterData.count || 0) + 1;
+        }
+        localStorage.setItem("nexpos_queue_counter", JSON.stringify({ date: today, count: nextNumber }));
+        
+        const qNumber = nextNumber.toString().padStart(3, '0');
+        
         const newOrder = { 
             id: Date.now().toString(), 
             queue_number: qNumber,
@@ -92,12 +104,14 @@ export default function CustomerPage() {
         const existingOrders = JSON.parse(localStorage.getItem("nexpos_pending_orders") || "[]");
         localStorage.setItem("nexpos_pending_orders", JSON.stringify([...existingOrders, newOrder]));
         
-        setCart([]);
         setQueueNumber(qNumber);
         setSent(true);
+        
+        // Delay clearing cart so totals are still visible
         setTimeout(() => {
             setSent(false);
             setQueueNumber(null);
+            setCart([]);
         }, 8000);
     };
 
