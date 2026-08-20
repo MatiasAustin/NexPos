@@ -11,6 +11,39 @@ import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
 import { LoadingSpinner, SkeletonCard, SkeletonTable } from "@/components/Loading";
 
+const CategoryDropdown = ({ value, onChange, categories, onAdd, onRemove }: { value: string, onChange: (v: string) => void, categories: string[], onAdd: (v: string) => void, onRemove: (v: string) => void }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [newCat, setNewCat] = useState('');
+    return (
+        <div className="relative">
+            <div onClick={() => setIsOpen(!isOpen)} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white cursor-pointer flex justify-between items-center outline-none focus:border-blue-500">
+                {value || "Pilih Kategori"}
+                <span className="text-gray-500 text-xs">▼</span>
+            </div>
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+                    <div className="absolute top-full mt-2 w-full bg-[#131B2C] border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden max-h-72 flex flex-col">
+                        <div className="overflow-y-auto max-h-48 py-1">
+                            {categories.map((cat: string) => (
+                                <div key={cat} className="flex justify-between items-center px-4 py-3 hover:bg-gray-800 cursor-pointer text-sm text-white transition-colors group">
+                                    <span onClick={() => { onChange(cat); setIsOpen(false); }} className="flex-1 font-bold">{cat}</span>
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(cat); }} className="text-gray-500 hover:text-red-400 opacity-50 group-hover:opacity-100 transition-opacity">✕</button>
+                                </div>
+                            ))}
+                            {categories.length === 0 && <div className="p-4 text-center text-gray-500 text-xs">Belum ada kategori</div>}
+                        </div>
+                        <div className="p-3 border-t border-gray-800 bg-gray-900 flex gap-2">
+                            <input type="text" value={newCat} onChange={e=>setNewCat(e.target.value)} placeholder="Kategori Baru..." className="flex-1 bg-[#0B0F19] rounded-lg px-3 py-2 text-sm text-white outline-none border border-gray-700 focus:border-blue-500 transition-colors" onKeyDown={e => { if(e.key==='Enter') { e.preventDefault(); onAdd(newCat); setNewCat(''); }}} />
+                            <button type="button" onClick={() => { onAdd(newCat); setNewCat(''); }} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-blue-500">+</button>
+                        </div>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
+
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses">("reconciliation");
     const [reconciliation, setReconciliation] = useState<any[]>([]);
@@ -424,17 +457,38 @@ export default function AdminDashboard() {
         }
     };
 
+    const saveCategoriesToDB = async (newCategories: string[]) => {
+        try {
+            const { data } = await supabase.from('store_settings').select('id').maybeSingle();
+            if (data?.id) {
+                await supabase.from('store_settings').update({ categories: newCategories }).eq('id', data.id);
+            }
+            // Update localStorage
+            const local = JSON.parse(localStorage.getItem("nexpos_store_settings") || "{}");
+            local.categories = newCategories;
+            localStorage.setItem("nexpos_store_settings", JSON.stringify(local));
+        } catch (e) {
+            console.error("Auto-save category failed", e);
+        }
+    };
+
     const handleAddCategory = (newCat: string) => {
         if (!newCat.trim()) return;
         if (storeSettings.categories.includes(newCat.trim())) {
             toast.error("Kategori sudah ada!");
             return;
         }
-        setStoreSettings(prev => ({ ...prev, categories: [...prev.categories, newCat.trim()] }));
+        const updated = [...storeSettings.categories, newCat.trim()];
+        setStoreSettings(prev => ({ ...prev, categories: updated }));
+        saveCategoriesToDB(updated);
+        toast.success("Kategori ditambahkan.");
     };
 
     const handleRemoveCategory = (cat: string) => {
-        setStoreSettings(prev => ({ ...prev, categories: prev.categories.filter((c: string) => c !== cat) }));
+        const updated = storeSettings.categories.filter((c: string) => c !== cat);
+        setStoreSettings(prev => ({ ...prev, categories: updated }));
+        saveCategoriesToDB(updated);
+        toast.success("Kategori dihapus.");
     };
 
     const handleDeleteTransaction = async (trx: any) => {
@@ -999,11 +1053,13 @@ export default function AdminDashboard() {
 
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-5 mb-6">
                                             <input type="text" placeholder="Nama Produk" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
-                                            <select required value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white">
-                                                {storeSettings.categories.map((cat: string) => (
-                                                    <option key={cat} value={cat}>{cat}</option>
-                                                ))}
-                                            </select>
+                                            <CategoryDropdown
+                                                value={newProduct.category}
+                                                onChange={(v) => setNewProduct({...newProduct, category: v})}
+                                                categories={storeSettings.categories}
+                                                onAdd={handleAddCategory}
+                                                onRemove={handleRemoveCategory}
+                                            />
                                             <input type="text" placeholder="Icon Emoji (opsional)" value={newProduct.image_icon} onChange={e => setNewProduct({...newProduct, image_icon: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
                                             <div><label className="text-xs text-gray-500 mb-2 block">Harga Jual (Rp)</label><input type="number" placeholder="0" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
                                             <div><label className="text-xs text-gray-500 mb-2 block">HPP / Modal (Rp)</label><input type="number" placeholder="0" required value={newProduct.cogs} onChange={e => setNewProduct({...newProduct, cogs: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
@@ -1110,11 +1166,13 @@ export default function AdminDashboard() {
                                                     </div>
                                                     <div>
                                                         <label className="text-sm font-bold text-gray-400 block mb-2">Kategori</label>
-                                                        <select value={editingProduct.category} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500">
-                                                            {storeSettings.categories.map((cat: string) => (
-                                                                <option key={cat} value={cat}>{cat}</option>
-                                                            ))}
-                                                        </select>
+                                                        <CategoryDropdown
+                                                            value={editingProduct.category}
+                                                            onChange={(v) => setEditingProduct({...editingProduct, category: v})}
+                                                            categories={storeSettings.categories}
+                                                            onAdd={handleAddCategory}
+                                                            onRemove={handleRemoveCategory}
+                                                        />
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div>

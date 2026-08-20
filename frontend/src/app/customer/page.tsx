@@ -101,7 +101,11 @@ export default function CustomerPage() {
         }, 8000);
     };
 
-    const categories = ["Semua", ...Array.from(new Set(products.map(p => p.category || "Uncategorized")))];
+    // Sync categories from storeSettings or fallback to derived ones
+    const dynamicCategories = storeSettings?.categories && storeSettings.categories.length > 0
+        ? storeSettings.categories
+        : Array.from(new Set(products.map(p => p.category || "Uncategorized")));
+    const categories = ["Semua", ...dynamicCategories];
     const filteredProducts = activeCategory === "Semua" ? products : products.filter(p => (p.category || "Uncategorized") === activeCategory);
 
     return (
