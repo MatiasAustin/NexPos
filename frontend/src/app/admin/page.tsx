@@ -26,6 +26,7 @@ export default function AdminDashboard() {
     // Store Settings
     const [storeSettings, setStoreSettings] = useState({
         logo_base64: "",
+        qris_image_base64: "",
         cafe_name: "NexPos Cafe",
         receipt_footer: "Terima kasih atas kunjungan Anda!",
         wifi_password: ""
@@ -91,6 +92,7 @@ export default function AdminDashboard() {
                     if (data) {
                         setStoreSettings({
                             logo_base64: data.logo_base64 || "",
+                            qris_image_base64: data.qris_image_base64 || "",
                             cafe_name: data.cafe_name || "NexPos Cafe",
                             receipt_footer: data.receipt_footer || "Terima kasih atas kunjungan Anda!",
                             wifi_password: data.wifi_password || ""
@@ -145,6 +147,23 @@ export default function AdminDashboard() {
             };
             reader.readAsDataURL(file);
         }
+    };
+
+    const handleQrisUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (event.target?.result) {
+                    setStoreSettings({ ...storeSettings, qris_image_base64: event.target.result.toString() });
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleTestPrint = () => {
+        window.print();
     };
 
     const handleCreateStaff = async (e: React.FormEvent) => {
@@ -352,7 +371,15 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0B0F19] text-gray-100 flex flex-col md:flex-row font-sans selection:bg-blue-500/30">
+        <>
+        <style dangerouslySetInnerHTML={{__html: `
+            @media print {
+                body * { visibility: hidden; }
+                .print-receipt, .print-receipt * { visibility: visible; }
+                .print-receipt { position: absolute; left: 0; top: 0; width: 100%; max-width: 80mm; padding: 10px; font-family: monospace; color: #000; background: #fff; }
+            }
+        `}} />
+        <div className="min-h-screen bg-[#0B0F19] text-gray-100 flex flex-col md:flex-row font-sans selection:bg-blue-500/30 print:hidden">
             {/* Sidebar */}
             <div className="w-full md:w-[280px] bg-[#131B2C] border-b md:border-b-0 md:border-r border-gray-800/60 flex flex-col shrink-0 z-20">
                 <div className="p-6 border-b border-gray-800/60 flex items-center justify-between">
@@ -782,69 +809,155 @@ export default function AdminDashboard() {
                             )}
                             {/* SETTINGS TAB */}
                             {activeTab === "settings" && (
-                                <div className="space-y-6">
-                                    <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
-                                        <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4">Pengaturan Struk & Toko</h3>
-                                        
-                                        <div className="space-y-6">
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-300 mb-2">Nama Toko (Cafe Name)</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={storeSettings.cafe_name}
-                                                    onChange={e => setStoreSettings({...storeSettings, cafe_name: e.target.value})}
-                                                    className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none font-bold"
-                                                    placeholder="Contoh: NexPos Cafe"
-                                                />
-                                            </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div className="space-y-6">
+                                        {/* Brand Settings */}
+                                        <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
+                                            <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4">Pengaturan Brand Toko</h3>
+                                            
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-300 mb-2">Nama Toko (Cafe Name)</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={storeSettings.cafe_name}
+                                                        onChange={e => setStoreSettings({...storeSettings, cafe_name: e.target.value})}
+                                                        className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none font-bold"
+                                                        placeholder="Contoh: NexPos Cafe"
+                                                    />
+                                                </div>
 
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-300 mb-2">Logo Struk & Kiosk (Max 1MB)</label>
-                                                <div className="flex items-center gap-6">
-                                                    {storeSettings.logo_base64 ? (
-                                                        <img src={storeSettings.logo_base64} alt="Logo" className="w-24 h-24 object-contain bg-white rounded-xl p-2 border border-gray-800" />
-                                                    ) : (
-                                                        <div className="w-24 h-24 bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center text-gray-500">No Logo</div>
-                                                    )}
-                                                    <div>
-                                                        <label className="cursor-pointer bg-blue-600/10 text-blue-500 border border-blue-500/20 px-4 py-2 rounded-lg font-bold hover:bg-blue-600 hover:text-white transition-colors flex items-center gap-2">
-                                                            <Upload className="w-4 h-4" /> Upload Logo Baru
-                                                            <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={handleLogoUpload} />
-                                                        </label>
-                                                        <p className="text-xs text-gray-500 mt-2">Disarankan gambar PNG/JPG transparan (Hitam/Putih untuk Struk thermal)</p>
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-300 mb-2">Logo Struk & Kiosk (Max 1MB)</label>
+                                                    <div className="flex items-center gap-6">
+                                                        {storeSettings.logo_base64 ? (
+                                                            <img src={storeSettings.logo_base64} alt="Logo" className="w-24 h-24 object-contain bg-white rounded-xl p-2 border border-gray-800" />
+                                                        ) : (
+                                                            <div className="w-24 h-24 bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center text-gray-500 text-xs text-center p-2">No Logo</div>
+                                                        )}
+                                                        <div>
+                                                            <label className="cursor-pointer bg-blue-600/10 text-blue-500 border border-blue-500/20 px-4 py-2 rounded-lg font-bold hover:bg-blue-600 hover:text-white transition-colors flex items-center gap-2">
+                                                                <Upload className="w-4 h-4" /> Upload Logo
+                                                                <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={handleLogoUpload} />
+                                                            </label>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-300 mb-2">Password WiFi (Opsional)</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={storeSettings.wifi_password}
-                                                    onChange={e => setStoreSettings({...storeSettings, wifi_password: e.target.value})}
-                                                    className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none"
-                                                    placeholder="Contoh: KopiEnak123"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-300 mb-2">Pesan Footer Struk (Spesial Message)</label>
-                                                <textarea 
-                                                    value={storeSettings.receipt_footer}
-                                                    onChange={e => setStoreSettings({...storeSettings, receipt_footer: e.target.value})}
-                                                    className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none h-24 resize-none"
-                                                    placeholder="Terima kasih atas kunjungan Anda..."
-                                                ></textarea>
-                                            </div>
-
-                                            <button 
-                                                onClick={handleSaveSettings}
-                                                disabled={loading}
-                                                className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors disabled:opacity-50 mt-4"
-                                            >
-                                                {loading ? "Menyimpan..." : "Simpan Pengaturan"}
-                                            </button>
                                         </div>
+
+                                        {/* Receipt Settings */}
+                                        <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
+                                            <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4">Template Struk</h3>
+                                            
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-300 mb-2">Password WiFi (Tampil di struk)</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={storeSettings.wifi_password}
+                                                        onChange={e => setStoreSettings({...storeSettings, wifi_password: e.target.value})}
+                                                        className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none"
+                                                        placeholder="Contoh: KopiEnak123"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-300 mb-2">Pesan Footer Struk (Spesial Message)</label>
+                                                    <textarea 
+                                                        value={storeSettings.receipt_footer}
+                                                        onChange={e => setStoreSettings({...storeSettings, receipt_footer: e.target.value})}
+                                                        className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none h-24 resize-none"
+                                                        placeholder="Terima kasih atas kunjungan Anda..."
+                                                    ></textarea>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-300 mb-2">QRIS Statis Toko (Opsional)</label>
+                                                    <div className="flex items-center gap-6">
+                                                        {storeSettings.qris_image_base64 ? (
+                                                            <img src={storeSettings.qris_image_base64} alt="QRIS" className="w-24 h-24 object-contain bg-white rounded-xl p-2 border border-gray-800" />
+                                                        ) : (
+                                                            <div className="w-24 h-24 bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center text-gray-500 text-xs text-center p-2">Belum ada QRIS</div>
+                                                        )}
+                                                        <div>
+                                                            <label className="cursor-pointer bg-blue-600/10 text-blue-500 border border-blue-500/20 px-4 py-2 rounded-lg font-bold hover:bg-blue-600 hover:text-white transition-colors flex items-center gap-2">
+                                                                <Upload className="w-4 h-4" /> Upload QRIS
+                                                                <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={handleQrisUpload} />
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <button 
+                                                    onClick={handleSaveSettings}
+                                                    disabled={loading}
+                                                    className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors disabled:opacity-50 mt-4"
+                                                >
+                                                    {loading ? "Menyimpan..." : "Simpan Semua Pengaturan"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Preview Section */}
+                                    <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl flex flex-col items-center">
+                                        <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4 w-full text-left">Live Preview Struk</h3>
+                                        
+                                        <div className="bg-white p-6 text-black font-mono text-sm w-[300px] shadow-2xl rounded-sm">
+                                            {storeSettings.logo_base64 && (
+                                                <div className="flex justify-center mb-4">
+                                                    <img src={storeSettings.logo_base64} alt="Logo" className="w-16 h-16 object-contain grayscale" />
+                                                </div>
+                                            )}
+                                            <div className="text-center font-bold text-lg mb-1">{storeSettings.cafe_name || 'Nama Cafe'}</div>
+                                            <div className="text-center text-xs mb-4">Struk Pembayaran (Preview)</div>
+                                            
+                                            <div className="border-b-2 border-dashed border-gray-400 mb-4"></div>
+                                            
+                                            <div className="flex justify-between mb-1">
+                                                <span>Kopi Susu Aren</span>
+                                                <span>Rp 25.000</span>
+                                            </div>
+                                            <div className="flex justify-between mb-1">
+                                                <span>Oatmilk Latte</span>
+                                                <span>Rp 35.000</span>
+                                            </div>
+                                            
+                                            <div className="border-b-2 border-dashed border-gray-400 my-4"></div>
+                                            
+                                            <div className="flex justify-between font-bold mb-4">
+                                                <span>TOTAL</span>
+                                                <span>Rp 60.000</span>
+                                            </div>
+
+                                            {storeSettings.qris_image_base64 && (
+                                                <div className="flex flex-col items-center justify-center my-6 border-2 border-black p-2">
+                                                    <p className="font-bold text-xs mb-2 text-center">SCAN QRIS UNTUK BAYAR</p>
+                                                    <img src={storeSettings.qris_image_base64} alt="QRIS" className="w-32 h-32 object-contain" />
+                                                </div>
+                                            )}
+
+                                            <div className="border-b-2 border-dashed border-gray-400 my-4"></div>
+                                            
+                                            {storeSettings.wifi_password && (
+                                                <div className="text-center mb-2">
+                                                    <div className="font-bold">WiFi Password:</div>
+                                                    <div>{storeSettings.wifi_password}</div>
+                                                </div>
+                                            )}
+                                            
+                                            <div className="text-center text-xs whitespace-pre-wrap mt-4">
+                                                {storeSettings.receipt_footer || 'Terima kasih atas kunjungan Anda'}
+                                            </div>
+                                        </div>
+
+                                        <button 
+                                            onClick={handleTestPrint}
+                                            className="mt-8 px-6 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                        >
+                                            Test Cetak (Print PDF)
+                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -853,5 +966,59 @@ export default function AdminDashboard() {
                 </div>
             </div>
         </div>
+
+        {/* PRINT ONLY RECEIPT BLOCK */}
+        <div className="hidden print-receipt">
+            {storeSettings.logo_base64 && (
+                <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                    <img src={storeSettings.logo_base64} alt="Logo" style={{ width: '60px', filter: 'grayscale(100%)', margin: '0 auto' }} />
+                </div>
+            )}
+            <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '18px' }}>
+                {storeSettings.cafe_name || 'Nama Cafe'}
+            </div>
+            <div style={{ textAlign: 'center', fontSize: '12px', marginBottom: '10px' }}>
+                Struk Pembayaran (Preview)
+            </div>
+            
+            <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Kopi Susu Aren</span>
+                <span>Rp 25.000</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Oatmilk Latte</span>
+                <span>Rp 35.000</span>
+            </div>
+            
+            <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                <span>TOTAL</span>
+                <span>Rp 60.000</span>
+            </div>
+
+            {storeSettings.qris_image_base64 && (
+                <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                    <p style={{ fontWeight: 'bold', fontSize: '12px', marginBottom: '5px' }}>SCAN QRIS UNTUK BAYAR</p>
+                    <img src={storeSettings.qris_image_base64} alt="QRIS" style={{ width: '120px', margin: '0 auto' }} />
+                </div>
+            )}
+            
+            <div style={{ borderBottom: '1px dashed #000', margin: '15px 0' }}></div>
+
+            {storeSettings.wifi_password && (
+                <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                    <div style={{ fontWeight: 'bold' }}>WiFi Password:</div>
+                    <div>{storeSettings.wifi_password}</div>
+                </div>
+            )}
+            
+            <div style={{ textAlign: 'center', fontSize: '12px', whiteSpace: 'pre-wrap', marginTop: '10px' }}>
+                {storeSettings.receipt_footer || 'Terima kasih atas kunjungan Anda'}
+            </div>
+        </div>
+        </>
     );
 }

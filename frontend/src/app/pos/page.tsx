@@ -689,6 +689,12 @@ export default function PosPage() {
                     </div>
 
                     <div className="max-w-[80mm] mx-auto text-center border-t border-dashed border-black pt-4">
+                        {storeSettings?.qris_image_base64 && (
+                            <div className="flex flex-col items-center justify-center my-4 border-2 border-black p-2">
+                                <p className="font-bold text-xs mb-2">SCAN QRIS UNTUK BAYAR</p>
+                                <img src={storeSettings.qris_image_base64} alt="QRIS" className="w-32 h-32 object-contain" />
+                            </div>
+                        )}
                         <p className="mb-2 font-bold whitespace-pre-wrap">{storeSettings?.receipt_footer || 'Terima kasih atas kunjungan Anda!'}</p>
                         {storeSettings?.wifi_password && (
                             <p className="border border-black p-2 mt-2 font-bold">WiFi: {storeSettings.wifi_password}</p>
