@@ -667,6 +667,9 @@ export default function PosPage() {
                     >
                         <CreditCard className="w-5 h-5" /> Lanjut Pembayaran
                     </button>
+                    <p className="text-center text-[10px] text-gray-800 mt-3">
+                        © {new Date().getFullYear()} NexPos · <span className="font-medium">Developed by Matias Austin</span>
+                    </p>
                 </div>
             </div>
 

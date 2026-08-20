@@ -106,6 +106,9 @@ export default function LoginPage() {
                         {loading ? "Memverifikasi..." : "Login ke Sistem"}
                     </button>
                 </form>
+                <p className="text-center text-xs text-gray-700 mt-8">
+                    © {new Date().getFullYear()} <strong className="text-gray-600">NexPos</strong> · Developed by <strong className="text-gray-500">Matias Austin</strong>
+                </p>
             </div>
         </div>
     );

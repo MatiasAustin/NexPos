@@ -797,6 +797,10 @@ export default function AdminDashboard() {
                     <Link href="/" className="hidden md:flex items-center gap-2 text-gray-500 hover:text-gray-300 transition-colors w-full px-4 py-2 font-medium">
                         <ArrowLeft className="w-4 h-4" /> Kembali ke Home
                     </Link>
+                    <p className="text-center text-[10px] text-gray-700 mt-3 leading-relaxed">
+                        © {new Date().getFullYear()} NexPos<br />
+                        <span className="font-medium">Developed by Matias Austin</span>
+                    </p>
                 </div>
             </div>
 
@@ -1627,6 +1631,9 @@ export default function AdminDashboard() {
                                                 >
                                                     {loading ? "Menyimpan..." : "Simpan Semua Pengaturan"}
                                                 </button>
+                                                <p className="text-center text-xs text-gray-700 mt-6 leading-relaxed">
+                                                    © {new Date().getFullYear()} <strong className="text-gray-600">NexPos</strong> · Developed by <strong className="text-gray-500">Matias Austin</strong>
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
