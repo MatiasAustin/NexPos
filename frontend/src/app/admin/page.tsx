@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import ReportChart from "@/components/ReportChart";
 
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses">("reconciliation");
@@ -515,11 +516,17 @@ export default function AdminDashboard() {
                         <div className="space-y-6">
                             {/* RECONCILIATION TAB */}
                             {activeTab === "reconciliation" && (
-                                <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                    {reconciliation.length === 0 ? (
-                                        <p className="p-8 text-gray-500 text-center">Belum ada transaksi hari ini.</p>
-                                    ) : (
-                                        <div className="overflow-x-auto">
+                                <div className="space-y-6">
+                                    <ReportChart />
+
+                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                        <div className="p-6 border-b border-gray-800">
+                                            <h3 className="font-bold text-xl text-white">Data Rekonsiliasi Hari Ini</h3>
+                                        </div>
+                                        {reconciliation.length === 0 ? (
+                                            <p className="p-8 text-gray-500 text-center">Belum ada transaksi hari ini.</p>
+                                        ) : (
+                                            <div className="overflow-x-auto">
                                             <table className="w-full text-left border-collapse">
                                                 <thead>
                                                     <tr className="bg-gray-800/50 border-b border-gray-800">
@@ -544,6 +551,7 @@ export default function AdminDashboard() {
                                             </table>
                                         </div>
                                     )}
+                                </div>
                                 </div>
                             )}
 
