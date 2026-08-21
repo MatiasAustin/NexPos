@@ -2323,15 +2323,15 @@ export default function AdminDashboard() {
                     <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
 
                     <div style={{ fontSize: '12px' }}>
-                        {printTransaction.tax_amount > 0 && (
+                        {Number(printTransaction.tax_amount || 0) > 0 && (
                             <>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
                                     <span>Subtotal</span>
-                                    <span>Rp {(printTransaction.amount_due - printTransaction.tax_amount).toLocaleString('id-ID')}</span>
+                                    <span>Rp {(Number(printTransaction.amount_due) - Number(printTransaction.tax_amount)).toLocaleString('id-ID')}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
                                     <span>Pajak</span>
-                                    <span>Rp {printTransaction.tax_amount.toLocaleString('id-ID')}</span>
+                                    <span>Rp {Number(printTransaction.tax_amount).toLocaleString('id-ID')}</span>
                                 </div>
                             </>
                         )}
@@ -2399,8 +2399,7 @@ export default function AdminDashboard() {
                 </div>
             )}
             
-            <div style={{ borderBottom: '1px dashed #000', margin: '15px 0' }}></div>
-
+            
             {(storeSettings.wifi_name || storeSettings.wifi_password) && (
                 <div style={{ textAlign: 'center', marginBottom: '10px' }}>
                     {storeSettings.wifi_name && <div style={{ fontWeight: 'bold' }}>WiFi: {storeSettings.wifi_name}</div>}

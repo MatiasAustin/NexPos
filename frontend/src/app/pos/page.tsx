@@ -1040,7 +1040,7 @@ export default function PosPage() {
                         </div>
                     </div>
 
-                    <div className="max-w-[80mm] mx-auto text-center border-t border-dashed border-black pt-4">
+                    <div className="max-w-[80mm] mx-auto text-center pt-4">
                         {storeSettings?.qris_image_base64 && (
                             <div className="flex flex-col items-center justify-center my-4">
                                 <p className="font-bold text-xs mb-2">SCAN QRIS UNTUK BAYAR</p>
