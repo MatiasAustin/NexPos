@@ -13,6 +13,7 @@ export default function CustomerPage() {
     const [loading, setLoading] = useState(true);
     const [orderStatus, setOrderStatus] = useState<'idle' | 'waiting_payment' | 'paid' | 'draft'>('idle');
     const [queueNumber, setQueueNumber] = useState<string | null>(null);
+    const [customerName, setCustomerName] = useState<string>("");
 
     const [storeSettings, setStoreSettings] = useState<any>(null);
 
@@ -63,6 +64,7 @@ export default function CustomerPage() {
                     setOrderStatus('idle');
                     setQueueNumber(null);
                     setCart([]);
+                    setCustomerName("");
                     
                     const updated = JSON.parse(localStorage.getItem('nexpos_paid_orders') || "[]").filter((id: string) => id !== queueNumber);
                     localStorage.setItem('nexpos_paid_orders', JSON.stringify(updated));
@@ -77,6 +79,7 @@ export default function CustomerPage() {
                     setOrderStatus('idle');
                     setQueueNumber(null);
                     setCart([]);
+                    setCustomerName("");
                     
                     const updated = JSON.parse(localStorage.getItem('nexpos_draft_notified') || "[]").filter((id: string) => id !== queueNumber);
                     localStorage.setItem('nexpos_draft_notified', JSON.stringify(updated));
@@ -137,6 +140,7 @@ export default function CustomerPage() {
         const newOrder = {
             id: Date.now().toString(),
             queue_number: generatedQueueNumber,
+            customer_name: customerName,
             items: cart,
             time: new Date().toISOString(),
             is_draft: false
@@ -283,6 +287,16 @@ export default function CustomerPage() {
                 </div>
 
                 <div className="p-6 md:p-8 bg-[#121214] border-t border-gray-800">
+                    <div className="mb-4">
+                        <label className="text-gray-400 text-xs font-bold mb-2 block uppercase tracking-wider">Nama Anda (Opsional)</label>
+                        <input 
+                            type="text" 
+                            value={customerName} 
+                            onChange={(e) => setCustomerName(e.target.value)} 
+                            placeholder="Ketik nama Anda..." 
+                            className="w-full bg-[#0B0F19] text-white text-sm px-4 py-3 rounded-xl border border-gray-800 outline-none focus:border-blue-500 transition-colors" 
+                        />
+                    </div>
                     {storeSettings?.tax_enabled && (
                         <div className="flex justify-between mb-2">
                             <span className="text-gray-400 text-sm md:text-base">Pajak ({storeSettings.tax_rate}%)</span>

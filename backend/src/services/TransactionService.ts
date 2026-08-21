@@ -24,12 +24,14 @@ export class TransactionService {
         order_reference: string;
         amount_due: number;
         amount_received: number;
+        tax_amount?: number;
+        customer_name?: string;
         payment_method_id: string;
         provider_transaction_id?: string;
         payment_reference?: string;
         items?: any[]; // The cart items: { product_id, product_name, quantity, price, cogs }
     }) {
-        const { order_reference, amount_due, amount_received, payment_method_id, items } = payload;
+        const { order_reference, amount_due, amount_received, tax_amount, customer_name, payment_method_id, items } = payload;
         
         const change_given = amount_received >= amount_due ? amount_received - amount_due : 0;
         const status = amount_received >= amount_due ? 'Paid' : 'Pending';
@@ -41,6 +43,8 @@ export class TransactionService {
                 amount_due,
                 amount_received,
                 change_given,
+                tax_amount: tax_amount || 0,
+                customer_name: customer_name || null,
                 status,
                 payment_method_id,
                 provider_transaction_id: payload.provider_transaction_id,
@@ -112,6 +116,8 @@ export class TransactionService {
         order_reference: string;
         amount_due: number;
         amount_received: number;
+        tax_amount?: number;
+        customer_name?: string;
         payment_method_id: string;
         provider_transaction_id?: string;
         payment_reference?: string;
@@ -139,5 +145,10 @@ export class TransactionService {
 
         if (error) throw new Error(`Failed to update transaction: ${error.message}`);
         return data;
+    }
+
+    async handleWebhook(providerId: string, eventData: any) {
+        console.log(`Received webhook for provider ${providerId}`, eventData);
+        return { success: true };
     }
 }

@@ -1,0 +1,1 @@
+ALTER TABLE transactions ADD COLUMN customer_name VARCHAR(255), ADD COLUMN tax_amount DECIMAL(12,2) DEFAULT 0;

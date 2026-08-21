@@ -19,6 +19,7 @@ export default function PosPage() {
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
     const [showPayment, setShowPayment] = useState(false);
     const [amountReceived, setAmountReceived] = useState<string>("");
+    const [customerName, setCustomerName] = useState<string>("");
     const [paymentResult, setPaymentResult] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     
@@ -235,6 +236,7 @@ export default function PosPage() {
             const draftOrder = {
                 id: Date.now().toString(),
                 queue_number: activeQueueNumber || `Draft`,
+                customer_name: customerName,
                 items: cart,
                 total: currentSubTotal + currentTaxAmount,
                 time: new Date().toISOString(),
@@ -249,6 +251,7 @@ export default function PosPage() {
         
         setCart(order.items);
         setActiveQueueNumber(order.queue_number || null);
+        setCustomerName(order.customer_name || "");
     };
 
     const handleSaveDraft = () => {
@@ -275,6 +278,7 @@ export default function PosPage() {
         const draftOrder = {
             id: Date.now().toString(),
             queue_number: orderRef,
+            customer_name: customerName,
             items: cart,
             total: currentSubTotal + currentTaxAmount,
             time: new Date().toISOString(),
@@ -453,6 +457,7 @@ export default function PosPage() {
     const clearCart = () => {
         setCart([]);
         setActiveQueueNumber(null);
+        setCustomerName("");
     };
 
     const updateCartQty = (productId: string, newQty: number) => {
@@ -482,6 +487,8 @@ export default function PosPage() {
                 order_reference: orderRef,
                 amount_due: grandTotal,
                 amount_received: Number(amountReceived) || grandTotal, // For non-cash, amount received = amount due
+                tax_amount: taxAmount,
+                customer_name: customerName,
                 payment_method_id: selectedMethod.id,
                 items: cart.map(item => ({
                     product_id: item.product.id,
@@ -795,6 +802,16 @@ export default function PosPage() {
                 </div>
 
                 <div className="p-6 bg-[#121214] border-t border-gray-800">
+                    <div className="mb-4">
+                        <label className="text-gray-400 text-xs font-bold mb-1 block uppercase tracking-wider">Nama Pelanggan (Opsional)</label>
+                        <input 
+                            type="text" 
+                            value={customerName} 
+                            onChange={(e) => setCustomerName(e.target.value)} 
+                            placeholder="Ketik nama pelanggan..." 
+                            className="w-full bg-[#0B0F19] text-white text-sm px-4 py-2.5 rounded-xl border border-gray-800 outline-none focus:border-blue-500 transition-colors" 
+                        />
+                    </div>
                     <div className="flex justify-between mb-2">
                         <span className="text-gray-400 text-sm md:text-base">Subtotal</span>
                         <span className="font-bold text-lg md:text-xl text-gray-200">Rp {subTotal.toLocaleString("id-ID")}</span>
@@ -956,10 +973,16 @@ export default function PosPage() {
                             <span>No: {paymentResult.transaction?.order_reference || paymentResult.order_reference}</span>
                             <span>{new Date().toLocaleDateString('id-ID')}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between mb-1">
                             <span>Kasir: {staff?.full_name || 'Admin'}</span>
                             <span>{new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
+                        {paymentResult.transaction?.customer_name && (
+                            <div className="flex justify-between mt-1 pt-1 border-t border-gray-200">
+                                <span>Pelanggan:</span>
+                                <span>{paymentResult.transaction.customer_name}</span>
+                            </div>
+                        )}
                     </div>
                     <div className="max-w-[80mm] mx-auto">
                         <table className="w-full text-left mb-4">
@@ -981,6 +1004,18 @@ export default function PosPage() {
                     </div>
 
                     <div className="max-w-[80mm] mx-auto border-t border-dashed border-black pt-2 mb-4">
+                        {(paymentResult.transaction?.tax_amount > 0 || paymentResult.tax_amount > 0) && (
+                            <>
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span>Subtotal</span>
+                                    <span>Rp {((paymentResult.transaction?.amount_due || paymentResult.amount_due) - (paymentResult.transaction?.tax_amount || paymentResult.tax_amount)).toLocaleString('id-ID')}</span>
+                                </div>
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span>Pajak</span>
+                                    <span>Rp {(paymentResult.transaction?.tax_amount || paymentResult.tax_amount).toLocaleString('id-ID')}</span>
+                                </div>
+                            </>
+                        )}
                         <div className="flex justify-between font-bold text-base mb-1">
                             <span>TOTAL</span>
                             <span>Rp {paymentResult.transaction?.amount_due?.toLocaleString('id-ID') || paymentResult.amount_due?.toLocaleString('id-ID')}</span>

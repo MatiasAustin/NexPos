@@ -103,6 +103,7 @@ export default function AdminDashboard() {
     
     const [loading, setLoading] = useState(false);
     const [tabLoading, setTabLoading] = useState(false);
+    const [printTransaction, setPrintTransaction] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
     const router = useRouter();
     const toast = useToast();
@@ -1298,59 +1299,90 @@ export default function AdminDashboard() {
                                             {filteredTransactions.length === 0 ? (
                                                 <p className="p-8 text-gray-500 text-center bg-[#131B2C] rounded-2xl border border-gray-800/60 shadow-lg">Belum ada transaksi pada periode ini.</p>
                                             ) : (
-                                                filteredTransactions.map((trx: any) => (
+                                                filteredTransactions.map((trx: any) => {
+                                                const itemCogs = trx.order_items?.reduce((sum: number, item: any) => sum + ((item.cogs_at_time || 0) * item.quantity), 0) || 0;
+                                                const subTotal = trx.amount_due - (trx.tax_amount || 0);
+                                                const netProfit = subTotal - itemCogs;
+                                                return (
                                                     <div key={trx.id} className="p-5 bg-[#131B2C] rounded-2xl border border-gray-800/60 shadow-lg flex flex-col md:flex-row gap-4 justify-between transition-colors hover:border-blue-500/30">
-                                                        <div>
+                                                        <div className="flex-1">
                                                             <div className="flex items-center gap-3 mb-2">
                                                                 <span className="font-bold text-white text-lg">{trx.order_reference}</span>
                                                                 <span className={`px-2.5 py-1 text-xs font-bold rounded-lg ${trx.status === 'Paid' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : trx.status === 'Refunded' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-gray-300'}`}>
                                                                     {trx.status}
                                                                 </span>
                                                             </div>
-                                                            <p className="text-sm text-gray-400 mb-3">Metode: <span className="text-gray-200">{trx.payment_methods?.name || 'Unknown'}</span> | {new Date(trx.created_at).toLocaleString('id-ID')}</p>
+                                                            <p className="text-sm text-gray-400 mb-2">Metode: <span className="text-gray-200">{trx.payment_methods?.name || 'Unknown'}</span> | {new Date(trx.created_at).toLocaleString('id-ID')}</p>
+                                                            {trx.customer_name && (
+                                                                <p className="text-sm text-gray-400 mb-3">Pelanggan: <span className="text-gray-200 font-bold">{trx.customer_name}</span></p>
+                                                            )}
                                                     
-                                                    {trx.order_items && trx.order_items.length > 0 && (
-                                                        <div className="bg-gray-800/30 p-3 rounded-xl border border-gray-800">
-                                                            <ul className="text-sm space-y-1.5">
-                                                                {trx.order_items.map((item: any, idx: number) => (
-                                                                    <li key={idx} className="flex justify-between text-gray-300">
-                                                                        <span><span className="text-gray-500 mr-2">{item.quantity}x</span> {item.product_name}</span>
-                                                                        <span className="text-gray-400">Rp {(item.quantity * item.price_at_time).toLocaleString('id-ID')}</span>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
+                                                            {trx.order_items && trx.order_items.length > 0 && (
+                                                                <div className="bg-gray-800/30 p-3 rounded-xl border border-gray-800 mb-3">
+                                                                    <ul className="text-sm space-y-1.5">
+                                                                        {trx.order_items.map((item: any, idx: number) => (
+                                                                            <li key={idx} className="flex justify-between text-gray-300">
+                                                                                <span><span className="text-gray-500 mr-2">{item.quantity}x</span> {item.product_name}</span>
+                                                                                <span className="text-gray-400">Rp {(item.quantity * item.price_at_time).toLocaleString('id-ID')}</span>
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="flex gap-4 text-xs font-bold bg-blue-900/10 p-3 rounded-xl border border-blue-900/30 inline-flex">
+                                                                <div>
+                                                                    <p className="text-gray-500 mb-1">HPP</p>
+                                                                    <p className="text-orange-400">Rp {itemCogs.toLocaleString('id-ID')}</p>
+                                                                </div>
+                                                                <div className="w-px bg-gray-800"></div>
+                                                                <div>
+                                                                    <p className="text-gray-500 mb-1">Laba Bersih</p>
+                                                                    <p className="text-green-400">Rp {netProfit.toLocaleString('id-ID')}</p>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    )}
-                                                </div>
-                                                
-                                                <div className="text-right min-w-[150px] flex flex-col justify-between">
-                                                    <div>
-                                                        <p className="text-sm text-gray-500 mb-1">Total</p>
-                                                        <p className="font-bold text-2xl text-white">Rp {trx.amount_received.toLocaleString('id-ID')}</p>
+                                                        
+                                                        <div className="text-right min-w-[150px] flex flex-col justify-between items-end">
+                                                            <div className="w-full">
+                                                                <p className="text-sm text-gray-500 mb-1">Total</p>
+                                                                <p className="font-bold text-2xl text-white">Rp {trx.amount_received.toLocaleString('id-ID')}</p>
+                                                            </div>
+                                                            
+                                                            <div className="flex flex-col gap-2 mt-4 w-full">
+                                                                {trx.status === 'Paid' && (
+                                                                    <>
+                                                                        <button 
+                                                                            onClick={() => handleRefund(trx)}
+                                                                            className="w-full px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-sm font-bold hover:bg-red-500/20 transition-colors"
+                                                                        >
+                                                                            Refund
+                                                                        </button>
+                                                                        <button 
+                                                                            onClick={() => {
+                                                                                setPrintTransaction(trx);
+                                                                                setTimeout(() => window.print(), 100);
+                                                                            }}
+                                                                            className="w-full px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl text-sm font-bold hover:bg-blue-500/20 transition-colors"
+                                                                        >
+                                                                            Cetak Struk
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                                {profile?.role === 'owner' && (
+                                                                    <button 
+                                                                        onClick={() => handleDeleteTransaction(trx.id)}
+                                                                        className="w-full px-4 py-2 bg-gray-800 text-gray-400 border border-gray-700 rounded-xl text-sm font-bold hover:bg-gray-700 hover:text-white transition-colors"
+                                                                    >
+                                                                        Hapus
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    
-                                                    <div className="flex flex-col gap-2 mt-4">
-                                                        {trx.status === 'Paid' && (
-                                                            <button 
-                                                                onClick={() => handleRefund(trx)}
-                                                                className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-sm font-bold hover:bg-red-500/20 transition-colors"
-                                                            >
-                                                                Refund
-                                                            </button>
-                                                        )}
-                                                        {profile?.role === 'owner' && (
-                                                            <button 
-                                                                onClick={() => handleDeleteTransaction(trx)}
-                                                                className="px-4 py-2 bg-red-900/40 text-red-300 border border-red-500/30 rounded-xl text-sm font-bold hover:bg-red-800 transition-colors"
-                                                            >
-                                                                Hapus Permanen
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
+                                                )
+                                            })
+                                            )}
                                         </div>
                                     </div>
                                 );
@@ -2252,43 +2284,112 @@ export default function AdminDashboard() {
             <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '18px' }}>
                 {storeSettings.cafe_name || 'Nama Cafe'}
             </div>
-            <div style={{ textAlign: 'center', fontSize: '12px', marginBottom: '10px' }}>
-                Struk Pembayaran (Preview)
-            </div>
             
-            <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Kopi Susu Aren</span>
-                <span>Rp 25.000</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Oatmilk Latte</span>
-                <span>Rp 35.000</span>
-            </div>
-            
-            <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
-            
-            {storeSettings.tax_enabled ? (
+            {printTransaction ? (
                 <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                        <span>Subtotal</span>
-                        <span>Rp 60.000</span>
+                    <div style={{ textAlign: 'center', fontSize: '12px', marginBottom: '10px' }}>
+                        Struk Pembayaran
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                        <span>Pajak ({storeSettings.tax_rate}%)</span>
-                        <span>Rp {((60000 * storeSettings.tax_rate) / 100).toLocaleString('id-ID')}</span>
+                    <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+                    <div style={{ fontSize: '12px', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>No: {printTransaction.order_reference}</span>
+                            <span>{new Date(printTransaction.created_at).toLocaleDateString('id-ID')}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Kasir: Admin</span>
+                            <span>{new Date(printTransaction.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</span>
+                        </div>
+                        {printTransaction.customer_name && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', paddingTop: '4px', borderTop: '1px solid #ccc' }}>
+                                <span>Pelanggan:</span>
+                                <span>{printTransaction.customer_name}</span>
+                            </div>
+                        )}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                        <span>TOTAL</span>
-                        <span>Rp {(60000 + ((60000 * storeSettings.tax_rate) / 100)).toLocaleString('id-ID')}</span>
+                    <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+                    
+                    <table style={{ width: '100%', fontSize: '12px' }}>
+                        <tbody>
+                            {printTransaction.order_items?.map((item: any, idx: number) => (
+                                <tr key={idx}>
+                                    <td style={{ padding: '2px 0' }}>{item.product_name}<br/><span style={{ fontSize: '10px' }}>{item.quantity} x Rp {item.price_at_time.toLocaleString('id-ID')}</span></td>
+                                    <td style={{ textAlign: 'right', verticalAlign: 'bottom', padding: '2px 0' }}>Rp {(item.quantity * item.price_at_time).toLocaleString('id-ID')}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+
+                    <div style={{ fontSize: '12px' }}>
+                        {printTransaction.tax_amount > 0 && (
+                            <>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                                    <span>Subtotal</span>
+                                    <span>Rp {(printTransaction.amount_due - printTransaction.tax_amount).toLocaleString('id-ID')}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                                    <span>Pajak</span>
+                                    <span>Rp {printTransaction.tax_amount.toLocaleString('id-ID')}</span>
+                                </div>
+                            </>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                            <span>TOTAL</span>
+                            <span>Rp {printTransaction.amount_due.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
+                            <span>TUNAI</span>
+                            <span>Rp {printTransaction.amount_received.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
+                            <span>KEMBALI</span>
+                            <span>Rp {printTransaction.change_given?.toLocaleString('id-ID') || 0}</span>
+                        </div>
                     </div>
                 </>
             ) : (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                    <span>TOTAL</span>
-                    <span>Rp 60.000</span>
-                </div>
+                <>
+                    <div style={{ textAlign: 'center', fontSize: '12px', marginBottom: '10px' }}>
+                        Struk Pembayaran (Preview)
+                    </div>
+                    
+                    <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Kopi Susu Aren</span>
+                        <span>Rp 25.000</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Oatmilk Latte</span>
+                        <span>Rp 35.000</span>
+                    </div>
+                    
+                    <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+                    
+                    {storeSettings.tax_enabled ? (
+                        <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                <span>Subtotal</span>
+                                <span>Rp 60.000</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                <span>Pajak ({storeSettings.tax_rate}%)</span>
+                                <span>Rp {((60000 * storeSettings.tax_rate) / 100).toLocaleString('id-ID')}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                                <span>TOTAL</span>
+                                <span>Rp {(60000 + ((60000 * storeSettings.tax_rate) / 100)).toLocaleString('id-ID')}</span>
+                            </div>
+                        </>
+                    ) : (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                            <span>TOTAL</span>
+                            <span>Rp 60.000</span>
+                        </div>
+                    )}
+                </>
             )}
 
             {storeSettings.qris_image_base64 && (
