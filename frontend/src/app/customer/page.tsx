@@ -143,7 +143,8 @@ export default function CustomerPage() {
             customer_name: customerName,
             items: cart,
             time: new Date().toISOString(),
-            is_draft: false
+            is_draft: false,
+            total: grandTotal
         };
 
         const pendingOrders = JSON.parse(localStorage.getItem("nexpos_pending_orders") || "[]");

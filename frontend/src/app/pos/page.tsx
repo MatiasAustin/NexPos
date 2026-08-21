@@ -8,9 +8,8 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
 import { LoadingSpinner } from "@/components/Loading";
-import { ErrorBoundary } from "./ErrorBoundary";
 
-function PosPageInner() {
+export default function PosPage() {
     const [hasSession, setHasSession] = useState(false);
     const [openingCash, setOpeningCash] = useState<string>("");
     const [products, setProducts] = useState<any[]>([]);
@@ -501,7 +500,17 @@ function PosPageInner() {
             };
             
             const result = await processPayment(payload);
-            setPaymentResult(result);
+            setPaymentResult({
+                ...result,
+                transaction: {
+                    ...result,
+                    items: payload.items.map((i: any) => ({
+                        product_name: i.product_name,
+                        quantity: i.quantity,
+                        price: i.price
+                    }))
+                }
+            });
             if (result.status === "Paid" || result.status === "Pending") {
                 clearCart();
                 // Remove ONLY the active order from pending list
@@ -643,7 +652,7 @@ function PosPageInner() {
                                         className="bg-[#1a1a1c] px-4 py-3 rounded-xl border border-orange-500/20 text-white font-bold hover:bg-gray-800 flex-shrink-0 shadow-sm transition-colors text-left flex flex-col min-w-[150px]"
                                     >
                                         <span className="text-orange-400 text-xs mb-1">{order.queue_number || order.id}</span>
-                                        <span>Rp {order.total.toLocaleString('id-ID')}</span>
+                                        <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
                                     </button>
                                 ))}
                             </div>
@@ -662,7 +671,7 @@ function PosPageInner() {
                                         className="bg-[#1a1a1c] px-4 py-3 rounded-xl border border-blue-500/20 text-white font-bold hover:bg-gray-800 flex-shrink-0 shadow-sm transition-colors text-left flex flex-col min-w-[150px]"
                                     >
                                         <span className="text-blue-400 text-xs mb-1">{order.queue_number || order.id}</span>
-                                        <span>Rp {order.total.toLocaleString('id-ID')}</span>
+                                        <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
                                     </button>
                                 ))}
                             </div>
