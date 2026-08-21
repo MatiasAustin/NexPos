@@ -8,8 +8,9 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
 import { LoadingSpinner } from "@/components/Loading";
+import { ErrorBoundary } from "./ErrorBoundary";
 
-export default function PosPage() {
+function PosPageInner() {
     const [hasSession, setHasSession] = useState(false);
     const [openingCash, setOpeningCash] = useState<string>("");
     const [products, setProducts] = useState<any[]>([]);
@@ -1211,3 +1212,5 @@ export default function PosPage() {
         </div>
     );
 }
+
+export default function PosPage() { return <ErrorBoundary><PosPageInner /></ErrorBoundary>; }
