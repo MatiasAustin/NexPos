@@ -502,6 +502,7 @@ export default function PosPage() {
             const result = await processPayment(payload);
             setPaymentResult({
                 ...result,
+                payment_method_name: selectedMethod.name === "Tunai" ? "Kartu" : selectedMethod.name,
                 transaction: {
                     ...result,
                     items: payload.items.map((i: any) => ({
@@ -881,7 +882,7 @@ export default function PosPage() {
                                                     onClick={() => setSelectedMethod(m)}
                                                     className={`py-3 px-4 rounded-xl border-2 font-bold transition-all ${selectedMethod?.id === m.id ? 'border-blue-500 bg-blue-500/10 text-blue-400 shadow-lg shadow-blue-900/20' : 'border-gray-800 text-gray-400 hover:border-gray-700 hover:bg-gray-800/50'}`}
                                                 >
-                                                    {m.name}
+                                                    {m.name === 'Tunai' ? 'Kartu' : m.name}
                                                 </button>
                                             ))}
                                         </div>
@@ -1031,13 +1032,15 @@ export default function PosPage() {
                             <span>Rp {(paymentResult.transaction?.amount_due || paymentResult.amount_due || 0).toLocaleString('id-ID')}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                            <span>TUNAI</span>
+                            <span>{(paymentResult.payment_method_name || 'TUNAI').toUpperCase()}</span>
                             <span>Rp {(paymentResult.transaction?.amount_received || paymentResult.amount_received || 0).toLocaleString('id-ID')}</span>
                         </div>
-                        <div className="flex justify-between text-sm">
-                            <span>KEMBALI</span>
-                            <span>Rp {(paymentResult.change_given || 0).toLocaleString('id-ID')}</span>
-                        </div>
+                        {(paymentResult.change_given || 0) > 0 && (
+                            <div className="flex justify-between text-sm">
+                                <span>KEMBALI</span>
+                                <span>Rp {(paymentResult.change_given || 0).toLocaleString('id-ID')}</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="max-w-[80mm] mx-auto text-center pt-4">
