@@ -164,7 +164,7 @@ export default function CustomerPage() {
                 <div className="bg-[#131B2C] border-b border-gray-800 p-6 md:p-8 flex items-center justify-between shadow-sm z-10">
                     <div className="flex items-center gap-4">
                         {storeSettings?.logo_base64 && (
-                            <img src={storeSettings.logo_base64} alt="Logo" className="h-10 md:h-12 w-auto object-contain rounded-lg bg-white p-1" />
+                            <img src={storeSettings.logo_base64} alt="Logo" className="h-12 w-12 md:h-14 md:w-14 object-contain rounded-full bg-white p-1.5" />
                         )}
                         <div>
                             <h1 className="text-2xl md:text-3xl font-black text-white">{storeSettings?.cafe_name || 'Kalana'}</h1>
@@ -175,7 +175,7 @@ export default function CustomerPage() {
 
                 <div className="flex-1 overflow-y-auto p-4 md:p-6 no-scrollbar">
                     <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
-                        {["Semua", ...categories].map((category) => (
+                        {categories.map((category) => (
                             <button
                                 key={category}
                                 onClick={() => setActiveCategory(category)}
