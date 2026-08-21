@@ -47,11 +47,13 @@ const CategoryDropdown = ({ value, onChange, categories, onAdd, onRemove }: { va
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses">("reconciliation");
     const [reconciliation, setReconciliation] = useState<any[]>([]);
-    const [reconciliationPeriod, setReconciliationPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
+    const [reconciliationPeriod, setReconciliationPeriod] = useState<"daily" | "weekly" | "monthly" | "yearly" | "custom">("daily");
+    const [customDateStart, setCustomDateStart] = useState("");
+    const [customDateEnd, setCustomDateEnd] = useState("");
     const [productSalesData, setProductSalesData] = useState<any[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
-    const [historyFilterType, setHistoryFilterType] = useState<"daily" | "weekly" | "monthly">("daily");
+    const [historyFilterType, setHistoryFilterType] = useState<"daily" | "weekly" | "monthly" | "yearly" | "custom">("daily");
     const [historySortOrder, setHistorySortOrder] = useState<"desc" | "asc">("desc");
     const [staffList, setStaffList] = useState<any[]>([]);
     
@@ -260,7 +262,7 @@ export default function AdminDashboard() {
         window.print();
     };
 
-    const fetchReconciliation = async (period: 'daily' | 'weekly' | 'monthly') => {
+    const fetchReconciliation = async (period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom', customStart?: string, customEnd?: string) => {
         setLoading(true);
         try {
             const now = new Date();
@@ -278,6 +280,17 @@ export default function AdminDashboard() {
             } else if (period === 'monthly') {
                 start.setDate(1);
                 start.setHours(0, 0, 0, 0);
+            } else if (period === 'yearly') {
+                start.setMonth(0, 1);
+                start.setHours(0, 0, 0, 0);
+            } else if (period === 'custom' && customStart && customEnd) {
+                start = new Date(customStart);
+                start.setHours(0, 0, 0, 0);
+                end = new Date(customEnd);
+                end.setHours(23, 59, 59, 999);
+            } else if (period === 'custom') {
+                setLoading(false);
+                return; // Wait until dates are selected
             }
 
             const startDateStr = start.toISOString().split('T')[0];
@@ -341,14 +354,21 @@ export default function AdminDashboard() {
             if (historyFilterType === 'daily') {
                 return trxDate.toDateString() === now.toDateString();
             } else if (historyFilterType === 'weekly') {
-                // Check if within last 7 days
                 const diffTime = Math.abs(now.getTime() - trxDate.getTime());
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
                 return diffDays <= 7;
-            } else {
-                // monthly
+            } else if (historyFilterType === 'monthly') {
                 return trxDate.getMonth() === now.getMonth() && trxDate.getFullYear() === now.getFullYear();
+            } else if (historyFilterType === 'yearly') {
+                return trxDate.getFullYear() === now.getFullYear();
+            } else if (historyFilterType === 'custom' && customDateStart && customDateEnd) {
+                const s = new Date(customDateStart);
+                s.setHours(0,0,0,0);
+                const e = new Date(customDateEnd);
+                e.setHours(23,59,59,999);
+                return trxDate >= s && trxDate <= e;
             }
+            return false;
         });
 
         // Apply sort
@@ -1072,25 +1092,51 @@ export default function AdminDashboard() {
                             {activeTab === "reconciliation" && (
                                 <div className="space-y-6">
                                     {/* Global Tab Filter */}
-                                    <div className="flex items-center justify-between bg-[#131B2C] p-4 rounded-2xl border border-gray-800/60 shadow-sm">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between bg-[#131B2C] p-4 rounded-2xl border border-gray-800/60 shadow-sm gap-4">
                                         <div>
                                             <h3 className="font-bold text-white">Laporan Keuangan</h3>
                                             <p className="text-xs text-gray-500">Pilih periode untuk semua metrik di bawah</p>
                                         </div>
-                                        <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-800 w-fit">
-                                            {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'}].map(f => (
-                                                <button key={f.k} onClick={() => {
-                                                    setReconciliationPeriod(f.k as any);
-                                                    fetchReconciliation(f.k as any);
-                                                }}
-                                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${reconciliationPeriod === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-                                                    {f.l}
-                                                </button>
-                                            ))}
+                                        <div className="flex flex-col sm:flex-row items-center gap-3">
+                                            {reconciliationPeriod === 'custom' && (
+                                                <div className="flex items-center gap-2 bg-gray-900 p-1.5 rounded-xl border border-gray-800">
+                                                    <input 
+                                                        type="date" 
+                                                        value={customDateStart}
+                                                        onChange={(e) => {
+                                                            setCustomDateStart(e.target.value);
+                                                            if (e.target.value && customDateEnd) fetchReconciliation('custom', e.target.value, customDateEnd);
+                                                        }}
+                                                        className="bg-[#121214] text-white text-sm rounded-lg px-2 py-1 border border-gray-700 outline-none focus:border-blue-500" 
+                                                    />
+                                                    <span className="text-gray-500">-</span>
+                                                    <input 
+                                                        type="date" 
+                                                        value={customDateEnd}
+                                                        onChange={(e) => {
+                                                            setCustomDateEnd(e.target.value);
+                                                            if (customDateStart && e.target.value) fetchReconciliation('custom', customDateStart, e.target.value);
+                                                        }}
+                                                        className="bg-[#121214] text-white text-sm rounded-lg px-2 py-1 border border-gray-700 outline-none focus:border-blue-500" 
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-800 w-fit">
+                                                {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'},{k:'yearly',l:'Tahunan'},{k:'custom',l:'Kustom'}].map(f => (
+                                                    <button key={f.k} onClick={() => {
+                                                        setReconciliationPeriod(f.k as any);
+                                                        if (f.k !== 'custom') fetchReconciliation(f.k as any);
+                                                        else if (customDateStart && customDateEnd) fetchReconciliation('custom', customDateStart, customDateEnd);
+                                                    }}
+                                                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm font-bold transition-all ${reconciliationPeriod === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                                                        {f.l}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <ReportChart period={reconciliationPeriod} />
+                                    <ReportChart period={reconciliationPeriod} customStartDate={customDateStart} customEndDate={customDateEnd} />
 
                                     {/* Data Penjualan Produk (Requested Feature) */}
                                     <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
@@ -1176,16 +1222,35 @@ export default function AdminDashboard() {
 
                                 return (
                                     <div className="space-y-6">
-                                        <div className="bg-[#131B2C] p-5 rounded-2xl border border-gray-800/60 shadow-lg flex flex-wrap gap-4 items-center justify-between">
+                                        <div className="bg-[#131B2C] p-5 rounded-2xl border border-gray-800/60 shadow-lg flex flex-col md:flex-row gap-4 md:items-center justify-between">
                                             <div>
                                                 <h3 className="font-bold text-white mb-2">Filter Periode Transaksi</h3>
-                                                <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-800">
-                                                    {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'}].map(f => (
-                                                        <button key={f.k} onClick={() => setHistoryFilterType(f.k as any)}
-                                                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historyFilterType === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-                                                            {f.l}
-                                                        </button>
-                                                    ))}
+                                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                                                    {historyFilterType === 'custom' && (
+                                                        <div className="flex items-center gap-2 bg-gray-900 p-1.5 rounded-xl border border-gray-800">
+                                                            <input 
+                                                                type="date" 
+                                                                value={customDateStart}
+                                                                onChange={(e) => setCustomDateStart(e.target.value)}
+                                                                className="bg-[#121214] text-white text-sm rounded-lg px-2 py-1 border border-gray-700 outline-none" 
+                                                            />
+                                                            <span className="text-gray-500">-</span>
+                                                            <input 
+                                                                type="date" 
+                                                                value={customDateEnd}
+                                                                onChange={(e) => setCustomDateEnd(e.target.value)}
+                                                                className="bg-[#121214] text-white text-sm rounded-lg px-2 py-1 border border-gray-700 outline-none" 
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-800 flex-wrap">
+                                                        {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'},{k:'yearly',l:'Tahunan'},{k:'custom',l:'Kustom'}].map(f => (
+                                                            <button key={f.k} onClick={() => setHistoryFilterType(f.k as any)}
+                                                                className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm font-bold transition-all ${historyFilterType === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                                                                {f.l}
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div>

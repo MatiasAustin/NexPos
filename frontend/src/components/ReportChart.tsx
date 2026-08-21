@@ -6,7 +6,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line
 } from 'recharts';
 
-type PeriodMode = 'daily' | 'weekly' | 'monthly';
+export type PeriodMode = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
 
 interface ChartPoint {
     label: string;
@@ -22,23 +22,24 @@ function formatRupiah(n: number) {
 function getPeriodLabel(dateStr: string, mode: PeriodMode): string {
     const d = new Date(dateStr);
     if (mode === 'daily') {
-        // Group by hour
         return `${d.getHours().toString().padStart(2, '0')}:00`;
     } else if (mode === 'weekly') {
-        // Group by day of week
         const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
         return days[d.getDay()];
-    } else {
-        // Group by date in month
+    } else if (mode === 'monthly' || mode === 'custom') {
         return `${d.getDate().toString().padStart(2, '0')} ${d.toLocaleString('id-ID', { month: 'short' })}`;
+    } else {
+        return d.toLocaleString('id-ID', { month: 'short', year: 'numeric' });
     }
 }
 
 interface ReportChartProps {
     period: PeriodMode;
+    customStartDate?: string;
+    customEndDate?: string;
 }
 
-export default function ReportChart({ period }: ReportChartProps) {
+export default function ReportChart({ period, customStartDate, customEndDate }: ReportChartProps) {
     const [chartData, setChartData] = useState<ChartPoint[]>([]);
     const [loading, setLoading] = useState(true);
     const [totals, setTotals] = useState({ omset: 0, pengeluaran: 0, laba: 0 });
@@ -46,7 +47,7 @@ export default function ReportChart({ period }: ReportChartProps) {
 
     useEffect(() => {
         fetchChartData();
-    }, [period]);
+    }, [period, customStartDate, customEndDate]);
 
     const fetchChartData = async () => {
         setLoading(true);
@@ -70,10 +71,22 @@ export default function ReportChart({ period }: ReportChartProps) {
             start.setDate(1);
             start.setHours(0, 0, 0, 0);
             label = `Bulan Ini (${start.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })})`;
+        } else if (period === 'yearly') {
+            start.setMonth(0, 1);
+            start.setHours(0, 0, 0, 0);
+            label = `Tahun Ini (${start.getFullYear()})`;
+        } else if (period === 'custom' && customStartDate && customEndDate) {
+            start = new Date(customStartDate);
+            start.setHours(0, 0, 0, 0);
+            end = new Date(customEndDate);
+            end.setHours(23, 59, 59, 999);
+            label = `Kustom (${start.toLocaleDateString('id-ID')} - ${end.toLocaleDateString('id-ID')})`;
+        } else if (period === 'custom') {
+            start.setHours(0,0,0,0);
+            label = 'Pilih rentang tanggal';
         }
         setPeriodLabel(label);
 
-        // Fetch real transactions
         const { data: transactions } = await supabase
             .from('transactions')
             .select('id, amount_due, created_at, status')
@@ -81,21 +94,18 @@ export default function ReportChart({ period }: ReportChartProps) {
             .gte('created_at', start.toISOString())
             .lte('created_at', end.toISOString());
 
-        // Fetch order_items for COGS calculation (HPP)
         const { data: orderItems } = await supabase
             .from('order_items')
             .select('transaction_id, cogs_at_time, quantity, created_at')
             .gte('created_at', start.toISOString())
             .lte('created_at', end.toISOString());
 
-        // Fetch operational expenses (real)
         const { data: expenses } = await supabase
             .from('expenses')
             .select('amount, expense_date, created_at')
             .gte('created_at', start.toISOString())
             .lte('created_at', end.toISOString());
 
-        // Build aggregation map
         const map: Record<string, { omset: number; pengeluaran: number }> = {};
 
         for (const trx of transactions || []) {
@@ -117,11 +127,9 @@ export default function ReportChart({ period }: ReportChartProps) {
             map[lbl].pengeluaran += parseFloat(exp.amount) || 0;
         }
 
-        // Convert to sorted array
         let points: ChartPoint[] = [];
         
         if (period === 'daily') {
-            // Fill 24 hours
             for (let i = 0; i < 24; i++) {
                 const lbl = `${i.toString().padStart(2, '0')}:00`;
                 points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaran: map[lbl]?.pengeluaran || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaran || 0) });
@@ -129,17 +137,30 @@ export default function ReportChart({ period }: ReportChartProps) {
         } else if (period === 'weekly') {
             const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
             points = days.map(d => ({ label: d, omset: map[d]?.omset || 0, pengeluaran: map[d]?.pengeluaran || 0, laba: (map[d]?.omset || 0) - (map[d]?.pengeluaran || 0) }));
-        } else {
-            // Fill days of month
+        } else if (period === 'monthly') {
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             for (let i = 1; i <= daysInMonth; i++) {
                 const d = new Date(now.getFullYear(), now.getMonth(), i);
                 const lbl = `${d.getDate().toString().padStart(2, '0')} ${d.toLocaleString('id-ID', { month: 'short' })}`;
                 points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaran: map[lbl]?.pengeluaran || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaran || 0) });
             }
+        } else if (period === 'yearly') {
+            for (let i = 0; i < 12; i++) {
+                const d = new Date(now.getFullYear(), i, 1);
+                const lbl = d.toLocaleString('id-ID', { month: 'short', year: 'numeric' });
+                points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaran: map[lbl]?.pengeluaran || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaran || 0) });
+            }
+        } else if (period === 'custom') {
+            // For custom, just show sorted keys that exist
+            const sorted = Object.keys(map).sort();
+            points = sorted.map(lbl => ({
+                label: lbl,
+                omset: map[lbl].omset,
+                pengeluaran: map[lbl].pengeluaran,
+                laba: map[lbl].omset - map[lbl].pengeluaran
+            }));
         }
 
-        // Compute totals
         const totalOmset = points.reduce((s, p) => s + p.omset, 0);
         const totalPengeluaran = points.reduce((s, p) => s + p.pengeluaran, 0);
         setTotals({ omset: totalOmset, pengeluaran: totalPengeluaran, laba: totalOmset - totalPengeluaran });
@@ -163,7 +184,6 @@ export default function ReportChart({ period }: ReportChartProps) {
 
     return (
         <div className="bg-[#131B2C] border border-gray-800 rounded-2xl p-6 shadow-xl">
-            {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
                     <h3 className="font-bold text-xl text-white">Dashboard Keuangan</h3>
@@ -180,11 +200,10 @@ export default function ReportChart({ period }: ReportChartProps) {
             </div>
 
             {loading ? (
-                <div className="h-64 flex items-center justify-center text-gray-500">Memuat data nyata dari database...</div>
+                <div className="h-64 flex items-center justify-center text-gray-500">Memuat data...</div>
             ) : chartData.length === 0 ? (
                 <div className="h-64 flex flex-col items-center justify-center text-gray-500 gap-2">
                     <p className="text-lg font-semibold">Belum ada data transaksi</p>
-                    <p className="text-sm text-gray-600">Lakukan transaksi dari POS untuk melihat laporan di sini.</p>
                 </div>
             ) : (
                 <ResponsiveContainer width="100%" height={280}>
@@ -204,7 +223,6 @@ export default function ReportChart({ period }: ReportChartProps) {
                 </ResponsiveContainer>
             )}
 
-            {/* Summary Cards */}
             {!loading && (
                 <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-800">
                     <div className="text-center">
@@ -218,7 +236,7 @@ export default function ReportChart({ period }: ReportChartProps) {
                     <div className="text-center">
                         <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Laba Bersih</p>
                         <p className={`text-lg font-extrabold ${totals.laba >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {totals.laba < 0 ? '-' : ''}{formatRupiah(totals.laba)}
+                            {totals.laba < 0 ? '-' : ''}{formatRupiah(Math.abs(totals.laba))}
                         </p>
                     </div>
                 </div>
