@@ -1221,5 +1221,3 @@ export default function PosPage() {
         </div>
     );
 }
-
-export default function PosPage() { return <ErrorBoundary><PosPageInner /></ErrorBoundary>; }
