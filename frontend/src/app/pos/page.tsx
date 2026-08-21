@@ -243,6 +243,44 @@ export default function PosPage() {
         setActiveQueueNumber(order.queue_number || null);
     };
 
+    const handleSaveDraft = () => {
+        if (cart.length === 0) return;
+        
+        const currentPending = JSON.parse(localStorage.getItem("nexpos_pending_orders") || "[]");
+        let orderRef = activeQueueNumber;
+        if (!orderRef || orderRef === 'Draft') {
+            const today = new Date().toISOString().split('T')[0];
+            const counterData = JSON.parse(localStorage.getItem("nexpos_queue_counter") || "{}");
+            let nextNumber = 1;
+            if (counterData.date === today) {
+                nextNumber = (counterData.count || 0) + 1;
+            }
+            localStorage.setItem("nexpos_queue_counter", JSON.stringify({ date: today, count: nextNumber }));
+            orderRef = nextNumber.toString().padStart(3, '0');
+        }
+        
+        const filteredPending = currentPending.filter((o: any) => o.queue_number !== orderRef);
+        const currentSubTotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
+        const currentTaxRate = storeSettings?.tax_enabled ? Number(storeSettings?.tax_rate || 0) : 0;
+        const currentTaxAmount = (currentSubTotal * currentTaxRate) / 100;
+
+        const draftOrder = {
+            id: Date.now().toString(),
+            queue_number: orderRef,
+            items: cart,
+            total: currentSubTotal + currentTaxAmount,
+            time: new Date().toISOString(),
+            is_draft: true
+        };
+        
+        filteredPending.unshift(draftOrder);
+        setPendingOrders(filteredPending);
+        localStorage.setItem("nexpos_pending_orders", JSON.stringify(filteredPending));
+        
+        clearCart();
+        toast.success(`Pesanan disimpan ke Draft (Antrean: ${orderRef})`);
+    };
+
     const fetchExpensesAndMaterials = async () => {
         try {
             const [expRes, matRes] = await Promise.all([
@@ -571,17 +609,36 @@ export default function PosPage() {
 
                 <div className="p-6 flex-1 overflow-y-auto no-scrollbar">
                     {/* INCOMING ORDERS NOTIFICATION */}
-                    {pendingOrders.length > 0 && (
+                    {pendingOrders.filter(o => !o.is_draft).length > 0 && (
                         <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl shadow-lg">
-                            <h3 className="font-bold text-orange-400 mb-3 flex items-center gap-2">🔔 Pesanan Baru dari Customer</h3>
+                            <h3 className="font-bold text-orange-400 mb-3 flex items-center gap-2">🛒 Pesanan Baru dari Customer</h3>
                             <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
-                                {pendingOrders.map((order: any, idx: number) => (
+                                {pendingOrders.map((order: any, idx: number) => !order.is_draft && (
                                     <button 
                                         key={order.id}
                                         onClick={() => loadCustomerOrder(order, idx)}
                                         className="bg-[#1a1a1c] px-4 py-3 rounded-xl border border-orange-500/20 text-white font-bold hover:bg-gray-800 flex-shrink-0 shadow-sm transition-colors text-left flex flex-col min-w-[150px]"
                                     >
                                         <span className="text-orange-400 text-xs mb-1">{order.queue_number || order.id}</span>
+                                        <span>Rp {order.total.toLocaleString('id-ID')}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* DRAFT ORDERS NOTIFICATION */}
+                    {pendingOrders.filter(o => o.is_draft).length > 0 && (
+                        <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl shadow-lg">
+                            <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">📝 Draft Pesanan (Belum Bayar)</h3>
+                            <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                                {pendingOrders.map((order: any, idx: number) => order.is_draft && (
+                                    <button 
+                                        key={order.id}
+                                        onClick={() => loadCustomerOrder(order, idx)}
+                                        className="bg-[#1a1a1c] px-4 py-3 rounded-xl border border-blue-500/20 text-white font-bold hover:bg-gray-800 flex-shrink-0 shadow-sm transition-colors text-left flex flex-col min-w-[150px]"
+                                    >
+                                        <span className="text-blue-400 text-xs mb-1">{order.queue_number || order.id}</span>
                                         <span>Rp {order.total.toLocaleString('id-ID')}</span>
                                     </button>
                                 ))}
@@ -738,13 +795,22 @@ export default function PosPage() {
                         <span className="font-black text-2xl md:text-3xl text-blue-400">Rp {grandTotal.toLocaleString("id-ID")}</span>
                     </div>
                     
-                    <button 
-                        onClick={() => setShowPayment(true)}
-                        disabled={cart.length === 0}
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-bold text-base md:text-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-lg shadow-blue-900/20"
-                    >
-                        <CreditCard className="w-5 h-5" /> Lanjut Pembayaran
-                    </button>
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={handleSaveDraft}
+                            disabled={cart.length === 0}
+                            className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-4 rounded-xl font-bold text-sm md:text-base flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-lg border border-gray-700"
+                        >
+                            Bayar Nanti
+                        </button>
+                        <button 
+                            onClick={() => setShowPayment(true)}
+                            disabled={cart.length === 0}
+                            className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-bold text-base md:text-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-lg shadow-blue-900/20"
+                        >
+                            <CreditCard className="w-5 h-5" /> Lanjut Bayar
+                        </button>
+                    </div>
                     <p className="text-center text-[10px] text-gray-800 mt-3">
                         © {new Date().getFullYear()} NexPos · <span className="font-medium">Developed by Matias Austin</span>
                     </p>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart, Send, Trash2, Minus, Plus, LayoutGrid, List } from "lucide-react";
+import { ShoppingCart, Send, Trash2, Minus, Plus, LayoutGrid, List, Clock } from "lucide-react";
 import { getActiveProducts } from "@/lib/api";
 import { SkeletonCard } from "@/components/Loading";
 
@@ -297,31 +297,44 @@ export default function CustomerPage() {
                         <span className="font-black text-2xl md:text-3xl text-blue-400">Rp {grandTotal.toLocaleString("id-ID")}</span>
                     </div>
                     
-                    {orderStatus === 'waiting_payment' ? (
-                        <div className="w-full bg-blue-600 text-white p-6 rounded-2xl font-bold text-center flex flex-col items-center justify-center gap-2 shadow-lg shadow-blue-900/20 animate-in fade-in zoom-in duration-300">
-                            <span className="text-sm text-blue-200 uppercase tracking-widest mb-1">Nomor Antrean Anda</span>
-                            <span className="text-6xl font-black">{queueNumber}</span>
-                            <span className="text-sm mt-2 text-blue-100">Silakan menuju kasir untuk pembayaran</span>
-                        </div>
-                    ) : orderStatus === 'paid' ? (
-                        <div className="w-full bg-green-600 text-white p-6 rounded-2xl font-bold text-center flex flex-col items-center justify-center gap-2 shadow-lg shadow-green-900/20 animate-in fade-in zoom-in duration-300">
-                            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-2">
-                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                            </div>
-                            <span className="text-xl font-black">Pembayaran Berhasil!</span>
-                            <span className="text-sm mt-1 text-green-100">Silakan menunggu pesanan Anda.</span>
-                        </div>
-                    ) : (
-                        <button 
-                            onClick={sendOrderToCashier}
-                            disabled={cart.length === 0}
-                            className="w-full bg-white hover:bg-gray-100 text-[#121214] py-4 md:py-5 rounded-2xl font-black text-lg md:text-xl flex items-center justify-center gap-3 disabled:opacity-50 transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                            <Send className="w-6 h-6" /> Pesan Sekarang
-                        </button>
-                    )}
+                    <button 
+                        onClick={sendOrderToCashier}
+                        disabled={cart.length === 0 || orderStatus !== 'idle'}
+                        className="w-full bg-white hover:bg-gray-100 text-[#121214] py-4 md:py-5 rounded-2xl font-black text-lg md:text-xl flex items-center justify-center gap-3 disabled:opacity-50 transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        <Send className="w-6 h-6" /> {orderStatus === 'idle' ? 'Pesan Sekarang' : 'Memproses...'}
+                    </button>
                 </div>
             </div>
+
+            {/* FULLSCREEN POPUP OVERLAY */}
+            {(orderStatus === 'waiting_payment' || orderStatus === 'paid') && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    {orderStatus === 'waiting_payment' ? (
+                        <div className="w-full max-w-md bg-blue-600 text-white p-10 rounded-3xl font-bold text-center flex flex-col items-center justify-center gap-4 shadow-2xl shadow-blue-900/50 animate-in zoom-in duration-300">
+                            <span className="text-lg text-blue-200 uppercase tracking-widest font-semibold">Nomor Antrean Anda</span>
+                            <span className="text-8xl font-black my-4">{queueNumber}</span>
+                            <div className="w-16 h-1 bg-blue-400/50 rounded-full mb-2"></div>
+                            <span className="text-lg text-blue-100">Silakan menuju kasir untuk pembayaran</span>
+                            <div className="mt-4 flex items-center gap-2 text-sm text-blue-300">
+                                <Clock className="w-4 h-4 animate-spin-slow" /> Menunggu pembayaran...
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="w-full max-w-md bg-green-600 text-white p-10 rounded-3xl font-bold text-center flex flex-col items-center justify-center gap-4 shadow-2xl shadow-green-900/50 animate-in zoom-in duration-300">
+                            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-4">
+                                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span className="text-3xl font-black mb-2">Pembayaran Berhasil!</span>
+                            <div className="w-16 h-1 bg-green-400/50 rounded-full mb-2"></div>
+                            <span className="text-lg text-green-100 font-semibold">Silakan menunggu pesanan Anda.</span>
+                            <span className="text-sm mt-4 text-green-300">Layar ini akan tertutup otomatis...</span>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
