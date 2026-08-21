@@ -16,6 +16,7 @@ interface ChartPoint {
 }
 
 function formatRupiah(n: number) {
+    if (n < 0) return '-Rp ' + Math.abs(n).toLocaleString('id-ID');
     return 'Rp ' + Math.abs(n).toLocaleString('id-ID');
 }
 
@@ -212,8 +213,28 @@ export default function ReportChart({ period, customStartDate, customEndDate }: 
                         <XAxis dataKey="label" stroke="#9ca3af" fontSize={11} tick={{ fill: '#9ca3af' }} />
                         <YAxis stroke="#9ca3af" fontSize={11} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: '#131B2C', borderColor: '#1f2937', borderRadius: '12px' }}
-                            formatter={(value: any) => [formatRupiah(Number(value) || 0), undefined]}
+                            content={(props: any) => {
+                                const { active, payload, label } = props;
+                                if (active && payload && payload.length) {
+                                    return (
+                                        <div className="bg-[#131B2C] border border-gray-800 rounded-xl p-3 shadow-xl">
+                                            <p className="text-gray-300 font-bold mb-2">{label}</p>
+                                            {payload.map((entry: any, index: number) => {
+                                                const val = Number(entry.value) || 0;
+                                                const isLaba = entry.dataKey === 'laba';
+                                                const color = isLaba ? (val < 0 ? '#ef4444' : '#22c55e') : entry.color;
+                                                return (
+                                                    <div key={index} className="flex justify-between gap-4 text-sm mb-1">
+                                                        <span style={{ color }}>{entry.name}:</span>
+                                                        <span className="font-bold text-white">{formatRupiah(val)}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            }}
                         />
                         <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px' }} />
                         <Bar dataKey="omset" name="Omset" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={50} />
@@ -236,7 +257,7 @@ export default function ReportChart({ period, customStartDate, customEndDate }: 
                     <div className="text-center">
                         <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Laba Bersih</p>
                         <p className={`text-lg font-extrabold ${totals.laba >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {totals.laba < 0 ? '-' : ''}{formatRupiah(Math.abs(totals.laba))}
+                            {formatRupiah(totals.laba)}
                         </p>
                     </div>
                 </div>

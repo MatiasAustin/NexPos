@@ -163,62 +163,60 @@ export default function CustomerPage() {
                 <div className="bg-[#131B2C] border-b border-gray-800 p-6 md:p-8 flex items-center justify-between shadow-sm z-10">
                     <div className="flex items-center gap-4">
                         {storeSettings?.logo_base64 && (
-                            <img src={storeSettings.logo_base64} alt="Logo" className="h-10 md:h-12 w-auto object-contain rounded-lg" />
+                            <img src={storeSettings.logo_base64} alt="Logo" className="h-10 md:h-12 w-auto object-contain rounded-lg bg-white p-1" />
                         )}
                         <div>
-                            <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">{storeSettings?.cafe_name || 'NexPos Cafe'}</h1>
-                            <p className="text-gray-400 text-sm font-medium mt-1">Silakan pilih menu Anda</p>
+                            <h1 className="text-2xl md:text-3xl font-black text-white">{storeSettings?.cafe_name || 'Kalana'}</h1>
+                            <p className="text-gray-400 text-sm md:text-base">Silakan pilih menu Anda</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-[#0B0F19] p-4 md:p-6 overflow-x-auto border-b border-gray-800">
-                    <div className="flex gap-3 md:gap-4 min-w-max pb-2 px-2">
-                        {categories.map((category) => (
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 no-scrollbar">
+                    <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
+                        {["Semua", ...categories].map((category) => (
                             <button
                                 key={category}
                                 onClick={() => setActiveCategory(category)}
-                                className={`px-5 py-2.5 md:px-7 md:py-3 rounded-full font-bold text-sm md:text-base transition-all duration-300 shadow-sm ${
+                                className={`px-5 py-2.5 rounded-full whitespace-nowrap text-sm font-bold transition-all ${
                                     activeCategory === category
-                                        ? "bg-white text-[#121214] scale-105"
-                                        : "bg-[#131B2C] text-gray-400 hover:bg-gray-800 border border-gray-800"
+                                        ? "bg-white text-black shadow-md scale-105"
+                                        : "bg-[#131B2C] text-gray-400 hover:text-white hover:bg-gray-800 border border-gray-800"
                                 }`}
                             >
                                 {category}
                             </button>
                         ))}
                     </div>
-                </div>
 
-                <div className="flex-1 overflow-y-auto p-4 md:p-8">
                     {loading ? (
                         <div className="flex items-center justify-center h-full">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
                             {products
                                 .filter(p => activeCategory === "Semua" || p.category === activeCategory)
                                 .map((product) => (
                                     <div 
                                         key={product.id} 
                                         onClick={() => addToCart(product)}
-                                        className="bg-[#131B2C] border border-gray-800 rounded-3xl overflow-hidden cursor-pointer group hover:-translate-y-1 transition-all duration-300 hover:border-gray-600 hover:shadow-xl hover:shadow-gray-900/50 flex flex-col"
+                                        className="bg-[#131B2C] border border-gray-800/80 rounded-2xl overflow-hidden cursor-pointer hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-all group active:scale-95 flex flex-col"
                                     >
                                         <div className="aspect-square relative bg-gray-900/50 overflow-hidden p-4 flex items-center justify-center">
                                             {product.image_url ? (
                                                 <img 
                                                     src={product.image_url} 
                                                     alt={product.name} 
-                                                    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-2xl"
+                                                    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-xl"
                                                 />
                                             ) : (
-                                                <span className="text-6xl filter drop-shadow-xl group-hover:scale-110 transition-transform duration-300">{product.image_icon}</span>
+                                                <span className="text-6xl group-hover:scale-110 transition-transform duration-500 drop-shadow-xl">{product.image_icon}</span>
                                             )}
                                         </div>
-                                        <div className="p-4 md:p-5 flex-1 flex flex-col justify-between">
-                                            <h3 className="font-bold text-sm md:text-base text-gray-200 leading-tight mb-2 group-hover:text-white transition-colors">{product.name}</h3>
-                                            <p className="text-blue-400 font-black tracking-wide text-base md:text-lg">Rp {product.price.toLocaleString("id-ID")}</p>
+                                        <div className="p-4 bg-gradient-to-t from-[#131B2C] to-[#131B2C]/90 flex-1 flex flex-col justify-end">
+                                            <h3 className="font-bold text-white mb-1 line-clamp-2 leading-tight">{product.name}</h3>
+                                            <p className="text-blue-400 font-black">Rp {product.price.toLocaleString("id-ID")}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -227,44 +225,42 @@ export default function CustomerPage() {
                 </div>
             </div>
 
-            {/* RIGHT: Cart Area */}
-            <div className="flex-[1.2] min-w-[320px] max-w-[480px] bg-[#131B2C] flex flex-col relative shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.5)] z-20">
-                <div className="p-6 md:p-8 bg-gray-900/40 border-b border-gray-800 backdrop-blur-md">
-                    <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-3">
-                        <ShoppingBag className="w-6 h-6 text-blue-500" />
-                        Pesanan Anda
-                    </h2>
+            {/* SIDEBAR CART (35%) */}
+            <div className="w-full lg:w-[35%] bg-[#0B0F19] border-l border-gray-800 flex flex-col shadow-2xl z-10">
+                <div className="p-6 md:p-8 bg-[#121214] border-b border-gray-800 flex items-center gap-3">
+                    <div className="p-2 bg-blue-600/20 text-blue-400 rounded-lg">
+                        <ShoppingBag className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-xl md:text-2xl font-black text-white">Pesanan Anda</h2>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#131B2C]">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 no-scrollbar">
                     {cart.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-4">
-                            <div className="w-24 h-24 bg-gray-900/50 rounded-full flex items-center justify-center border border-gray-800">
-                                <ShoppingBag className="w-10 h-10 text-gray-600" />
+                        <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-4 opacity-50">
+                            <div className="w-20 h-20 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center mb-2">
+                                <ShoppingBag className="w-8 h-8" />
                             </div>
-                            <p className="font-medium text-lg">Keranjang masih kosong</p>
+                            <p className="font-medium">Keranjang masih kosong</p>
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {cart.map((item) => (
-                                <div key={item.product.id} className="flex flex-col p-4 bg-gray-900/50 rounded-2xl border border-gray-800">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-[#131B2C] rounded-xl flex items-center justify-center border border-gray-800 shadow-inner">
-                                                {item.product.image_url ? (
-                                                    <img src={item.product.image_url} alt="" className="w-8 h-8 object-contain drop-shadow-md" />
-                                                ) : (
-                                                    <span className="text-xl drop-shadow-md">{item.product.image_icon}</span>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-gray-200 text-sm leading-tight">{item.product.name}</h4>
-                                                <p className="text-blue-400 font-bold text-sm mt-0.5">Rp {(item.product.price * item.qty).toLocaleString("id-ID")}</p>
-                                            </div>
+                            {cart.map((item, idx) => (
+                                <div key={idx} className="flex flex-col p-4 bg-[#121214] rounded-2xl border border-gray-800/80 animate-in slide-in-from-right-4 duration-300">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="w-12 h-12 bg-[#131B2C] rounded-xl flex items-center justify-center border border-gray-800 shadow-inner">
+                                            {item.product.image_url ? (
+                                                <img src={item.product.image_url} alt="" className="w-8 h-8 object-contain drop-shadow-md" />
+                                            ) : (
+                                                <span className="text-xl drop-shadow-md">{item.product.image_icon}</span>
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-white text-sm md:text-base leading-tight">{item.product.name}</h4>
+                                            <p className="text-blue-400 font-bold text-sm">Rp {(item.product.price * item.qty).toLocaleString("id-ID")}</p>
                                         </div>
                                         <button 
-                                            onClick={() => removeFromCart(item.product.id)}
-                                            className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                            onClick={() => updateCartQty(item.product.id, 0)}
+                                            className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -297,6 +293,10 @@ export default function CustomerPage() {
                             className="w-full bg-[#0B0F19] text-white text-sm px-4 py-3 rounded-xl border border-gray-800 outline-none focus:border-blue-500 transition-colors" 
                         />
                     </div>
+                    <div className="flex justify-between mb-2">
+                        <span className="text-gray-400 text-sm md:text-base">Subtotal</span>
+                        <span className="font-bold text-lg md:text-xl text-gray-200">Rp {subTotal.toLocaleString("id-ID")}</span>
+                    </div>
                     {storeSettings?.tax_enabled && (
                         <div className="flex justify-between mb-2">
                             <span className="text-gray-400 text-sm md:text-base">Pajak ({storeSettings.tax_rate}%)</span>
@@ -304,7 +304,7 @@ export default function CustomerPage() {
                         </div>
                     )}
                     <div className="flex justify-between mb-6 pt-4 border-t border-gray-800">
-                        <span className="text-xl font-black">Total</span>
+                        <span className="text-xl font-black">Total Tagihan</span>
                         <span className="text-2xl font-black text-blue-400">Rp {grandTotal.toLocaleString("id-ID")}</span>
                     </div>
                     <button 

@@ -1004,29 +1004,29 @@ export default function PosPage() {
                     </div>
 
                     <div className="max-w-[80mm] mx-auto border-t border-dashed border-black pt-2 mb-4">
-                        {(paymentResult.transaction?.tax_amount > 0 || paymentResult.tax_amount > 0) && (
+                        {((paymentResult.transaction?.tax_amount || 0) > 0 || (paymentResult.tax_amount || 0) > 0) && (
                             <>
                                 <div className="flex justify-between text-sm mb-1">
                                     <span>Subtotal</span>
-                                    <span>Rp {((paymentResult.transaction?.amount_due || paymentResult.amount_due) - (paymentResult.transaction?.tax_amount || paymentResult.tax_amount)).toLocaleString('id-ID')}</span>
+                                    <span>Rp {((paymentResult.transaction?.amount_due || paymentResult.amount_due || 0) - (paymentResult.transaction?.tax_amount || paymentResult.tax_amount || 0)).toLocaleString('id-ID')}</span>
                                 </div>
                                 <div className="flex justify-between text-sm mb-1">
                                     <span>Pajak</span>
-                                    <span>Rp {(paymentResult.transaction?.tax_amount || paymentResult.tax_amount).toLocaleString('id-ID')}</span>
+                                    <span>Rp {(paymentResult.transaction?.tax_amount || paymentResult.tax_amount || 0).toLocaleString('id-ID')}</span>
                                 </div>
                             </>
                         )}
                         <div className="flex justify-between font-bold text-base mb-1">
                             <span>TOTAL</span>
-                            <span>Rp {paymentResult.transaction?.amount_due?.toLocaleString('id-ID') || paymentResult.amount_due?.toLocaleString('id-ID')}</span>
+                            <span>Rp {(paymentResult.transaction?.amount_due || paymentResult.amount_due || 0).toLocaleString('id-ID')}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span>TUNAI</span>
-                            <span>Rp {paymentResult.transaction?.amount_received?.toLocaleString('id-ID') || paymentResult.amount_received?.toLocaleString('id-ID')}</span>
+                            <span>Rp {(paymentResult.transaction?.amount_received || paymentResult.amount_received || 0).toLocaleString('id-ID')}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span>KEMBALI</span>
-                            <span>Rp {paymentResult.change_given?.toLocaleString('id-ID') || 0}</span>
+                            <span>Rp {(paymentResult.change_given || 0).toLocaleString('id-ID')}</span>
                         </div>
                     </div>
 
