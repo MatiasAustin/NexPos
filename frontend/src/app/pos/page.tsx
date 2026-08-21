@@ -206,27 +206,24 @@ export default function PosPage() {
             getActiveProducts().then(prods => setProducts(prods));
             
             // Listen for localStorage changes for incoming customer orders
-            const checkOrders = () => {
-                const orders = JSON.parse(localStorage.getItem("nexpos_pending_orders") || "[]");
-                setPendingOrders(orders);
+            const checkOrders = async () => {
+                try {
+                    const { data, error } = await supabase.from('kiosk_orders')
+                        .select('*')
+                        .in('status', ['pending', 'draft'])
+                        .order('created_at', { ascending: false });
+                    if (data) setPendingOrders(data);
+                } catch(e) {}
             };
             checkOrders();
-            window.addEventListener('storage', checkOrders);
-            // Polling fallback just in case
-            const interval = setInterval(checkOrders, 2000);
-            return () => {
-                window.removeEventListener('storage', checkOrders);
-                clearInterval(interval);
-            };
+            const interval = setInterval(checkOrders, 3000);
+            return () => clearInterval(interval);
         }
     }, [hasSession]);
 
     const [activeQueueNumber, setActiveQueueNumber] = useState<string | null>(null);
 
-    const loadCustomerOrder = (order: any, idx: number) => {
-        const newPending = [...pendingOrders];
-        newPending.splice(idx, 1); // Remove the selected order
-
+    const loadCustomerOrder = async (order: any, idx: number) => {
         if (cart.length > 0) {
             // Save current cart as draft
             const currentSubTotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
@@ -234,32 +231,33 @@ export default function PosPage() {
             const currentTaxAmount = (currentSubTotal * currentTaxRate) / 100;
             
             const draftOrder = {
-                id: Date.now().toString(),
-                queue_number: activeQueueNumber || `Draft`,
+                queue_number: activeQueueNumber || `Draft-${Date.now().toString().slice(-4)}`,
                 customer_name: customerName,
                 items: cart,
                 total: currentSubTotal + currentTaxAmount,
-                time: new Date().toISOString(),
-                is_draft: true
+                status: 'draft'
             };
-            newPending.unshift(draftOrder);
+            
+            // Upsert the current draft
+            const existingPending = pendingOrders.find((o: any) => o.queue_number === draftOrder.queue_number);
+            if (existingPending && existingPending.id) {
+                await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
+            } else {
+                await supabase.from('kiosk_orders').insert([draftOrder]);
+            }
             toast.info("Pesanan sebelumnya disimpan sebagai Draft");
         }
 
-        setPendingOrders(newPending);
-        localStorage.setItem("nexpos_pending_orders", JSON.stringify(newPending));
-        
         setCart(order.items);
         setActiveQueueNumber(order.queue_number || null);
         setCustomerName(order.customer_name || "");
     };
 
-    const handleSaveDraft = () => {
+    const handleSaveDraft = async () => {
         if (cart.length === 0) return;
         
-        const currentPending = JSON.parse(localStorage.getItem("nexpos_pending_orders") || "[]");
         let orderRef = activeQueueNumber;
-        if (!orderRef || orderRef === 'Draft') {
+        if (!orderRef || orderRef.startsWith('Draft')) {
             const today = new Date().toISOString().split('T')[0];
             const counterData = JSON.parse(localStorage.getItem("nexpos_queue_counter") || "{}");
             let nextNumber = 1;
@@ -270,34 +268,27 @@ export default function PosPage() {
             orderRef = nextNumber.toString().padStart(3, '0');
         }
         
-        const filteredPending = currentPending.filter((o: any) => o.queue_number !== orderRef);
         const currentSubTotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
         const currentTaxRate = storeSettings?.tax_enabled ? Number(storeSettings?.tax_rate || 0) : 0;
         const currentTaxAmount = (currentSubTotal * currentTaxRate) / 100;
 
         const draftOrder = {
-            id: Date.now().toString(),
             queue_number: orderRef,
             customer_name: customerName,
             items: cart,
             total: currentSubTotal + currentTaxAmount,
-            time: new Date().toISOString(),
-            is_draft: true
+            status: 'draft'
         };
         
-        filteredPending.unshift(draftOrder);
-        setPendingOrders(filteredPending);
-        localStorage.setItem("nexpos_pending_orders", JSON.stringify(filteredPending));
-        
-        // Notify customer UI that this was saved as draft
-        const draftNotified = JSON.parse(localStorage.getItem("nexpos_draft_notified") || "[]");
-        if (!draftNotified.includes(orderRef)) {
-            draftNotified.push(orderRef);
-            localStorage.setItem("nexpos_draft_notified", JSON.stringify(draftNotified));
+        const existingPending = pendingOrders.find((o: any) => o.queue_number === orderRef);
+        if (existingPending && existingPending.id) {
+            await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
+        } else {
+            await supabase.from('kiosk_orders').insert([draftOrder]);
         }
         
+        toast.success("Pesanan disimpan");
         clearCart();
-        toast.success(`Pesanan disimpan ke Draft (Antrean: ${orderRef})`);
     };
 
     const fetchExpensesAndMaterials = async () => {
@@ -514,18 +505,17 @@ export default function PosPage() {
             });
             if (result.status === "Paid" || result.status === "Pending") {
                 clearCart();
-                // Remove ONLY the active order from pending list
-                const currentPending = JSON.parse(localStorage.getItem("nexpos_pending_orders") || "[]");
-                const newPending = currentPending.filter((o: any) => o.queue_number !== activeQueueNumber);
-                localStorage.setItem("nexpos_pending_orders", JSON.stringify(newPending));
-                setPendingOrders(newPending);
-
-                // Add to paid list for Customer display
+                // Update Supabase kiosk_orders to paid
                 if (activeQueueNumber) {
-                    const currentPaid = JSON.parse(localStorage.getItem("nexpos_paid_orders") || "[]");
-                    currentPaid.push(activeQueueNumber);
-                    localStorage.setItem("nexpos_paid_orders", JSON.stringify(currentPaid));
+                    const existingPending = pendingOrders.find((o: any) => o.queue_number === activeQueueNumber);
+                    if (existingPending && existingPending.id) {
+                        await supabase.from('kiosk_orders').update({ status: 'paid' }).eq('id', existingPending.id);
+                    }
                 }
+                
+                // Update local state
+                const newPending = pendingOrders.filter((o: any) => o.queue_number !== activeQueueNumber);
+                setPendingOrders(newPending);
 
                 // Update Session Expected Cash if payment is CASH
                 if (selectedMethod?.type?.toLowerCase() === 'cash' && sessionId && staff) {
@@ -642,11 +632,11 @@ export default function PosPage() {
 
                 <div className="p-6 flex-1 overflow-y-auto no-scrollbar">
                     {/* INCOMING ORDERS NOTIFICATION */}
-                    {pendingOrders.filter(o => !o.is_draft).length > 0 && (
+                    {pendingOrders.filter(o => o.status === 'pending').length > 0 && (
                         <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl shadow-lg">
                             <h3 className="font-bold text-orange-400 mb-3 flex items-center gap-2">🛒 Pesanan Baru dari Customer</h3>
                             <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
-                                {pendingOrders.map((order: any, idx: number) => !order.is_draft && (
+                                {pendingOrders.map((order: any, idx: number) => order.status === 'pending' && (
                                     <button 
                                         key={order.id}
                                         onClick={() => loadCustomerOrder(order, idx)}
@@ -661,11 +651,11 @@ export default function PosPage() {
                     )}
 
                     {/* DRAFT ORDERS NOTIFICATION */}
-                    {pendingOrders.filter(o => o.is_draft).length > 0 && (
+                    {pendingOrders.filter(o => o.status === 'draft').length > 0 && (
                         <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl shadow-lg">
                             <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">📝 Draft Pesanan (Belum Bayar)</h3>
                             <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
-                                {pendingOrders.map((order: any, idx: number) => order.is_draft && (
+                                {pendingOrders.map((order: any, idx: number) => order.status === 'draft' && (
                                     <button 
                                         key={order.id}
                                         onClick={() => loadCustomerOrder(order, idx)}

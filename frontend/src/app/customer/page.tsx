@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ShoppingCart, Send, Trash2, Minus, Plus, LayoutGrid, List, Clock, ShoppingBag } from "lucide-react";
 import { getActiveProducts } from "@/lib/api";
 import { SkeletonCard } from "@/components/Loading";
+import { supabase } from "@/lib/supabase";
 
 export default function CustomerPage() {
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
@@ -55,35 +56,31 @@ export default function CustomerPage() {
     useEffect(() => {
         if (orderStatus !== 'waiting_payment' || !queueNumber) return;
         
-        const checkPayment = () => {
-            const paidOrders = JSON.parse(localStorage.getItem('nexpos_paid_orders') || "[]");
-            if (paidOrders.includes(queueNumber)) {
-                setOrderStatus('paid');
-                // Auto reset after 5 seconds
-                setTimeout(() => {
-                    setOrderStatus('idle');
-                    setQueueNumber(null);
-                    setCart([]);
-                    setCustomerName("");
-                    
-                    const updated = JSON.parse(localStorage.getItem('nexpos_paid_orders') || "[]").filter((id: string) => id !== queueNumber);
-                    localStorage.setItem('nexpos_paid_orders', JSON.stringify(updated));
-                }, 5000);
-                return;
-            }
-
-            const draftOrders = JSON.parse(localStorage.getItem('nexpos_draft_notified') || "[]");
-            if (draftOrders.includes(queueNumber)) {
-                setOrderStatus('draft');
-                setTimeout(() => {
-                    setOrderStatus('idle');
-                    setQueueNumber(null);
-                    setCart([]);
-                    setCustomerName("");
-                    
-                    const updated = JSON.parse(localStorage.getItem('nexpos_draft_notified') || "[]").filter((id: string) => id !== queueNumber);
-                    localStorage.setItem('nexpos_draft_notified', JSON.stringify(updated));
-                }, 5000);
+        const checkPayment = async () => {
+            try {
+                const { data, error } = await supabase.from('kiosk_orders').select('status').eq('queue_number', queueNumber).maybeSingle();
+                
+                if (data) {
+                    if (data.status === 'paid') {
+                        setOrderStatus('paid');
+                        setTimeout(() => {
+                            setOrderStatus('idle');
+                            setQueueNumber(null);
+                            setCart([]);
+                            setCustomerName("");
+                        }, 5000);
+                    } else if (data.status === 'draft') {
+                        setOrderStatus('draft');
+                        setTimeout(() => {
+                            setOrderStatus('idle');
+                            setQueueNumber(null);
+                            setCart([]);
+                            setCustomerName("");
+                        }, 5000);
+                    }
+                }
+            } catch (err) {
+                console.error(err);
             }
         };
 
@@ -105,7 +102,11 @@ export default function CustomerPage() {
     };
 
     const updateCartQty = (productId: string, newQty: number) => {
-        if (orderStatus !== 'idle' || newQty < 1) return;
+        if (orderStatus !== 'idle') return;
+        if (newQty < 1) {
+            removeFromCart(productId);
+            return;
+        }
         setCart(prev => prev.map(p => p.product.id === productId ? { ...p, qty: newQty } : p));
     };
 
@@ -118,7 +119,7 @@ export default function CustomerPage() {
     const taxAmount = storeSettings?.tax_enabled ? (subTotal * storeSettings.tax_rate) / 100 : 0;
     const grandTotal = subTotal + taxAmount;
 
-    const sendOrderToCashier = () => {
+    const sendOrderToCashier = async () => {
         if (cart.length === 0) return;
         
         // Generate Queue Number (1-999 daily)
@@ -138,21 +139,21 @@ export default function CustomerPage() {
         const generatedQueueNumber = nextNumber.toString().padStart(3, '0');
         
         const newOrder = {
-            id: Date.now().toString(),
             queue_number: generatedQueueNumber,
             customer_name: customerName,
             items: cart,
-            time: new Date().toISOString(),
-            is_draft: false,
-            total: grandTotal
+            total: grandTotal,
+            status: 'pending'
         };
 
-        const pendingOrders = JSON.parse(localStorage.getItem("nexpos_pending_orders") || "[]");
-        pendingOrders.push(newOrder);
-        localStorage.setItem("nexpos_pending_orders", JSON.stringify(pendingOrders));
-
-        setQueueNumber(generatedQueueNumber);
-        setOrderStatus('waiting_payment');
+        try {
+            await supabase.from('kiosk_orders').insert([newOrder]);
+            setQueueNumber(generatedQueueNumber);
+            setOrderStatus('waiting_payment');
+        } catch (error) {
+            console.error("Gagal mengirim pesanan:", error);
+            alert("Gagal mengirim pesanan. Silahkan coba lagi.");
+        }
     };
 
     const categories = ["Semua", ...(storeSettings?.categories || [])];
