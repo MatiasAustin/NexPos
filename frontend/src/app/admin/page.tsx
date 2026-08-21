@@ -163,7 +163,7 @@ export default function AdminDashboard() {
                         });
                     }
                     
-                    const { data: payMethods } = await supabase.from('payment_methods').select('*').order('created_at', { ascending: true });
+                    const { data: payMethods } = await supabase.from('payment_methods').select('*').eq('is_active', true).order('created_at', { ascending: true });
                     if (payMethods) setPaymentMethods(payMethods);
                 } catch(e) {
                     console.error("Store settings table might not exist yet", e);
@@ -196,7 +196,7 @@ export default function AdminDashboard() {
             const { error } = await supabase.from('payment_methods').insert([{ name, type: 'transfer', is_active: true }]);
             if(error) throw error;
             toast.success("Metode pembayaran ditambahkan!");
-            const { data } = await supabase.from('payment_methods').select('*').order('created_at', { ascending: true });
+            const { data } = await supabase.from('payment_methods').select('*').eq('is_active', true).order('created_at', { ascending: true });
             if (data) setPaymentMethods(data);
         } catch(e: any) { toast.error(e.message); }
         setLoading(false);
@@ -205,10 +205,10 @@ export default function AdminDashboard() {
     const handleDeletePaymentMethod = async (id: string) => {
         setLoading(true);
         try {
-            const { error } = await supabase.from('payment_methods').delete().eq('id', id);
+            const { error } = await supabase.from('payment_methods').update({ is_active: false }).eq('id', id);
             if(error) throw error;
             toast.success("Metode pembayaran dihapus!");
-            const { data } = await supabase.from('payment_methods').select('*').order('created_at', { ascending: true });
+            const { data } = await supabase.from('payment_methods').select('*').eq('is_active', true).order('created_at', { ascending: true });
             if (data) setPaymentMethods(data);
         } catch(e: any) { toast.error(e.message); }
         setLoading(false);
@@ -1371,7 +1371,7 @@ export default function AdminDashboard() {
                                                                 )}
                                                                 {profile?.role === 'owner' && (
                                                                     <button 
-                                                                        onClick={() => handleDeleteTransaction(trx.id)}
+                                                                        onClick={() => handleDeleteTransaction(trx)}
                                                                         className="w-full px-4 py-2 bg-gray-800 text-gray-400 border border-gray-700 rounded-xl text-sm font-bold hover:bg-gray-700 hover:text-white transition-colors"
                                                                     >
                                                                         Hapus
