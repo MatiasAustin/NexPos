@@ -1071,11 +1071,12 @@ export default function AdminDashboard() {
                             {/* RECONCILIATION TAB */}
                             {activeTab === "reconciliation" && (
                                 <div className="space-y-6">
-                                    <ReportChart />
-
-                                    {/* Filter Periode */}
-                                    <div className="bg-[#131B2C] p-5 rounded-2xl border border-gray-800/60 shadow-lg">
-                                        <h3 className="font-bold text-white mb-4">Filter Periode Laporan</h3>
+                                    {/* Global Tab Filter */}
+                                    <div className="flex items-center justify-between bg-[#131B2C] p-4 rounded-2xl border border-gray-800/60 shadow-sm">
+                                        <div>
+                                            <h3 className="font-bold text-white">Laporan Keuangan</h3>
+                                            <p className="text-xs text-gray-500">Pilih periode untuk semua metrik di bawah</p>
+                                        </div>
                                         <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-800 w-fit">
                                             {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'}].map(f => (
                                                 <button key={f.k} onClick={() => {
@@ -1088,6 +1089,8 @@ export default function AdminDashboard() {
                                             ))}
                                         </div>
                                     </div>
+
+                                    <ReportChart period={reconciliationPeriod} />
 
                                     {/* Data Penjualan Produk (Requested Feature) */}
                                     <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">

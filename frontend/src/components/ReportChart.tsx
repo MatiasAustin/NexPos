@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
-    ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
-    Tooltip, Legend, ResponsiveContainer
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line
 } from 'recharts';
 
-type PeriodMode = 'daily' | 'weekly' | 'monthly' | 'yearly';
+type PeriodMode = 'daily' | 'weekly' | 'monthly';
 
 interface ChartPoint {
     label: string;
@@ -20,77 +19,59 @@ function formatRupiah(n: number) {
     return 'Rp ' + Math.abs(n).toLocaleString('id-ID');
 }
 
-function getDateRange(mode: PeriodMode): { start: Date; end: Date } {
-    const now = new Date();
-    const end = new Date(now);
-    end.setHours(23, 59, 59, 999);
-
-    let start = new Date(now);
+function getPeriodLabel(dateStr: string, mode: PeriodMode): string {
+    const d = new Date(dateStr);
     if (mode === 'daily') {
-        // Show last 30 days
-        start.setDate(now.getDate() - 29);
-        start.setHours(0, 0, 0, 0);
+        // Group by hour
+        return `${d.getHours().toString().padStart(2, '0')}:00`;
     } else if (mode === 'weekly') {
-        // Show last 12 weeks
-        start.setDate(now.getDate() - 83);
-        start.setHours(0, 0, 0, 0);
-    } else if (mode === 'monthly') {
-        // Show last 12 months
-        start.setMonth(now.getMonth() - 11);
-        start.setDate(1);
-        start.setHours(0, 0, 0, 0);
+        // Group by day of week
+        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        return days[d.getDay()];
     } else {
-        // yearly: last 5 years
-        start.setFullYear(now.getFullYear() - 4);
-        start.setMonth(0);
-        start.setDate(1);
-        start.setHours(0, 0, 0, 0);
-    }
-    return { start, end };
-}
-
-function getPeriodLabel(date: Date, mode: PeriodMode): string {
-    if (mode === 'daily') {
-        return date.toISOString().split('T')[0]; // YYYY-MM-DD
-    } else if (mode === 'weekly') {
-        // week of year
-        const firstDay = new Date(date.getFullYear(), 0, 1);
-        const weekNo = Math.ceil((((date.getTime() - firstDay.getTime()) / 86400000) + firstDay.getDay() + 1) / 7);
-        return `${date.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
-    } else if (mode === 'monthly') {
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    } else {
-        return String(date.getFullYear());
+        // Group by date in month
+        return `${d.getDate().toString().padStart(2, '0')} ${d.toLocaleString('id-ID', { month: 'short' })}`;
     }
 }
 
-function formatLabel(label: string, mode: PeriodMode): string {
-    if (mode === 'daily') {
-        const parts = label.split('-');
-        return `${parts[2]}/${parts[1]}`;
-    } else if (mode === 'weekly') {
-        return label.replace('-', ' ');
-    } else if (mode === 'monthly') {
-        const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
-        const parts = label.split('-');
-        return `${months[parseInt(parts[1]) - 1]} '${parts[0].slice(2)}`;
-    }
-    return label;
+interface ReportChartProps {
+    period: PeriodMode;
 }
 
-export default function ReportChart() {
-    const [mode, setMode] = useState<PeriodMode>('daily');
+export default function ReportChart({ period }: ReportChartProps) {
     const [chartData, setChartData] = useState<ChartPoint[]>([]);
     const [loading, setLoading] = useState(true);
     const [totals, setTotals] = useState({ omset: 0, pengeluaran: 0, laba: 0 });
+    const [periodLabel, setPeriodLabel] = useState('');
 
     useEffect(() => {
         fetchChartData();
-    }, [mode]);
+    }, [period]);
 
     const fetchChartData = async () => {
         setLoading(true);
-        const { start, end } = getDateRange(mode);
+
+        const now = new Date();
+        let start = new Date(now);
+        let end = new Date(now);
+        end.setHours(23, 59, 59, 999);
+        
+        let label = '';
+        if (period === 'daily') {
+            start.setHours(0, 0, 0, 0);
+            label = `Hari Ini (${start.toLocaleDateString('id-ID')})`;
+        } else if (period === 'weekly') {
+            const day = start.getDay();
+            const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+            start = new Date(start.setDate(diff));
+            start.setHours(0, 0, 0, 0);
+            label = `Minggu Ini (${start.toLocaleDateString('id-ID')} - ${end.toLocaleDateString('id-ID')})`;
+        } else if (period === 'monthly') {
+            start.setDate(1);
+            start.setHours(0, 0, 0, 0);
+            label = `Bulan Ini (${start.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })})`;
+        }
+        setPeriodLabel(label);
 
         // Fetch real transactions
         const { data: transactions } = await supabase
@@ -118,32 +99,45 @@ export default function ReportChart() {
         const map: Record<string, { omset: number; pengeluaran: number }> = {};
 
         for (const trx of transactions || []) {
-            const label = getPeriodLabel(new Date(trx.created_at), mode);
-            if (!map[label]) map[label] = { omset: 0, pengeluaran: 0 };
-            map[label].omset += parseFloat(trx.amount_due) || 0;
+            const lbl = getPeriodLabel(trx.created_at, period);
+            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaran: 0 };
+            map[lbl].omset += parseFloat(trx.amount_due) || 0;
         }
 
         for (const item of orderItems || []) {
-            const label = getPeriodLabel(new Date(item.created_at), mode);
-            if (!map[label]) map[label] = { omset: 0, pengeluaran: 0 };
-            map[label].pengeluaran += (parseFloat(item.cogs_at_time) || 0) * (item.quantity || 1);
+            const lbl = getPeriodLabel(item.created_at, period);
+            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaran: 0 };
+            map[lbl].pengeluaran += (parseFloat(item.cogs_at_time) || 0) * (item.quantity || 1);
         }
 
         for (const exp of expenses || []) {
             const dateStr = exp.expense_date || exp.created_at;
-            const label = getPeriodLabel(new Date(dateStr), mode);
-            if (!map[label]) map[label] = { omset: 0, pengeluaran: 0 };
-            map[label].pengeluaran += parseFloat(exp.amount) || 0;
+            const lbl = getPeriodLabel(dateStr, period);
+            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaran: 0 };
+            map[lbl].pengeluaran += parseFloat(exp.amount) || 0;
         }
 
         // Convert to sorted array
-        const sorted = Object.keys(map).sort();
-        const points: ChartPoint[] = sorted.map(label => ({
-            label: formatLabel(label, mode),
-            omset: map[label].omset,
-            pengeluaran: map[label].pengeluaran,
-            laba: map[label].omset - map[label].pengeluaran
-        }));
+        let points: ChartPoint[] = [];
+        
+        if (period === 'daily') {
+            // Fill 24 hours
+            for (let i = 0; i < 24; i++) {
+                const lbl = `${i.toString().padStart(2, '0')}:00`;
+                points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaran: map[lbl]?.pengeluaran || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaran || 0) });
+            }
+        } else if (period === 'weekly') {
+            const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+            points = days.map(d => ({ label: d, omset: map[d]?.omset || 0, pengeluaran: map[d]?.pengeluaran || 0, laba: (map[d]?.omset || 0) - (map[d]?.pengeluaran || 0) }));
+        } else {
+            // Fill days of month
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            for (let i = 1; i <= daysInMonth; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth(), i);
+                const lbl = `${d.getDate().toString().padStart(2, '0')} ${d.toLocaleString('id-ID', { month: 'short' })}`;
+                points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaran: map[lbl]?.pengeluaran || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaran || 0) });
+            }
+        }
 
         // Compute totals
         const totalOmset = points.reduce((s, p) => s + p.omset, 0);
@@ -155,7 +149,7 @@ export default function ReportChart() {
 
     const exportCSV = () => {
         const rows = [
-            ['Periode', 'Omset (Rp)', 'Pengeluaran+HPP (Rp)', 'Laba Bersih (Rp)'],
+            ['Waktu', 'Omset (Rp)', 'Pengeluaran+HPP (Rp)', 'Laba Bersih (Rp)'],
             ...chartData.map(p => [p.label, p.omset, p.pengeluaran, p.laba])
         ];
         const csv = rows.map(r => r.join(',')).join('\n');
@@ -163,34 +157,19 @@ export default function ReportChart() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `laporan-${mode}-${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `laporan-${period}-${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
     };
-
-    const modes: { key: PeriodMode; label: string }[] = [
-        { key: 'daily', label: 'Harian' },
-        { key: 'weekly', label: 'Mingguan' },
-        { key: 'monthly', label: 'Bulanan' },
-        { key: 'yearly', label: 'Tahunan' },
-    ];
 
     return (
         <div className="bg-[#131B2C] border border-gray-800 rounded-2xl p-6 shadow-xl">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <h3 className="font-bold text-xl text-white">Dashboard Keuangan</h3>
+                <div>
+                    <h3 className="font-bold text-xl text-white">Dashboard Keuangan</h3>
+                    <p className="text-sm text-gray-400 mt-1">{periodLabel}</p>
+                </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-800">
-                        {modes.map(m => (
-                            <button
-                                key={m.key}
-                                onClick={() => setMode(m.key)}
-                                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${mode === m.key ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
-                            >
-                                {m.label}
-                            </button>
-                        ))}
-                    </div>
                     <button
                         onClick={exportCSV}
                         className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-500 flex items-center gap-1"
