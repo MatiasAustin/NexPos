@@ -92,7 +92,7 @@ export class TransactionService {
             .select(`
                 *,
                 payment_methods ( name, type ),
-                order_items ( product_id, product_name, quantity, price_at_time )
+                order_items ( product_id, product_name, quantity, price_at_time, cogs_at_time )
             `)
             .order('created_at', { ascending: false })
             .limit(limit);

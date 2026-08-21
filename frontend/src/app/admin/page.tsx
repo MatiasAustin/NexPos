@@ -2340,7 +2340,7 @@ export default function AdminDashboard() {
                             <span>Rp {printTransaction.amount_due.toLocaleString('id-ID')}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
-                            <span>{printTransaction.payment_methods?.name === 'Tunai' ? 'KARTU' : (printTransaction.payment_methods?.name || 'TUNAI').toUpperCase()}</span>
+                            <span>{(printTransaction.payment_methods?.name || 'TUNAI').toUpperCase()}</span>
                             <span>Rp {printTransaction.amount_received.toLocaleString('id-ID')}</span>
                         </div>
                         {(printTransaction.change_given || 0) > 0 && (

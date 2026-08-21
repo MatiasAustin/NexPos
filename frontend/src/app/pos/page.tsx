@@ -502,7 +502,7 @@ export default function PosPage() {
             const result = await processPayment(payload);
             setPaymentResult({
                 ...result,
-                payment_method_name: selectedMethod.name === "Tunai" ? "Kartu" : selectedMethod.name,
+                payment_method_name: selectedMethod.name,
                 transaction: {
                     ...result,
                     items: payload.items.map((i: any) => ({
@@ -882,7 +882,7 @@ export default function PosPage() {
                                                     onClick={() => setSelectedMethod(m)}
                                                     className={`py-3 px-4 rounded-xl border-2 font-bold transition-all ${selectedMethod?.id === m.id ? 'border-blue-500 bg-blue-500/10 text-blue-400 shadow-lg shadow-blue-900/20' : 'border-gray-800 text-gray-400 hover:border-gray-700 hover:bg-gray-800/50'}`}
                                                 >
-                                                    {m.name === 'Tunai' ? 'Kartu' : m.name}
+                                                    {m.name}
                                                 </button>
                                             ))}
                                         </div>
