@@ -189,9 +189,17 @@ export default function PosPage() {
     useEffect(() => {
         if (hasSession && staff) {
             getPaymentMethods().then(methods => {
-                setPaymentMethods(methods);
-                if (methods && methods.length > 0) {
-                    setSelectedMethod(methods[0]);
+                const uniqueMethods = methods.reduce((acc: any[], current: any) => {
+                    const x = acc.find(item => item.name === current.name);
+                    if (!x) {
+                        return acc.concat([current]);
+                    } else {
+                        return acc;
+                    }
+                }, []);
+                setPaymentMethods(uniqueMethods);
+                if (uniqueMethods && uniqueMethods.length > 0) {
+                    setSelectedMethod(uniqueMethods[0]);
                 }
             });
             getActiveProducts().then(prods => setProducts(prods));
@@ -276,6 +284,13 @@ export default function PosPage() {
         filteredPending.unshift(draftOrder);
         setPendingOrders(filteredPending);
         localStorage.setItem("nexpos_pending_orders", JSON.stringify(filteredPending));
+        
+        // Notify customer UI that this was saved as draft
+        const draftNotified = JSON.parse(localStorage.getItem("nexpos_draft_notified") || "[]");
+        if (!draftNotified.includes(orderRef)) {
+            draftNotified.push(orderRef);
+            localStorage.setItem("nexpos_draft_notified", JSON.stringify(draftNotified));
+        }
         
         clearCart();
         toast.success(`Pesanan disimpan ke Draft (Antrean: ${orderRef})`);

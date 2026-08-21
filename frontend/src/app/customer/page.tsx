@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart, Send, Trash2, Minus, Plus, LayoutGrid, List, Clock } from "lucide-react";
+import { ShoppingCart, Send, Trash2, Minus, Plus, LayoutGrid, List, Clock, ShoppingBag } from "lucide-react";
 import { getActiveProducts } from "@/lib/api";
 import { SkeletonCard } from "@/components/Loading";
 
@@ -11,7 +11,7 @@ export default function CustomerPage() {
     const [activeCategory, setActiveCategory] = useState("Semua");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [loading, setLoading] = useState(true);
-    const [orderStatus, setOrderStatus] = useState<'idle' | 'waiting_payment' | 'paid'>('idle');
+    const [orderStatus, setOrderStatus] = useState<'idle' | 'waiting_payment' | 'paid' | 'draft'>('idle');
     const [queueNumber, setQueueNumber] = useState<string | null>(null);
 
     const [storeSettings, setStoreSettings] = useState<any>(null);
@@ -64,9 +64,22 @@ export default function CustomerPage() {
                     setQueueNumber(null);
                     setCart([]);
                     
-                    // Optional: remove from paidOrders
                     const updated = JSON.parse(localStorage.getItem('nexpos_paid_orders') || "[]").filter((id: string) => id !== queueNumber);
                     localStorage.setItem('nexpos_paid_orders', JSON.stringify(updated));
+                }, 5000);
+                return;
+            }
+
+            const draftOrders = JSON.parse(localStorage.getItem('nexpos_draft_notified') || "[]");
+            if (draftOrders.includes(queueNumber)) {
+                setOrderStatus('draft');
+                setTimeout(() => {
+                    setOrderStatus('idle');
+                    setQueueNumber(null);
+                    setCart([]);
+                    
+                    const updated = JSON.parse(localStorage.getItem('nexpos_draft_notified') || "[]").filter((id: string) => id !== queueNumber);
+                    localStorage.setItem('nexpos_draft_notified', JSON.stringify(updated));
                 }, 5000);
             }
         };
@@ -99,181 +112,169 @@ export default function CustomerPage() {
     };
 
     const subTotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
-    const taxRate = storeSettings?.tax_enabled ? Number(storeSettings?.tax_rate || 0) : 0;
-    const taxAmount = (subTotal * taxRate) / 100;
+    const taxAmount = storeSettings?.tax_enabled ? (subTotal * storeSettings.tax_rate) / 100 : 0;
     const grandTotal = subTotal + taxAmount;
 
     const sendOrderToCashier = () => {
-        if (cart.length === 0 || orderStatus !== 'idle') return;
+        if (cart.length === 0) return;
         
-        // Generate Sequential Queue Number based on Date
+        // Generate Queue Number (1-999 daily)
         const today = new Date().toISOString().split('T')[0];
         const counterData = JSON.parse(localStorage.getItem("nexpos_queue_counter") || "{}");
+        
         let nextNumber = 1;
         if (counterData.date === today) {
             nextNumber = (counterData.count || 0) + 1;
         }
-        localStorage.setItem("nexpos_queue_counter", JSON.stringify({ date: today, count: nextNumber }));
         
-        const qNumber = nextNumber.toString().padStart(3, '0');
+        localStorage.setItem("nexpos_queue_counter", JSON.stringify({
+            date: today,
+            count: nextNumber
+        }));
         
-        const newOrder = { 
-            id: Date.now().toString(), 
-            queue_number: qNumber,
-            items: cart, 
-            total: grandTotal, 
-            time: new Date().toISOString() 
+        const generatedQueueNumber = nextNumber.toString().padStart(3, '0');
+        
+        const newOrder = {
+            id: Date.now().toString(),
+            queue_number: generatedQueueNumber,
+            items: cart,
+            time: new Date().toISOString(),
+            is_draft: false
         };
-        
-        const existingOrders = JSON.parse(localStorage.getItem("nexpos_pending_orders") || "[]");
-        localStorage.setItem("nexpos_pending_orders", JSON.stringify([...existingOrders, newOrder]));
-        
-        setQueueNumber(qNumber);
+
+        const pendingOrders = JSON.parse(localStorage.getItem("nexpos_pending_orders") || "[]");
+        pendingOrders.push(newOrder);
+        localStorage.setItem("nexpos_pending_orders", JSON.stringify(pendingOrders));
+
+        setQueueNumber(generatedQueueNumber);
         setOrderStatus('waiting_payment');
     };
 
-    // Sync categories from storeSettings or fallback to derived ones
-    const dynamicCategories = storeSettings?.categories && storeSettings.categories.length > 0
-        ? storeSettings.categories
-        : Array.from(new Set(products.map(p => p.category || "Uncategorized")));
-    const categories = ["Semua", ...dynamicCategories];
-    const filteredProducts = activeCategory === "Semua" ? products : products.filter(p => (p.category || "Uncategorized") === activeCategory);
+    const categories = ["Semua", ...(storeSettings?.categories || [])];
 
     return (
-        <div className="flex flex-col md:flex-row h-screen bg-[#0B0F19] text-gray-100 font-['Funnel_Display'] overflow-hidden selection:bg-blue-500/30">
-            {/* LEFT: PRODUCTS LIST */}
-            <div className="flex-1 p-6 md:p-8 overflow-y-auto no-scrollbar">
-                <div className="mb-6 flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl md:text-4xl font-black mb-2 text-white tracking-tight">Menu {storeSettings?.cafe_name || 'Kami'}</h1>
-                        <p className="text-gray-400 text-sm md:text-base">Silakan pilih pesanan Anda, sentuh produk untuk menambah.</p>
+        <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans selection:bg-blue-500/30">
+            {/* LEFT: Menu Area */}
+            <div className="flex-[3] flex flex-col h-full bg-[#0B0F19] border-r border-gray-800">
+                <div className="bg-[#131B2C] border-b border-gray-800 p-6 md:p-8 flex items-center justify-between shadow-sm z-10">
+                    <div className="flex items-center gap-4">
+                        {storeSettings?.logo_base64 && (
+                            <img src={storeSettings.logo_base64} alt="Logo" className="h-10 md:h-12 w-auto object-contain rounded-lg" />
+                        )}
+                        <div>
+                            <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">{storeSettings?.cafe_name || 'NexPos Cafe'}</h1>
+                            <p className="text-gray-400 text-sm font-medium mt-1">Silakan pilih menu Anda</p>
+                        </div>
                     </div>
-                    {storeSettings?.logo_base64 ? (
-                        <img src={storeSettings.logo_base64} alt="Brand Logo" className="hidden md:block w-16 h-16 object-contain rounded-2xl bg-white p-1 shadow-lg shadow-white/5" />
-                    ) : (
-                        <div className="hidden md:flex w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 items-center justify-center text-white text-3xl font-black shadow-lg shadow-blue-900/20">N</div>
-                    )}
                 </div>
 
-                {/* Categories & View Mode Toggle */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-8">
-                    <div className="flex overflow-x-auto gap-2 pb-2 w-full sm:w-auto no-scrollbar">
-                        {categories.map(cat => (
+                <div className="bg-[#0B0F19] p-4 md:p-6 overflow-x-auto border-b border-gray-800">
+                    <div className="flex gap-3 md:gap-4 min-w-max pb-2 px-2">
+                        {categories.map((category) => (
                             <button
-                                key={cat}
-                                onClick={() => setActiveCategory(cat)}
-                                className={`px-5 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-all ${
-                                    activeCategory === cat 
-                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20 border-blue-500" 
-                                    : "bg-[#131B2C] text-gray-400 hover:text-white border border-gray-800/60"
+                                key={category}
+                                onClick={() => setActiveCategory(category)}
+                                className={`px-5 py-2.5 md:px-7 md:py-3 rounded-full font-bold text-sm md:text-base transition-all duration-300 shadow-sm ${
+                                    activeCategory === category
+                                        ? "bg-white text-[#121214] scale-105"
+                                        : "bg-[#131B2C] text-gray-400 hover:bg-gray-800 border border-gray-800"
                                 }`}
                             >
-                                {cat}
+                                {category}
                             </button>
                         ))}
                     </div>
-                    <div className="flex bg-[#131B2C] rounded-xl border border-gray-800/60 p-1 shrink-0">
-                        <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
-                            <LayoutGrid className="w-5 h-5" />
-                        </button>
-                        <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
-                            <List className="w-5 h-5" />
-                        </button>
-                    </div>
                 </div>
 
-                <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" : "flex flex-col gap-4"}>
+                <div className="flex-1 overflow-y-auto p-4 md:p-8">
                     {loading ? (
-                        Array.from({ length: 8 }).map((_, idx) => <SkeletonCard key={idx} />)
-                    ) : filteredProducts.length === 0 ? (
-                        <div className="col-span-full text-center text-gray-500 py-10 bg-[#131B2C] rounded-2xl border border-gray-800">Belum ada produk di kategori ini.</div>
-                    ) : (
-                        filteredProducts.map((prod) => (
-                        <div
-                            key={prod.id}
-                            onClick={() => addToCart(prod)}
-                            className={`bg-[#131B2C] rounded-3xl border border-gray-800/60 cursor-pointer hover:border-blue-500/50 hover:bg-gray-800/30 transition-all shadow-lg relative overflow-hidden group ${
-                                viewMode === 'grid' 
-                                ? "p-5 md:p-6 text-center flex flex-col h-full justify-between"
-                                : "p-4 md:p-5 flex items-center justify-between gap-4"
-                            }`}
-                        >
-                            <div className={viewMode === 'grid' ? "relative z-10" : "flex items-center gap-4 relative z-10"}>
-                                <div className={`${viewMode === 'grid' ? "text-5xl md:text-6xl mb-4" : "text-4xl bg-gray-800/50 w-16 h-16 rounded-2xl flex items-center justify-center"} transform group-hover:scale-110 transition-transform`}>
-                                    {prod.image_icon || '☕'}
-                                </div>
-                                <div className={viewMode === 'list' ? "text-left" : ""}>
-                                    <h3 className="font-bold text-lg md:text-xl text-white leading-tight mb-1">{prod.name}</h3>
-                                    {viewMode === 'list' && <p className="text-gray-500 text-sm">{prod.category || 'Uncategorized'}</p>}
-                                </div>
-                            </div>
-                            <p className={`text-blue-400 font-bold ${viewMode === 'grid' ? "text-base md:text-lg mt-auto" : "text-lg md:text-xl shrink-0"} relative z-10`}>
-                                Rp {prod.price.toLocaleString('id-ID')}
-                            </p>
-                            
-                            {/* Decorative Background Icon (Grid Only) */}
-                            {viewMode === 'grid' && (
-                                <div className="absolute -bottom-4 -right-4 text-7xl opacity-5 group-hover:opacity-10 transition-opacity z-0">{prod.image_icon || '☕'}</div>
-                            )}
+                        <div className="flex items-center justify-center h-full">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
                         </div>
-                    )))}
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                            {products
+                                .filter(p => activeCategory === "Semua" || p.category === activeCategory)
+                                .map((product) => (
+                                    <div 
+                                        key={product.id} 
+                                        onClick={() => addToCart(product)}
+                                        className="bg-[#131B2C] border border-gray-800 rounded-3xl overflow-hidden cursor-pointer group hover:-translate-y-1 transition-all duration-300 hover:border-gray-600 hover:shadow-xl hover:shadow-gray-900/50 flex flex-col"
+                                    >
+                                        <div className="aspect-square relative bg-gray-900/50 overflow-hidden p-4 flex items-center justify-center">
+                                            {product.image_url ? (
+                                                <img 
+                                                    src={product.image_url} 
+                                                    alt={product.name} 
+                                                    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-2xl"
+                                                />
+                                            ) : (
+                                                <span className="text-6xl filter drop-shadow-xl group-hover:scale-110 transition-transform duration-300">{product.image_icon}</span>
+                                            )}
+                                        </div>
+                                        <div className="p-4 md:p-5 flex-1 flex flex-col justify-between">
+                                            <h3 className="font-bold text-sm md:text-base text-gray-200 leading-tight mb-2 group-hover:text-white transition-colors">{product.name}</h3>
+                                            <p className="text-blue-400 font-black tracking-wide text-base md:text-lg">Rp {product.price.toLocaleString("id-ID")}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* RIGHT: CART */}
-            <div className="w-full md:w-[320px] lg:w-[400px] h-[45vh] md:h-screen bg-[#1a1a1c] shadow-2xl flex flex-col border-t-2 md:border-t-0 md:border-l border-gray-800 shrink-0 z-10">
-                <div className="p-5 md:p-6 border-b border-gray-800 bg-[#1a1a1c]">
-                    <h2 className="text-lg md:text-xl font-bold flex items-center gap-3 text-white">
-                        <ShoppingCart className="w-6 h-6 text-blue-500" /> Pesanan Anda
+            {/* RIGHT: Cart Area */}
+            <div className="flex-[1.2] min-w-[320px] max-w-[480px] bg-[#131B2C] flex flex-col relative shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.5)] z-20">
+                <div className="p-6 md:p-8 bg-gray-900/40 border-b border-gray-800 backdrop-blur-md">
+                    <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-3">
+                        <ShoppingBag className="w-6 h-6 text-blue-500" />
+                        Pesanan Anda
                     </h2>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-5 md:p-6">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#131B2C]">
                     {cart.length === 0 ? (
-                        <div className="text-center text-gray-500 mt-10 md:mt-20 flex flex-col items-center">
-                            <ShoppingCart className="w-16 h-16 mb-4 opacity-10" />
-                            <p className="font-bold">Belum ada pesanan</p>
+                        <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-4">
+                            <div className="w-24 h-24 bg-gray-900/50 rounded-full flex items-center justify-center border border-gray-800">
+                                <ShoppingBag className="w-10 h-10 text-gray-600" />
+                            </div>
+                            <p className="font-medium text-lg">Keranjang masih kosong</p>
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {cart.map((item, idx) => (
-                                <div key={idx} className="flex flex-col gap-3 pb-4 border-b border-gray-800/50">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1 pr-3">
-                                            <p className="font-bold text-base md:text-lg leading-tight text-white mb-1">{item.product.name}</p>
-                                            <p className="text-blue-400 font-bold text-sm md:text-base">
-                                                Rp {item.product.price.toLocaleString("id-ID")}
-                                            </p>
+                            {cart.map((item) => (
+                                <div key={item.product.id} className="flex flex-col p-4 bg-gray-900/50 rounded-2xl border border-gray-800">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 bg-[#131B2C] rounded-xl flex items-center justify-center border border-gray-800 shadow-inner">
+                                                {item.product.image_url ? (
+                                                    <img src={item.product.image_url} alt="" className="w-8 h-8 object-contain drop-shadow-md" />
+                                                ) : (
+                                                    <span className="text-xl drop-shadow-md">{item.product.image_icon}</span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-200 text-sm leading-tight">{item.product.name}</h4>
+                                                <p className="text-blue-400 font-bold text-sm mt-0.5">Rp {(item.product.price * item.qty).toLocaleString("id-ID")}</p>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-bold text-base md:text-lg whitespace-nowrap text-white mb-2">
-                                                Rp {(item.product.price * item.qty).toLocaleString("id-ID")}
-                                            </p>
-                                            <button onClick={() => removeFromCart(item.product.id)} className="text-red-400 hover:text-red-300 p-1.5 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors inline-flex">
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
+                                        <button 
+                                            onClick={() => removeFromCart(item.product.id)}
+                                            className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-4 bg-[#131B2C] rounded-xl p-1 border border-gray-800 w-fit self-end shadow-sm">
                                         <button 
                                             onClick={() => updateCartQty(item.product.id, item.qty - 1)}
-                                            disabled={item.qty <= 1}
-                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl transition-colors border border-gray-700"
-                                        >
-                                            <Minus className="w-5 h-5" />
-                                        </button>
-                                        <input 
-                                            type="number" 
-                                            value={item.qty}
-                                            onChange={(e) => updateCartQty(item.product.id, parseInt(e.target.value) || 1)}
-                                            className="w-16 h-10 bg-[#121214] text-center font-bold text-white border border-gray-800 rounded-xl outline-none focus:border-blue-500"
-                                        />
+                                            className="w-8 h-8 flex items-center justify-center bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors active:scale-95"
+                                        ><Minus className="w-4 h-4" /></button>
+                                        <span className="font-bold w-6 text-center text-sm">{item.qty}</span>
                                         <button 
                                             onClick={() => updateCartQty(item.product.id, item.qty + 1)}
-                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition-colors border border-gray-700"
-                                        >
-                                            <Plus className="w-5 h-5" />
-                                        </button>
+                                            className="w-8 h-8 flex items-center justify-center bg-white text-black rounded-lg hover:bg-gray-200 transition-colors active:scale-95"
+                                        ><Plus className="w-4 h-4" /></button>
                                     </div>
                                 </div>
                             ))}
@@ -281,34 +282,29 @@ export default function CustomerPage() {
                     )}
                 </div>
 
-                <div className="p-5 md:p-8 bg-[#121214] border-t border-gray-800 relative overflow-hidden">
-                    <div className="flex justify-between mb-2">
-                        <span className="text-gray-400 text-sm md:text-base">Subtotal</span>
-                        <span className="font-bold text-lg md:text-xl text-gray-200">Rp {subTotal.toLocaleString("id-ID")}</span>
-                    </div>
+                <div className="p-6 md:p-8 bg-[#121214] border-t border-gray-800">
                     {storeSettings?.tax_enabled && (
                         <div className="flex justify-between mb-2">
                             <span className="text-gray-400 text-sm md:text-base">Pajak ({storeSettings.tax_rate}%)</span>
                             <span className="font-bold text-lg md:text-xl text-gray-200">Rp {taxAmount.toLocaleString("id-ID")}</span>
                         </div>
                     )}
-                    <div className="flex justify-between mb-6 border-t border-gray-800 pt-4">
-                        <span className="text-gray-300 text-base md:text-lg font-bold">Total Tagihan</span>
-                        <span className="font-black text-2xl md:text-3xl text-blue-400">Rp {grandTotal.toLocaleString("id-ID")}</span>
+                    <div className="flex justify-between mb-6 pt-4 border-t border-gray-800">
+                        <span className="text-xl font-black">Total</span>
+                        <span className="text-2xl font-black text-blue-400">Rp {grandTotal.toLocaleString("id-ID")}</span>
                     </div>
-                    
                     <button 
                         onClick={sendOrderToCashier}
-                        disabled={cart.length === 0 || orderStatus !== 'idle'}
-                        className="w-full bg-white hover:bg-gray-100 text-[#121214] py-4 md:py-5 rounded-2xl font-black text-lg md:text-xl flex items-center justify-center gap-3 disabled:opacity-50 transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                        disabled={cart.length === 0}
+                        className="w-full py-4 rounded-2xl bg-blue-600 text-white font-black hover:bg-blue-500 transition-colors disabled:opacity-50"
                     >
-                        <Send className="w-6 h-6" /> {orderStatus === 'idle' ? 'Pesan Sekarang' : 'Memproses...'}
+                        Pesan Sekarang
                     </button>
                 </div>
             </div>
 
             {/* FULLSCREEN POPUP OVERLAY */}
-            {(orderStatus === 'waiting_payment' || orderStatus === 'paid') && (
+            {(orderStatus === 'waiting_payment' || orderStatus === 'paid' || orderStatus === 'draft') && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     {orderStatus === 'waiting_payment' ? (
                         <div className="w-full max-w-md bg-blue-600 text-white p-10 rounded-3xl font-bold text-center flex flex-col items-center justify-center gap-4 shadow-2xl shadow-blue-900/50 animate-in zoom-in duration-300">
@@ -320,7 +316,7 @@ export default function CustomerPage() {
                                 <Clock className="w-4 h-4 animate-spin-slow" /> Menunggu pembayaran...
                             </div>
                         </div>
-                    ) : (
+                    ) : orderStatus === 'paid' ? (
                         <div className="w-full max-w-md bg-green-600 text-white p-10 rounded-3xl font-bold text-center flex flex-col items-center justify-center gap-4 shadow-2xl shadow-green-900/50 animate-in zoom-in duration-300">
                             <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-4">
                                 <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -328,9 +324,17 @@ export default function CustomerPage() {
                                 </svg>
                             </div>
                             <span className="text-3xl font-black mb-2">Pembayaran Berhasil!</span>
-                            <div className="w-16 h-1 bg-green-400/50 rounded-full mb-2"></div>
-                            <span className="text-lg text-green-100 font-semibold">Silakan menunggu pesanan Anda.</span>
-                            <span className="text-sm mt-4 text-green-300">Layar ini akan tertutup otomatis...</span>
+                            <span className="text-lg text-green-100 font-medium">Terima kasih, pesanan Anda sedang disiapkan</span>
+                            <span className="text-sm text-green-200 mt-2">Nomor Antrean: {queueNumber}</span>
+                        </div>
+                    ) : (
+                        <div className="w-full max-w-md bg-orange-600 text-white p-10 rounded-3xl font-bold text-center flex flex-col items-center justify-center gap-4 shadow-2xl shadow-orange-900/50 animate-in zoom-in duration-300">
+                            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-4">
+                                <Clock className="w-12 h-12 text-white" />
+                            </div>
+                            <span className="text-3xl font-black mb-2">Pesanan Diproses!</span>
+                            <span className="text-lg text-orange-100 font-medium">Anda memilih pembayaran nanti. Silakan menunggu pesanan Anda disiapkan.</span>
+                            <span className="text-sm text-orange-200 mt-2">Nomor Antrean: {queueNumber}</span>
                         </div>
                     )}
                 </div>

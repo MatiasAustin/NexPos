@@ -78,6 +78,7 @@ export default function AdminDashboard() {
     const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
     const [stockAdjustment, setStockAdjustment] = useState<{ delta: number; note: string; price: number }>({ delta: 0, note: '', price: 0 });
     const [expenseSortOrder, setExpenseSortOrder] = useState<'desc' | 'asc'>('desc');
+    const [expensePeriod, setExpensePeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly' | 'all'>('all');
     
     // Store Settings
     const [storeSettings, setStoreSettings] = useState({
@@ -380,6 +381,36 @@ export default function AdminDashboard() {
             }
         });
         
+        return filtered;
+    };
+
+    const getFilteredExpenses = () => {
+        let filtered = expenses.filter(exp => {
+            if (expensePeriod === 'all') return true;
+            
+            const expDate = new Date(exp.expense_date || exp.created_at);
+            const now = new Date();
+            
+            if (expensePeriod === 'daily') {
+                return expDate.toDateString() === now.toDateString();
+            } else if (expensePeriod === 'weekly') {
+                const diffTime = Math.abs(now.getTime() - expDate.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                return diffDays <= 7;
+            } else if (expensePeriod === 'monthly') {
+                return expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear();
+            } else if (expensePeriod === 'yearly') {
+                return expDate.getFullYear() === now.getFullYear();
+            }
+            return true;
+        });
+
+        filtered.sort((a, b) => {
+            const dA = new Date(a.expense_date || a.created_at).getTime();
+            const dB = new Date(b.expense_date || b.created_at).getTime();
+            return expenseSortOrder === 'desc' ? dB - dA : dA - dB;
+        });
+
         return filtered;
     };
 
@@ -1681,46 +1712,60 @@ export default function AdminDashboard() {
                                                 </table>
                                             )}
                                         </div>
+                                        {/* Pengeluaran */}
                                         <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                            <div className="p-4 bg-gray-800/30 border-b border-gray-800 flex justify-between items-center">
+                                            <div className="p-4 bg-gray-800/30 border-b border-gray-800 flex flex-col md:flex-row gap-3 justify-between md:items-center">
                                                 <h3 className="font-bold text-gray-300">Riwayat Pengeluaran</h3>
-                                                <button onClick={() => {
-                                                    setExpenseSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
-                                                    fetchData(); // reload
-                                                }} className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1 rounded-md text-white border border-gray-700">
-                                                    Sort: {expenseSortOrder === 'desc' ? 'Terbaru' : 'Terlama'}
-                                                </button>
-                                            </div>
-                                            {expenses.length === 0 ? (
-                                                <p className="p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran.</p>
-                                            ) : (
-                                                <table className="w-full text-left">
-                                                    <tbody>
-                                                        {expenses.map((exp: any) => (
-                                                            <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20">
-                                                                <td className="p-4">
-                                                                    <p className="font-bold text-white">{exp.description}</p>
-                                                                    <p className="text-xs text-gray-500">{new Date(exp.expense_date || exp.created_at).toLocaleString('id-ID')}</p>
-                                                                </td>
-                                                                <td className="p-4 text-center">
-                                                                    {exp.staff_name ? (
-                                                                        <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{exp.staff_name}</span>
-                                                                    ) : (
-                                                                        <span className="px-2 py-1 bg-gray-800 text-gray-400 rounded-md text-[10px] border border-gray-700">Owner</span>
-                                                                    )}
-                                                                </td>
-                                                                <td className="p-4 text-right font-bold text-red-400 whitespace-nowrap">- Rp {Number(exp.amount).toLocaleString('id-ID')}</td>
-                                                                <td className="p-3 text-right">
-                                                                    <div className="flex gap-1 justify-end">
-                                                                        <button onClick={() => setEditingExpense({...exp})} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
-                                                                        <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700">
+                                                        {[{k:'all',l:'Semua'},{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'},{k:'yearly',l:'Tahunan'}].map(f => (
+                                                            <button key={f.k} onClick={() => setExpensePeriod(f.k as any)}
+                                                                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${expensePeriod === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                                                                {f.l}
+                                                            </button>
                                                         ))}
-                                                    </tbody>
-                                                </table>
-                                            )}
+                                                    </div>
+                                                    <button onClick={() => setExpenseSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                                                        className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-md text-white border border-gray-700 h-full">
+                                                        Sort: {expenseSortOrder === 'desc' ? 'Terbaru' : 'Terlama'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            {(() => {
+                                                const filteredExpenses = getFilteredExpenses();
+                                                return filteredExpenses.length === 0 ? (
+                                                    <p className="p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran pada periode ini.</p>
+                                                ) : (
+                                                    <div className="overflow-x-auto max-h-[600px]">
+                                                        <table className="w-full text-left">
+                                                            <tbody>
+                                                                {filteredExpenses.map((exp: any) => (
+                                                                    <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20">
+                                                                        <td className="p-4">
+                                                                            <p className="font-bold text-white">{exp.description}</p>
+                                                                            <p className="text-xs text-gray-500">{new Date(exp.expense_date || exp.created_at).toLocaleString('id-ID')}</p>
+                                                                        </td>
+                                                                        <td className="p-4 text-center">
+                                                                            {exp.staff_name ? (
+                                                                                <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{exp.staff_name}</span>
+                                                                            ) : (
+                                                                                <span className="px-2 py-1 bg-gray-800 text-gray-400 rounded-md text-[10px] border border-gray-700">Owner</span>
+                                                                            )}
+                                                                        </td>
+                                                                        <td className="p-4 text-right font-bold text-red-400 whitespace-nowrap">- Rp {Number(exp.amount).toLocaleString('id-ID')}</td>
+                                                                        <td className="p-3 text-right">
+                                                                            <div className="flex gap-1 justify-end">
+                                                                                <button onClick={() => setEditingExpense({...exp})} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
+                                                                                <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                     
