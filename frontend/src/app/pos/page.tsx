@@ -191,7 +191,7 @@ export default function PosPage() {
             getPaymentMethods().then(methods => {
                 setPaymentMethods(methods);
                 if (methods && methods.length > 0) {
-                    setSelectedMethod(methods[0].id);
+                    setSelectedMethod(methods[0]);
                 }
             });
             getActiveProducts().then(prods => setProducts(prods));
@@ -443,9 +443,18 @@ export default function PosPage() {
             setPaymentResult(result);
             if (result.status === "Paid" || result.status === "Pending") {
                 clearCart();
-                // Clear any pending order from local storage so it clears the list
-                localStorage.removeItem("nexpos_pending_orders");
-                setPendingOrders([]);
+                // Remove ONLY the active order from pending list
+                const currentPending = JSON.parse(localStorage.getItem("nexpos_pending_orders") || "[]");
+                const newPending = currentPending.filter((o: any) => o.queue_number !== activeQueueNumber);
+                localStorage.setItem("nexpos_pending_orders", JSON.stringify(newPending));
+                setPendingOrders(newPending);
+
+                // Add to paid list for Customer display
+                if (activeQueueNumber) {
+                    const currentPaid = JSON.parse(localStorage.getItem("nexpos_paid_orders") || "[]");
+                    currentPaid.push(activeQueueNumber);
+                    localStorage.setItem("nexpos_paid_orders", JSON.stringify(currentPaid));
+                }
 
                 // Update Session Expected Cash if payment is CASH
                 if (selectedMethod?.type?.toLowerCase() === 'cash' && sessionId && staff) {
@@ -907,14 +916,17 @@ export default function PosPage() {
 
                     <div className="max-w-[80mm] mx-auto text-center border-t border-dashed border-black pt-4">
                         {storeSettings?.qris_image_base64 && (
-                            <div className="flex flex-col items-center justify-center my-4 border-2 border-black p-2">
+                            <div className="flex flex-col items-center justify-center my-4">
                                 <p className="font-bold text-xs mb-2">SCAN QRIS UNTUK BAYAR</p>
                                 <img src={storeSettings.qris_image_base64} alt="QRIS" className="w-32 h-32 object-contain" />
                             </div>
                         )}
                         <p className="mb-2 font-bold whitespace-pre-wrap">{storeSettings?.receipt_footer || 'Terima kasih atas kunjungan Anda!'}</p>
                         {storeSettings?.wifi_password && (
-                            <p className="border border-black p-2 mt-2 font-bold">WiFi: {storeSettings.wifi_password}</p>
+                            <div className="mt-2 text-center">
+                                {storeSettings?.wifi_name && <p className="font-bold">WiFi: {storeSettings.wifi_name}</p>}
+                                <p>Pass: {storeSettings.wifi_password}</p>
+                            </div>
                         )}
                         <p className="mt-4 text-xs">Powered by NexPos</p>
                     </div>
@@ -964,7 +976,13 @@ export default function PosPage() {
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
                                                     <label className="text-xs text-gray-500 mb-1 block">Penambahan/Pengurangan Stok</label>
-                                                    <input type="number" placeholder="Contoh: 5 atau -2" required value={stockAdjustment.delta || ''} onChange={e => setStockAdjustment({...stockAdjustment, delta: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                    <div className="flex items-center gap-3">
+                                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) - 1})} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">-</button>
+                                                        <div className="flex-1 text-center bg-gray-900 border border-gray-800 rounded-xl py-3 text-white font-bold text-lg">
+                                                            {stockAdjustment.delta >= 0 ? `+${stockAdjustment.delta}` : stockAdjustment.delta}
+                                                        </div>
+                                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) + 1})} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">+</button>
+                                                    </div>
                                                 </div>
                                                 <div>
                                                     <label className="text-xs text-gray-500 mb-1 block">Harga Beli Baru (Opsional)</label>

@@ -11,7 +11,8 @@ export default function CustomerPage() {
     const [activeCategory, setActiveCategory] = useState("Semua");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [loading, setLoading] = useState(true);
-    const [sent, setSent] = useState(false);
+    const [orderStatus, setOrderStatus] = useState<'idle' | 'waiting_payment' | 'paid'>('idle');
+    const [queueNumber, setQueueNumber] = useState<string | null>(null);
 
     const [storeSettings, setStoreSettings] = useState<any>(null);
 
@@ -49,8 +50,33 @@ export default function CustomerPage() {
         loadSettings();
     }, []);
 
+    // Polling for payment status
+    useEffect(() => {
+        if (orderStatus !== 'waiting_payment' || !queueNumber) return;
+        
+        const checkPayment = () => {
+            const paidOrders = JSON.parse(localStorage.getItem('nexpos_paid_orders') || "[]");
+            if (paidOrders.includes(queueNumber)) {
+                setOrderStatus('paid');
+                // Auto reset after 5 seconds
+                setTimeout(() => {
+                    setOrderStatus('idle');
+                    setQueueNumber(null);
+                    setCart([]);
+                    
+                    // Optional: remove from paidOrders
+                    const updated = JSON.parse(localStorage.getItem('nexpos_paid_orders') || "[]").filter((id: string) => id !== queueNumber);
+                    localStorage.setItem('nexpos_paid_orders', JSON.stringify(updated));
+                }, 5000);
+            }
+        };
+
+        const interval = setInterval(checkPayment, 1500); // Poll every 1.5s
+        return () => clearInterval(interval);
+    }, [orderStatus, queueNumber]);
+
     const addToCart = (product: any) => {
-        if (sent) return;
+        if (orderStatus !== 'idle') return;
         setCart((prev) => {
             const existing = prev.find((p) => p.product.id === product.id);
             if (existing) {
@@ -63,12 +89,12 @@ export default function CustomerPage() {
     };
 
     const updateCartQty = (productId: string, newQty: number) => {
-        if (sent || newQty < 1) return;
+        if (orderStatus !== 'idle' || newQty < 1) return;
         setCart(prev => prev.map(p => p.product.id === productId ? { ...p, qty: newQty } : p));
     };
 
     const removeFromCart = (productId: string) => {
-        if (sent) return;
+        if (orderStatus !== 'idle') return;
         setCart(prev => prev.filter(p => p.product.id !== productId));
     };
 
@@ -77,10 +103,8 @@ export default function CustomerPage() {
     const taxAmount = (subTotal * taxRate) / 100;
     const grandTotal = subTotal + taxAmount;
 
-    const [queueNumber, setQueueNumber] = useState<string | null>(null);
-
     const sendOrderToCashier = () => {
-        if (cart.length === 0 || sent) return;
+        if (cart.length === 0 || orderStatus !== 'idle') return;
         
         // Generate Sequential Queue Number based on Date
         const today = new Date().toISOString().split('T')[0];
@@ -105,14 +129,7 @@ export default function CustomerPage() {
         localStorage.setItem("nexpos_pending_orders", JSON.stringify([...existingOrders, newOrder]));
         
         setQueueNumber(qNumber);
-        setSent(true);
-        
-        // Delay clearing cart so totals are still visible
-        setTimeout(() => {
-            setSent(false);
-            setQueueNumber(null);
-            setCart([]);
-        }, 8000);
+        setOrderStatus('waiting_payment');
     };
 
     // Sync categories from storeSettings or fallback to derived ones
@@ -280,11 +297,19 @@ export default function CustomerPage() {
                         <span className="font-black text-2xl md:text-3xl text-blue-400">Rp {grandTotal.toLocaleString("id-ID")}</span>
                     </div>
                     
-                    {sent ? (
+                    {orderStatus === 'waiting_payment' ? (
                         <div className="w-full bg-blue-600 text-white p-6 rounded-2xl font-bold text-center flex flex-col items-center justify-center gap-2 shadow-lg shadow-blue-900/20 animate-in fade-in zoom-in duration-300">
                             <span className="text-sm text-blue-200 uppercase tracking-widest mb-1">Nomor Antrean Anda</span>
                             <span className="text-6xl font-black">{queueNumber}</span>
                             <span className="text-sm mt-2 text-blue-100">Silakan menuju kasir untuk pembayaran</span>
+                        </div>
+                    ) : orderStatus === 'paid' ? (
+                        <div className="w-full bg-green-600 text-white p-6 rounded-2xl font-bold text-center flex flex-col items-center justify-center gap-2 shadow-lg shadow-green-900/20 animate-in fade-in zoom-in duration-300">
+                            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-2">
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            <span className="text-xl font-black">Pembayaran Berhasil!</span>
+                            <span className="text-sm mt-1 text-green-100">Silakan menunggu pesanan Anda.</span>
                         </div>
                     ) : (
                         <button 

@@ -47,18 +47,20 @@ const CategoryDropdown = ({ value, onChange, categories, onAdd, onRemove }: { va
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses">("reconciliation");
     const [reconciliation, setReconciliation] = useState<any[]>([]);
-    const [reconciliationMode, setReconciliationMode] = useState<"daily" | "weekly" | "monthly" | "yearly">("daily");
-    const [reconciliationDate, setReconciliationDate] = useState(new Date().toISOString().split('T')[0]);
+    const [reconciliationPeriod, setReconciliationPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
+    const [productSalesData, setProductSalesData] = useState<any[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
-    const [historyFilterType, setHistoryFilterType] = useState<"date" | "month" | "year">("date");
-    const [historyFilterDate, setHistoryFilterDate] = useState(new Date().toISOString().split('T')[0]);
-    const [historyFilterMonth, setHistoryFilterMonth] = useState(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
-    const [historyFilterYear, setHistoryFilterYear] = useState(String(new Date().getFullYear()));
+    const [historyFilterType, setHistoryFilterType] = useState<"daily" | "weekly" | "monthly">("daily");
+    const [historySortOrder, setHistorySortOrder] = useState<"desc" | "asc">("desc");
     const [staffList, setStaffList] = useState<any[]>([]);
     
     // Edit & Expenses States
     const [editingProduct, setEditingProduct] = useState<any>(null);
+    const [adjustingProductStock, setAdjustingProductStock] = useState<any>(null); // New state for product stock
+    const [viewingProductHistory, setViewingProductHistory] = useState<any>(null); // New state for product history
+    const [productHistoryData, setProductHistoryData] = useState<any[]>([]); // New state for product history data
+    const [productStockDelta, setProductStockDelta] = useState<number>(0); // New state for stock delta
     const [editingStaff, setEditingStaff] = useState<any>(null);
     const [editingMaterial, setEditingMaterial] = useState<any>(null);
     const [editingExpense, setEditingExpense] = useState<any>(null);
@@ -90,8 +92,8 @@ export default function AdminDashboard() {
         categories: ["Makanan", "Minuman", "Snack"]
     });
 
-    // Inventory states
     const [products, setProducts] = useState<any[]>([]);
+    const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
     const [newProduct, setNewProduct] = useState<{name: string, category: string, price: number, cogs: number, stock: number, image_icon: string, image_url: string, ingredients: {name: string, cost: number}[]}>({ 
         name: '', category: 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '📦', image_url: '', ingredients: [] 
     });
@@ -126,9 +128,7 @@ export default function AdminDashboard() {
             setProfile(prof);
 
             if (activeTab === "reconciliation") {
-                const today = new Date().toISOString().split('T')[0];
-                const res = await getReconciliationReport(today, today);
-                setReconciliation(Array.isArray(res) ? res : (res?.sessions || []));
+                await fetchReconciliation(reconciliationPeriod);
             } else if (activeTab === "audit") {
                 await fetchAuditLogs();
             } else if (activeTab === "staff") {
@@ -152,12 +152,15 @@ export default function AdminDashboard() {
                             wifi_name: data.wifi_name || "",
                             wifi_password: data.wifi_password || "",
                             tax_enabled: !!data.tax_enabled,
-                            tax_rate: Number(data.tax_rate) || 0,
-                            logo_size: Number(data.logo_size) || 60,
+                            tax_rate: Number(data.tax_rate) || 11,
+                            logo_size: Number(data.logo_size) || 100,
                             qris_size: Number(data.qris_size) || 120,
                             categories: data.categories || ["Makanan", "Minuman", "Snack"]
                         });
                     }
+                    
+                    const { data: payMethods } = await supabase.from('payment_methods').select('*').order('created_at', { ascending: true });
+                    if (payMethods) setPaymentMethods(payMethods);
                 } catch(e) {
                     console.error("Store settings table might not exist yet", e);
                 }
@@ -181,6 +184,31 @@ export default function AdminDashboard() {
         }
         setTabLoading(false);
     };
+
+    const handleAddPaymentMethod = async (name: string) => {
+        if(!name) return;
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('payment_methods').insert([{ name, type: 'transfer', is_active: true }]);
+            if(error) throw error;
+            toast.success("Metode pembayaran ditambahkan!");
+            const { data } = await supabase.from('payment_methods').select('*').order('created_at', { ascending: true });
+            if (data) setPaymentMethods(data);
+        } catch(e: any) { toast.error(e.message); }
+        setLoading(false);
+    }
+
+    const handleDeletePaymentMethod = async (id: string) => {
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('payment_methods').delete().eq('id', id);
+            if(error) throw error;
+            toast.success("Metode pembayaran dihapus!");
+            const { data } = await supabase.from('payment_methods').select('*').order('created_at', { ascending: true });
+            if (data) setPaymentMethods(data);
+        } catch(e: any) { toast.error(e.message); }
+        setLoading(false);
+    }
 
     const handleSaveSettings = async () => {
         setLoading(true);
@@ -232,11 +260,73 @@ export default function AdminDashboard() {
         window.print();
     };
 
-    const fetchReconciliation = async (date: string) => {
+    const fetchReconciliation = async (period: 'daily' | 'weekly' | 'monthly') => {
         setLoading(true);
         try {
-            const res = await getReconciliationReport(date, date);
+            const now = new Date();
+            let start = new Date(now);
+            let end = new Date(now);
+            end.setHours(23, 59, 59, 999);
+            
+            if (period === 'daily') {
+                start.setHours(0, 0, 0, 0);
+            } else if (period === 'weekly') {
+                const day = start.getDay();
+                const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+                start = new Date(start.setDate(diff));
+                start.setHours(0, 0, 0, 0);
+            } else if (period === 'monthly') {
+                start.setDate(1);
+                start.setHours(0, 0, 0, 0);
+            }
+
+            const startDateStr = start.toISOString().split('T')[0];
+            const endDateStr = end.toISOString().split('T')[0];
+
+            // 1. Rekonsiliasi Pembayaran
+            const res = await getReconciliationReport(startDateStr, endDateStr);
             setReconciliation(Array.isArray(res) ? res : []);
+
+            // 2. Data Penjualan Produk
+            const { data: orderItems } = await supabase
+                .from('order_items')
+                .select(`
+                    quantity,
+                    price_at_time,
+                    cogs_at_time,
+                    product:products (id, name, category)
+                `)
+                .gte('created_at', start.toISOString())
+                .lte('created_at', end.toISOString());
+
+            const pMap: Record<string, any> = {};
+            if (orderItems) {
+                orderItems.forEach((item: any) => {
+                    const pId = item.product?.id || 'unknown';
+                    const qty = item.quantity || 1;
+                    const price = Number(item.price_at_time) || 0;
+                    const cogs = Number(item.cogs_at_time) || 0;
+
+                    if (!pMap[pId]) {
+                        pMap[pId] = {
+                            id: pId,
+                            name: item.product?.name || 'Produk Dihapus',
+                            category: item.product?.category || '-',
+                            terjual: 0,
+                            kotor: 0,
+                            hpp_total: 0,
+                            bersih: 0
+                        };
+                    }
+                    pMap[pId].terjual += qty;
+                    pMap[pId].kotor += (price * qty);
+                    pMap[pId].hpp_total += (cogs * qty);
+                    pMap[pId].bersih += ((price - cogs) * qty);
+                });
+            }
+            const pArray = Object.values(pMap).sort((a, b) => b.terjual - a.terjual); // Produk Terlaris at top
+            setProductSalesData(pArray);
+
         } catch (e) {
             console.error(e);
         }
@@ -244,17 +334,33 @@ export default function AdminDashboard() {
     };
 
     const getFilteredTransactions = () => {
-        return transactions.filter(trx => {
+        let filtered = transactions.filter(trx => {
             const trxDate = new Date(trx.created_at);
-            if (historyFilterType === 'date') {
-                return trx.created_at?.startsWith(historyFilterDate);
-            } else if (historyFilterType === 'month') {
-                const ym = `${trxDate.getFullYear()}-${String(trxDate.getMonth() + 1).padStart(2, '0')}`;
-                return ym === historyFilterMonth;
+            const now = new Date();
+            
+            if (historyFilterType === 'daily') {
+                return trxDate.toDateString() === now.toDateString();
+            } else if (historyFilterType === 'weekly') {
+                // Check if within last 7 days
+                const diffTime = Math.abs(now.getTime() - trxDate.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                return diffDays <= 7;
             } else {
-                return String(trxDate.getFullYear()) === historyFilterYear;
+                // monthly
+                return trxDate.getMonth() === now.getMonth() && trxDate.getFullYear() === now.getFullYear();
             }
         });
+
+        // Apply sort
+        filtered.sort((a, b) => {
+            if (historySortOrder === 'desc') {
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            } else {
+                return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            }
+        });
+        
+        return filtered;
     };
 
     const handleCreateStaff = async (e: React.FormEvent) => {
@@ -431,6 +537,64 @@ export default function AdminDashboard() {
             toast.error("Terjadi kesalahan jaringan.");
         }
         setLoading(false);
+    };
+
+    const handleUpdateProductStock = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        const newStock = adjustingProductStock.stock + productStockDelta;
+        if (newStock < 0) {
+            toast.error("Stok tidak boleh negatif!");
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${adjustingProductStock.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...adjustingProductStock,
+                    stock: newStock
+                })
+            });
+            if(res.ok) {
+                toast.success(`Stok produk berhasil diupdate.`);
+                setAdjustingProductStock(null);
+                setProductStockDelta(0);
+                fetchData();
+            } else {
+                toast.error("Gagal update stok produk.");
+            }
+        } catch(error) {
+            toast.error("Terjadi kesalahan jaringan.");
+        }
+        setLoading(false);
+    };
+
+    const handleViewProductHistory = async (product: any) => {
+        setViewingProductHistory(product);
+        setProductHistoryData([]);
+        try {
+            // Fetch order items matching this product ID, joined with transactions
+            const { data, error } = await supabase
+                .from('order_items')
+                .select(`
+                    quantity,
+                    price_at_time,
+                    created_at,
+                    transaction:transactions (order_reference, staff_name)
+                `)
+                .eq('product_id', product.id)
+                .order('created_at', { ascending: false })
+                .limit(50);
+                
+            if (!error && data) {
+                setProductHistoryData(data);
+            }
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     const handleDeleteProduct = async (product: any) => {
@@ -909,26 +1073,70 @@ export default function AdminDashboard() {
                                 <div className="space-y-6">
                                     <ReportChart />
 
-                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                        <div className="p-6 border-b border-gray-800 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
-                                            <h3 className="font-bold text-xl text-white">Data Rekonsiliasi Berdasarkan Tanggal</h3>
-                                            <div className="flex gap-2 items-center">
-                                                <input
-                                                    type="date"
-                                                    value={reconciliationDate}
-                                                    onChange={e => setReconciliationDate(e.target.value)}
-                                                    className="bg-gray-900 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500"
-                                                />
-                                                <button
-                                                    onClick={() => fetchReconciliation(reconciliationDate)}
-                                                    className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500"
-                                                >
-                                                    Tampilkan
+                                    {/* Filter Periode */}
+                                    <div className="bg-[#131B2C] p-5 rounded-2xl border border-gray-800/60 shadow-lg">
+                                        <h3 className="font-bold text-white mb-4">Filter Periode Laporan</h3>
+                                        <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-800 w-fit">
+                                            {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'}].map(f => (
+                                                <button key={f.k} onClick={() => {
+                                                    setReconciliationPeriod(f.k as any);
+                                                    fetchReconciliation(f.k as any);
+                                                }}
+                                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${reconciliationPeriod === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                                                    {f.l}
                                                 </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Data Penjualan Produk (Requested Feature) */}
+                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                        <div className="p-6 border-b border-gray-800">
+                                            <h3 className="font-bold text-xl text-white">Ringkasan Penjualan Produk (Terlaris)</h3>
+                                            <p className="text-gray-400 text-sm mt-1">Data penjualan, HPP, dan pendapatan bersih berdasarkan periode yang dipilih.</p>
+                                        </div>
+                                        {productSalesData.length === 0 ? (
+                                            <p className="p-8 text-gray-500 text-center">Belum ada penjualan di periode ini.</p>
+                                        ) : (
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left border-collapse">
+                                                    <thead>
+                                                        <tr className="bg-gray-800/50 border-b border-gray-800">
+                                                            <th className="p-4 font-semibold text-gray-400">Produk</th>
+                                                            <th className="p-4 font-semibold text-gray-400 text-center">Terjual</th>
+                                                            <th className="p-4 font-semibold text-gray-400 text-right">Penghasilan Kotor</th>
+                                                            <th className="p-4 font-semibold text-gray-400 text-right">Total HPP</th>
+                                                            <th className="p-4 font-semibold text-gray-400 text-right">Laba Bersih</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {productSalesData.map((row, idx) => (
+                                                            <tr key={idx} className="border-b border-gray-800 hover:bg-gray-800/30">
+                                                                <td className="p-4">
+                                                                    <div className="font-bold text-gray-200">{row.name}</div>
+                                                                    <div className="text-xs text-gray-500">{row.category}</div>
+                                                                </td>
+                                                                <td className="p-4 text-center">
+                                                                    <span className="px-3 py-1 bg-gray-800 text-gray-300 font-bold rounded-full text-sm">{row.terjual}</span>
+                                                                </td>
+                                                                <td className="p-4 text-right font-medium text-blue-400">Rp {row.kotor.toLocaleString('id-ID')}</td>
+                                                                <td className="p-4 text-right font-medium text-red-400">- Rp {row.hpp_total.toLocaleString('id-ID')}</td>
+                                                                <td className="p-4 text-right font-bold text-green-400">Rp {row.bersih.toLocaleString('id-ID')}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
                                             </div>
+                                        )}
+                                    </div>
+
+                                    {/* Rekonsiliasi Pembayaran */}
+                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                        <div className="p-6 border-b border-gray-800">
+                                            <h3 className="font-bold text-xl text-white">Rekonsiliasi Metode Pembayaran</h3>
                                         </div>
                                         {reconciliation.length === 0 ? (
-                                            <p className="p-8 text-gray-500 text-center">Belum ada transaksi hari ini.</p>
+                                            <p className="p-8 text-gray-500 text-center">Belum ada transaksi di periode ini.</p>
                                         ) : (
                                             <div className="overflow-x-auto">
                                             <table className="w-full text-left border-collapse">
@@ -965,37 +1173,26 @@ export default function AdminDashboard() {
 
                                 return (
                                     <div className="space-y-6">
-                                        <div className="bg-[#131B2C] p-5 rounded-2xl border border-gray-800/60 shadow-lg">
-                                            <h3 className="font-bold text-white mb-4">Filter Riwayat Transaksi</h3>
-                                            <div className="flex flex-wrap gap-3 items-end">
+                                        <div className="bg-[#131B2C] p-5 rounded-2xl border border-gray-800/60 shadow-lg flex flex-wrap gap-4 items-center justify-between">
+                                            <div>
+                                                <h3 className="font-bold text-white mb-2">Filter Periode Transaksi</h3>
                                                 <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-800">
-                                                    {[{k:'date',l:'Per Tanggal'},{k:'month',l:'Per Bulan'},{k:'year',l:'Per Tahun'}].map(f => (
+                                                    {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'}].map(f => (
                                                         <button key={f.k} onClick={() => setHistoryFilterType(f.k as any)}
-                                                            className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${historyFilterType === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                                                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historyFilterType === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
                                                             {f.l}
                                                         </button>
                                                     ))}
                                                 </div>
-                                                {historyFilterType === 'date' && (
-                                                    <input type="date" value={historyFilterDate}
-                                                        onChange={e => setHistoryFilterDate(e.target.value)}
-                                                        className="bg-gray-900 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500" />
-                                                )}
-                                                {historyFilterType === 'month' && (
-                                                    <input type="month" value={historyFilterMonth}
-                                                        onChange={e => setHistoryFilterMonth(e.target.value)}
-                                                        className="bg-gray-900 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500" />
-                                                )}
-                                                {historyFilterType === 'year' && (
-                                                    <select value={historyFilterYear} onChange={e => setHistoryFilterYear(e.target.value)}
-                                                        className="bg-gray-900 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500">
-                                                        {Array.from({length: 5}, (_, i) => new Date().getFullYear() - i).map(y => (
-                                                            <option key={y} value={y}>{y}</option>
-                                                        ))}
-                                                    </select>
-                                                )}
-                                                <span className="text-gray-500 text-sm">{filteredTransactions.length} transaksi ditemukan</span>
                                             </div>
+                                            <div>
+                                                <h3 className="font-bold text-white mb-2">Urutkan Waktu</h3>
+                                                <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-800">
+                                                    <button onClick={() => setHistorySortOrder('desc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'desc' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}>Terbaru</button>
+                                                    <button onClick={() => setHistorySortOrder('asc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'asc' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}>Terlama</button>
+                                                </div>
+                                            </div>
+                                            <span className="text-gray-500 text-sm">{filteredTransactions.length} transaksi ditemukan</span>
                                         </div>
 
                                         <div className="space-y-4">
@@ -1160,9 +1357,11 @@ export default function AdminDashboard() {
                                                                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-gray-300'}`}>{p.stock}</span>
                                                             </td>
                                                             <td className="p-4 text-center">
-                                                                <div className="flex gap-2 justify-center">
-                                                                    <button onClick={() => setEditingProduct(p)} className="px-3 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
-                                                                    <button onClick={() => handleDeleteProduct(p)} className="px-3 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Hapus</button>
+                                                                <div className="flex flex-wrap gap-2 justify-center">
+                                                                    <button onClick={() => setAdjustingProductStock(p)} className="px-2 py-1 text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-600 hover:text-white transition-colors">+/- Stok</button>
+                                                                    <button onClick={() => handleViewProductHistory(p)} className="px-2 py-1 text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-600 hover:text-white transition-colors">Riwayat</button>
+                                                                    <button onClick={() => setEditingProduct(p)} className="px-2 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
+                                                                    <button onClick={() => handleDeleteProduct(p)} className="px-2 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Hapus</button>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -1242,6 +1441,68 @@ export default function AdminDashboard() {
                                             </div>
                                         </div>
                                     )}
+                                    {/* Adjust Product Stock Modal */}
+                                    {adjustingProductStock && (
+                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-sm shadow-2xl my-4">
+                                                <h3 className="font-bold text-xl text-white mb-2">Update Stok</h3>
+                                                <p className="text-gray-400 mb-6 font-bold">{adjustingProductStock.name}</p>
+                                                <form onSubmit={handleUpdateProductStock} className="space-y-4">
+                                                    <div>
+                                                        <label className="text-sm font-bold text-gray-400 block mb-2">Stok Saat Ini: {adjustingProductStock.stock}</label>
+                                                        <div className="flex items-center gap-3">
+                                                            <button type="button" onClick={() => setProductStockDelta(productStockDelta - 1)} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">-</button>
+                                                            <div className="flex-1 text-center bg-gray-900 border border-gray-800 rounded-xl py-3 text-white font-bold text-lg">
+                                                                {productStockDelta >= 0 ? `+${productStockDelta}` : productStockDelta}
+                                                            </div>
+                                                            <button type="button" onClick={() => setProductStockDelta(productStockDelta + 1)} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">+</button>
+                                                        </div>
+                                                        <p className="text-xs text-gray-500 mt-2">Gunakan tombol - untuk mengurangi stok.</p>
+                                                    </div>
+                                                    <div className="flex gap-4 mt-6">
+                                                        <button type="button" onClick={() => { setAdjustingProductStock(null); setProductStockDelta(0); }} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
+                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Update</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Product History Modal */}
+                                    {viewingProductHistory && (
+                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl my-4">
+                                                <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
+                                                    <div>
+                                                        <h3 className="font-bold text-xl text-white">Riwayat Terjual</h3>
+                                                        <p className="text-gray-400 font-bold">{viewingProductHistory.name}</p>
+                                                    </div>
+                                                    <button onClick={() => setViewingProductHistory(null)} className="w-10 h-10 rounded-full bg-gray-800 text-gray-400 flex items-center justify-center hover:bg-gray-700 hover:text-white transition-colors">X</button>
+                                                </div>
+                                                
+                                                <div className="max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
+                                                    {productHistoryData.length === 0 ? (
+                                                        <div className="text-center py-8 text-gray-500">Belum ada data penjualan untuk produk ini.</div>
+                                                    ) : (
+                                                        <div className="space-y-3">
+                                                            {productHistoryData.map((hist: any, idx: number) => (
+                                                                <div key={idx} className="bg-gray-900 border border-gray-800 p-4 rounded-2xl flex justify-between items-center">
+                                                                    <div>
+                                                                        <div className="font-bold text-white mb-1">Terjual: {hist.quantity} porsi</div>
+                                                                        <div className="text-xs text-gray-500">{new Date(hist.created_at).toLocaleString('id-ID')}</div>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <div className="text-sm font-bold text-green-400 mb-1">Rp {hist.price_at_time.toLocaleString('id-ID')}</div>
+                                                                        <div className="text-[10px] bg-gray-800 px-2 py-1 rounded text-gray-400 inline-block">Order: {hist.transaction?.order_reference || 'N/A'}</div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -1283,7 +1544,13 @@ export default function AdminDashboard() {
                                                                 <div className="grid grid-cols-2 gap-4">
                                                                     <div>
                                                                         <label className="text-xs text-gray-500 mb-1 block">Penambahan/Pengurangan Stok</label>
-                                                                        <input type="number" placeholder="Contoh: 5 atau -2" required value={stockAdjustment.delta || ''} onChange={e => setStockAdjustment({...stockAdjustment, delta: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                                        <div className="flex items-center gap-3">
+                                                                            <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) - 1})} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">-</button>
+                                                                            <div className="flex-1 text-center bg-gray-900 border border-gray-800 rounded-xl py-3 text-white font-bold text-lg">
+                                                                                {stockAdjustment.delta >= 0 ? `+${stockAdjustment.delta}` : stockAdjustment.delta}
+                                                                            </div>
+                                                                            <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) + 1})} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">+</button>
+                                                                        </div>
                                                                     </div>
                                                                     <div>
                                                                         <label className="text-xs text-gray-500 mb-1 block">Harga Beli Baru (Opsional)</label>
@@ -1688,6 +1955,41 @@ export default function AdminDashboard() {
                                                                 </div>
                                                             )}
                                                         </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-6 p-5 bg-gray-900 border border-gray-800 rounded-xl">
+                                                    <h4 className="font-bold text-gray-300 mb-4">Kelola Metode Pembayaran</h4>
+                                                    <div className="flex flex-wrap gap-2 mb-4">
+                                                        {paymentMethods.map((pm: any) => (
+                                                            <div key={pm.id} className="flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-300 border border-green-500/20 rounded-xl text-sm font-bold">
+                                                                <span>{pm.name}</span>
+                                                                <button type="button" onClick={() => handleDeletePaymentMethod(pm.id)} className="ml-1 text-red-400 hover:text-red-300 text-xs font-bold leading-none">✕</button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <input 
+                                                            type="text" 
+                                                            id="new-payment-input"
+                                                            placeholder="Nama metode (Qris, Kartu Kredit, dll)..." 
+                                                            className="flex-1 p-2.5 bg-[#0B0F19] border border-gray-700 rounded-xl text-white outline-none focus:border-blue-500 text-sm"
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    handleAddPaymentMethod((e.target as HTMLInputElement).value);
+                                                                    (e.target as HTMLInputElement).value = '';
+                                                                }
+                                                            }}
+                                                        />
+                                                        <button 
+                                                            type="button" 
+                                                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500"
+                                                            onClick={() => {
+                                                                const input = document.getElementById('new-payment-input') as HTMLInputElement;
+                                                                if (input) { handleAddPaymentMethod(input.value); input.value = ''; }
+                                                            }}
+                                                        >+ Tambah</button>
                                                     </div>
                                                 </div>
 
