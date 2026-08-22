@@ -15,6 +15,7 @@ export default function CustomerPage() {
     const [orderStatus, setOrderStatus] = useState<'idle' | 'waiting_payment' | 'paid' | 'draft'>('idle');
     const [queueNumber, setQueueNumber] = useState<string | null>(null);
     const [customerName, setCustomerName] = useState<string>("");
+    const [showMobileCart, setShowMobileCart] = useState(false);
 
     const [storeSettings, setStoreSettings] = useState<any>(null);
 
@@ -150,6 +151,7 @@ export default function CustomerPage() {
             await supabase.from('kiosk_orders').insert([newOrder]);
             setQueueNumber(generatedQueueNumber);
             setOrderStatus('waiting_payment');
+            setShowMobileCart(false);
         } catch (error) {
             console.error("Gagal mengirim pesanan:", error);
             alert("Gagal mengirim pesanan. Silahkan coba lagi.");
@@ -225,10 +227,17 @@ export default function CustomerPage() {
                         </div>
                     )}
                 </div>
+                {/* Spacer for mobile bottom bar */}
+                <div className="h-24 lg:hidden"></div>
             </div>
 
             {/* SIDEBAR CART (35%) */}
-            <div className="w-full lg:w-[35%] bg-[#0B0F19] border-l border-gray-800 flex flex-col shadow-2xl z-10">
+            <div className={`${showMobileCart ? 'fixed inset-0 z-50 flex' : 'hidden lg:flex'} lg:relative lg:inset-auto lg:z-10 w-full lg:w-[35%] bg-[#0B0F19] lg:border-l border-gray-800 flex-col shadow-2xl transition-all`}>
+                {showMobileCart && (
+                    <button onClick={() => setShowMobileCart(false)} className="lg:hidden absolute top-4 right-4 p-2 bg-gray-800 rounded-full text-white z-50">
+                        X
+                    </button>
+                )}
                 <div className="p-6 md:p-8 bg-[#121214] border-b border-gray-800 flex items-center gap-3">
                     <div className="p-2 bg-blue-600/20 text-blue-400 rounded-lg">
                         <ShoppingBag className="w-6 h-6" />
@@ -318,6 +327,25 @@ export default function CustomerPage() {
                     </button>
                 </div>
             </div>
+
+            {/* MOBILE BOTTOM BAR */}
+            {!showMobileCart && cart.length > 0 && orderStatus === 'idle' && (
+                <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-blue-600 text-white flex justify-between items-center rounded-t-3xl shadow-[0_-10px_40px_rgba(37,99,235,0.3)] z-40 animate-in slide-in-from-bottom-full cursor-pointer" onClick={() => setShowMobileCart(true)}>
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <ShoppingBag className="w-6 h-6" />
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">{cart.reduce((s, i) => s + i.qty, 0)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xs text-blue-200">Total Pesanan</span>
+                            <span className="font-bold">Rp {grandTotal.toLocaleString("id-ID")}</span>
+                        </div>
+                    </div>
+                    <button className="bg-white text-blue-600 px-6 py-2 rounded-xl font-black text-sm hover:bg-gray-100 transition-colors">
+                        Lihat
+                    </button>
+                </div>
+            )}
 
             {/* FULLSCREEN POPUP OVERLAY */}
             {(orderStatus === 'waiting_payment' || orderStatus === 'paid' || orderStatus === 'draft') && (
