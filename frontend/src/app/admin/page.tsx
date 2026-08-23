@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { getReconciliationReport, getAuditLogs } from "@/lib/api";
 import Link from "next/link";
-import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload, Loader2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload, Loader2, Maximize } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import ReportChart from "@/components/ReportChart";
@@ -108,7 +108,14 @@ export default function AdminDashboard() {
     const router = useRouter();
     const toast = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
-
+    
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+        }
+    };
 
     useEffect(() => {
         fetchData();
@@ -1061,9 +1068,14 @@ export default function AdminDashboard() {
                         </h1>
                         <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mt-2">NexPos Control Center</p>
                     </div>
-                    <Link href="/" className="md:hidden p-2 text-gray-400 hover:text-white bg-gray-800/50 rounded-xl">
-                        <ArrowLeft className="w-5 h-5" />
-                    </Link>
+                    <div className="flex gap-2">
+                        <button onClick={toggleFullscreen} className="p-2 text-gray-400 hover:text-white bg-gray-800/50 rounded-xl" title="Toggle Fullscreen">
+                            <Maximize className="w-5 h-5" />
+                        </button>
+                        <Link href="/" className="md:hidden p-2 text-gray-400 hover:text-white bg-gray-800/50 rounded-xl">
+                            <ArrowLeft className="w-5 h-5" />
+                        </Link>
+                    </div>
                 </div>
                 
                 {/* Horizontal Scroll on Mobile, Vertical on Desktop */}

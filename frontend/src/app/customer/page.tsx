@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart, Send, Trash2, Minus, Plus, LayoutGrid, List, Clock, ShoppingBag } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Plus, Minus, Trash2, Maximize, Send, LayoutGrid, List, Clock } from "lucide-react";
 import { SkeletonCard } from "@/components/Loading";
 import { supabase } from "@/lib/supabase";
 
@@ -17,6 +17,14 @@ export default function CustomerPage() {
     const [showMobileCart, setShowMobileCart] = useState(false);
 
     const [storeSettings, setStoreSettings] = useState<any>(null);
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+        }
+    };
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -172,6 +180,9 @@ export default function CustomerPage() {
                             <p className="text-gray-400 text-sm md:text-base">Silakan pilih menu Anda</p>
                         </div>
                     </div>
+                    <button onClick={toggleFullscreen} className="p-3 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors text-white" title="Toggle Fullscreen">
+                        <Maximize className="w-5 h-5" />
+                    </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 md:p-6 no-scrollbar">
@@ -225,14 +236,14 @@ export default function CustomerPage() {
                         </div>
                     )}
                 </div>
-                {/* Spacer for mobile bottom bar */}
-                <div className="h-24 lg:hidden"></div>
+                    {/* Spacer for mobile bottom bar */}
+                <div className="h-24 md:hidden"></div>
             </div>
 
             {/* SIDEBAR CART (35%) */}
-            <div className={`${showMobileCart ? 'fixed inset-0 z-50 flex' : 'hidden lg:flex'} lg:relative lg:inset-auto lg:z-10 w-full lg:w-[35%] bg-[#0B0F19] lg:border-l border-gray-800 flex-col shadow-2xl transition-all`}>
+            <div className={`${showMobileCart ? 'fixed inset-0 z-50 flex' : 'hidden md:flex'} md:relative md:inset-auto md:z-10 w-full md:w-[35%] lg:w-[30%] bg-[#0B0F19] md:border-l border-gray-800 flex-col shadow-2xl transition-all`}>
                 {showMobileCart && (
-                    <button onClick={() => setShowMobileCart(false)} className="lg:hidden absolute top-4 right-4 p-2 bg-gray-800 rounded-full text-white z-50">
+                    <button onClick={() => setShowMobileCart(false)} className="md:hidden absolute top-4 right-4 p-2 bg-gray-800 rounded-full text-white z-50">
                         X
                     </button>
                 )}
@@ -249,41 +260,36 @@ export default function CustomerPage() {
                             <div className="w-20 h-20 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center mb-2">
                                 <ShoppingBag className="w-8 h-8" />
                             </div>
-                            <p className="font-medium">Keranjang masih kosong</p>
+                            <p className="font-medium text-lg">Belum ada pesanan</p>
                         </div>
                     ) : (
                         <div className="space-y-4">
                             {cart.map((item, idx) => (
-                                <div key={idx} className="flex flex-col p-4 bg-[#121214] rounded-2xl border border-gray-800/80 animate-in slide-in-from-right-4 duration-300">
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="w-12 h-12 bg-[#131B2C] rounded-xl flex items-center justify-center border border-gray-800 shadow-inner">
-                                            {item.product.image_url ? (
-                                                <img src={item.product.image_url} alt="" className="w-8 h-8 object-contain drop-shadow-md" />
-                                            ) : (
-                                                <span className="text-xl drop-shadow-md">{item.product.image_icon}</span>
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className="font-bold text-white text-sm md:text-base leading-tight">{item.product.name}</h4>
-                                            <p className="text-blue-400 font-bold text-sm">Rp {(item.product.price * item.qty).toLocaleString("id-ID")}</p>
-                                        </div>
-                                        <button 
-                                            onClick={() => updateCartQty(item.product.id, 0)}
-                                            className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                        >
+                                <div key={idx} className="flex gap-4 items-center bg-[#131B2C] p-3 rounded-2xl border border-gray-800">
+                                    <div className="w-16 h-16 bg-[#0B0F19] rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+                                        {item.product.image_url ? (
+                                            <img src={item.product.image_url} className="w-12 h-12 object-contain" alt={item.product.name} />
+                                        ) : (
+                                            <span className="text-3xl">{item.product.image_icon}</span>
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-white text-sm line-clamp-1">{item.product.name}</h4>
+                                        <p className="text-blue-400 font-bold text-xs mt-1">Rp {item.product.price.toLocaleString("id-ID")}</p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-2 shrink-0">
+                                        <button onClick={() => removeFromCart(item.product.id)} className="text-red-400 hover:text-red-300">
                                             <Trash2 className="w-4 h-4" />
                                         </button>
-                                    </div>
-                                    <div className="flex items-center gap-4 bg-[#131B2C] rounded-xl p-1 border border-gray-800 w-fit self-end shadow-sm">
-                                        <button 
-                                            onClick={() => updateCartQty(item.product.id, item.qty - 1)}
-                                            className="w-8 h-8 flex items-center justify-center bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors active:scale-95"
-                                        ><Minus className="w-4 h-4" /></button>
-                                        <span className="font-bold w-6 text-center text-sm">{item.qty}</span>
-                                        <button 
-                                            onClick={() => updateCartQty(item.product.id, item.qty + 1)}
-                                            className="w-8 h-8 flex items-center justify-center bg-white text-black rounded-lg hover:bg-gray-200 transition-colors active:scale-95"
-                                        ><Plus className="w-4 h-4" /></button>
+                                        <div className="flex items-center gap-2 bg-[#0B0F19] rounded-lg p-1 border border-gray-800">
+                                            <button onClick={() => updateCartQty(item.product.id, item.qty - 1)} className="w-6 h-6 flex items-center justify-center bg-gray-800 text-white rounded-md hover:bg-gray-700">
+                                                <Minus className="w-3 h-3" />
+                                            </button>
+                                            <span className="text-xs font-bold w-4 text-center text-white">{item.qty}</span>
+                                            <button onClick={() => updateCartQty(item.product.id, item.qty + 1)} className="w-6 h-6 flex items-center justify-center bg-gray-800 text-white rounded-md hover:bg-gray-700">
+                                                <Plus className="w-3 h-3" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -291,44 +297,40 @@ export default function CustomerPage() {
                     )}
                 </div>
 
-                <div className="p-6 md:p-8 bg-[#121214] border-t border-gray-800">
-                    <div className="mb-4">
-                        <label className="text-gray-400 text-xs font-bold mb-2 block uppercase tracking-wider">Nama Anda (Opsional)</label>
-                        <input 
-                            type="text" 
-                            value={customerName} 
-                            onChange={(e) => setCustomerName(e.target.value)} 
-                            placeholder="Ketik nama Anda..." 
-                            className="w-full bg-[#0B0F19] text-white text-sm px-4 py-3 rounded-xl border border-gray-800 outline-none focus:border-blue-500 transition-colors" 
-                        />
-                    </div>
-                    <div className="flex justify-between mb-2">
-                        <span className="text-gray-400 text-sm md:text-base">Subtotal</span>
-                        <span className="font-bold text-lg md:text-xl text-gray-200">Rp {subTotal.toLocaleString("id-ID")}</span>
+                <div className="p-6 bg-[#121214] border-t border-gray-800 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+                    <input 
+                        type="text" 
+                        placeholder="Ketik nama Anda (opsional)..."
+                        value={customerName}
+                        onChange={e => setCustomerName(e.target.value)}
+                        className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none text-sm mb-4 font-medium"
+                    />
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-400 text-sm">Subtotal</span>
+                        <span className="text-white font-bold text-sm">Rp {subTotal.toLocaleString("id-ID")}</span>
                     </div>
                     {storeSettings?.tax_enabled && (
-                        <div className="flex justify-between mb-2">
-                            <span className="text-gray-400 text-sm md:text-base">Pajak ({storeSettings.tax_rate}%)</span>
-                            <span className="font-bold text-lg md:text-xl text-gray-200">Rp {taxAmount.toLocaleString("id-ID")}</span>
+                        <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-800/50">
+                            <span className="text-gray-400 text-sm">Pajak ({storeSettings.tax_rate}%)</span>
+                            <span className="text-white font-bold text-sm">Rp {taxAmount.toLocaleString("id-ID")}</span>
                         </div>
                     )}
-                    <div className="flex justify-between mb-6 pt-4 border-t border-gray-800">
-                        <span className="text-xl font-black">Total Tagihan</span>
-                        <span className="text-2xl font-black text-blue-400">Rp {grandTotal.toLocaleString("id-ID")}</span>
+                    <div className="flex justify-between items-end mb-6">
+                        <span className="text-gray-400 font-bold">Total Tagihan</span>
+                        <span className="text-2xl font-black text-blue-500">Rp {grandTotal.toLocaleString("id-ID")}</span>
                     </div>
                     <button 
                         onClick={sendOrderToCashier}
                         disabled={cart.length === 0}
-                        className="w-full py-4 rounded-2xl bg-blue-600 text-white font-black hover:bg-blue-500 transition-colors disabled:opacity-50"
+                        className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white py-4 rounded-2xl font-black tracking-wide transition-all active:scale-95 shadow-lg shadow-blue-600/20"
                     >
                         Pesan Sekarang
                     </button>
                 </div>
             </div>
-
             {/* MOBILE BOTTOM BAR */}
             {!showMobileCart && cart.length > 0 && orderStatus === 'idle' && (
-                <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-blue-600 text-white flex justify-between items-center rounded-t-3xl shadow-[0_-10px_40px_rgba(37,99,235,0.3)] z-40 animate-in slide-in-from-bottom-full cursor-pointer" onClick={() => setShowMobileCart(true)}>
+                <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-blue-600 text-white flex justify-between items-center rounded-t-3xl shadow-[0_-10px_40px_rgba(37,99,235,0.3)] z-40 animate-in slide-in-from-bottom-full cursor-pointer" onClick={() => setShowMobileCart(true)}>
                     <div className="flex items-center gap-3">
                         <div className="relative">
                             <ShoppingBag className="w-6 h-6" />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart, CreditCard, Banknote, Trash2, Clock, Minus, Plus, LayoutGrid, List } from "lucide-react";
+import { ShoppingCart, CreditCard, Banknote, Trash2, Clock, Minus, Plus, LayoutGrid, List, Maximize } from "lucide-react";
 import { processPayment, getPaymentMethods, getActiveProducts } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -41,6 +41,14 @@ export default function PosPage() {
     const router = useRouter();
     const toast = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+        }
+    };
 
     // Merged Auth & Session check below
 
@@ -658,7 +666,7 @@ export default function PosPage() {
     const filteredProducts = activeCategory === "Semua" ? products : products.filter(p => (p.category || "Uncategorized") === activeCategory);
 
     return (
-        <div className="flex flex-col md:flex-row h-screen bg-[#121214] text-gray-100 overflow-hidden print:block print:h-auto print:overflow-visible print:bg-white">
+        <div className="flex flex-col lg:flex-row h-screen bg-[#121214] text-gray-100 overflow-hidden print:block print:h-auto print:overflow-visible print:bg-white">
             <div className="print:hidden"><ConfirmDialog /></div>
             {/* LEFT: PRODUCTS LIST */}
             <div className="flex-1 flex flex-col overflow-y-auto print:hidden">
@@ -669,6 +677,9 @@ export default function PosPage() {
                             <h1 className="text-xl font-bold text-white leading-tight">NexPos Terminal</h1>
                             <span className="text-gray-500 text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date().toLocaleTimeString()}</span>
                         </div>
+                        <button onClick={toggleFullscreen} className="ml-2 p-2 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors text-gray-300" title="Toggle Fullscreen">
+                            <Maximize className="w-4 h-4" />
+                        </button>
                     </div>
                     
                     {/* Staff Profile in POS Header */}
@@ -798,7 +809,7 @@ export default function PosPage() {
             </div>
 
             {/* RIGHT: CART */}
-            <div className="w-full md:w-[320px] lg:w-[400px] h-[45vh] md:h-screen bg-[#1a1a1c] shadow-2xl flex flex-col border-t-2 md:border-t-0 md:border-l border-gray-800 z-10 shrink-0 print:hidden">
+            <div className="w-full lg:w-[320px] xl:w-[400px] h-[45vh] lg:h-screen bg-[#1a1a1c] shadow-2xl flex flex-col border-t-2 lg:border-t-0 lg:border-l border-gray-800 z-10 shrink-0 print:hidden">
                 <div className="p-5 border-b border-gray-800 flex justify-between items-center bg-[#1a1a1c]">
                     <h2 className="text-lg font-bold flex items-center gap-2 text-white">
                         <ShoppingCart className="w-5 h-5 text-blue-500" /> Current Order
