@@ -375,7 +375,26 @@ export default function PosPage() {
                 }
             }
 
-            toast.success("Pengeluaran berhasil dicatat.");
+            // Deduct from cash drawer if shift is open
+            if (sessionId && staff) {
+                try {
+                    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-movements`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            session_id: sessionId,
+                            staff_id: staff.id,
+                            type: 'expense',
+                            amount: -Number(newExpense.amount),
+                            reason: `Pengeluaran: ${newExpense.description}`
+                        })
+                    });
+                } catch (err) {
+                    console.error("Gagal mencatat cash movement untuk pengeluaran:", err);
+                }
+            }
+
+            toast.success("Pengeluaran berhasil dicatat (Laci dikurangi).");
             setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0 });
             fetchExpensesAndMaterials();
         } catch (e: any) { toast.error(e.message); }
