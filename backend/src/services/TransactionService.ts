@@ -114,16 +114,20 @@ export class TransactionService {
         return data;
     }
 
-    async getTransactionHistory(limit: number = 50) {
-        const { data, error } = await supabase
+    async getTransactionHistory(limit: number = 50, startDate?: string, endDate?: string) {
+        let query = supabase
             .from('transactions')
             .select(`
                 *,
                 payment_methods ( name, type ),
                 order_items ( product_id, product_name, quantity, price_at_time, cogs_at_time )
             `)
-            .order('created_at', { ascending: false })
-            .limit(limit);
+            .order('created_at', { ascending: false });
+            
+        if (startDate) query = query.gte('created_at', startDate);
+        if (endDate) query = query.lte('created_at', endDate);
+        
+        const { data, error } = await query.limit(limit);
 
         if (error) throw new Error(error.message);
         return data;

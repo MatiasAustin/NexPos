@@ -69,7 +69,12 @@ router.delete('/admin/products/:id', async (req, res) => {
 // =======================
 router.get('/transactions', async (req, res) => {
     try {
-        const transactions = await transactionService.getTransactionHistory(100);
+        const { startDate, endDate } = req.query as any;
+        let startISO, endISO;
+        if (startDate) startISO = new Date(startDate + 'T00:00:00Z').toISOString();
+        if (endDate) endISO = new Date(endDate + 'T23:59:59Z').toISOString();
+        
+        const transactions = await transactionService.getTransactionHistory(500, startISO, endISO);
         res.json(transactions);
     } catch (error: any) {
         res.status(400).json({ error: error.message });

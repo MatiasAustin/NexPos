@@ -47,6 +47,8 @@ const CategoryDropdown = ({ value, onChange, categories, onAdd, onRemove }: { va
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses" | "cash_sessions">("reconciliation");
     const [reconciliation, setReconciliation] = useState<any[]>([]);
+    const [reconciliationDate, setReconciliationDate] = useState<Date>(new Date());
+    const [historyDate, setHistoryDate] = useState<Date>(new Date());
     const [reconciliationPeriod, setReconciliationPeriod] = useState<"daily" | "weekly" | "monthly" | "yearly" | "custom">("daily");
     const [customDateStart, setCustomDateStart] = useState("");
     const [customDateEnd, setCustomDateEnd] = useState("");
@@ -150,8 +152,7 @@ export default function AdminDashboard() {
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products`);
                 if(res.ok) setProducts(await res.json());
             } else if (activeTab === "history") {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`);
-                if(res.ok) setTransactions(await res.json());
+                await fetchTransactions(historyFilterType);
             } else if (activeTab === "settings") {
                 try {
                     const { data } = await supabase.from('store_settings').select('*').limit(1).maybeSingle();
@@ -275,10 +276,81 @@ export default function AdminDashboard() {
         window.print();
     };
 
+    const fetchTransactions = async (period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom', customStart?: string, customEnd?: string) => {
+        setLoading(true);
+        try {
+            const now = historyDate;
+            let start = new Date(now);
+            let end = new Date(now);
+            end.setHours(23, 59, 59, 999);
+            
+            if (period === 'daily') {
+                start.setHours(0, 0, 0, 0);
+            } else if (period === 'weekly') {
+                const day = start.getDay();
+                const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+                start = new Date(start.setDate(diff));
+                start.setHours(0, 0, 0, 0);
+            } else if (period === 'monthly') {
+                start.setDate(1);
+                start.setHours(0, 0, 0, 0);
+            } else if (period === 'yearly') {
+                start.setMonth(0, 1);
+                start.setHours(0, 0, 0, 0);
+            } else if (period === 'custom' && customStart && customEnd) {
+                start = new Date(customStart);
+                start.setHours(0, 0, 0, 0);
+                end = new Date(customEnd);
+                end.setHours(23, 59, 59, 999);
+            } else if (period === 'custom') {
+                setLoading(false);
+                return;
+            }
+            
+            const startStr = start.toISOString().split('T')[0];
+            const endStr = end.toISOString().split('T')[0];
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions?startDate=${startStr}&endDate=${endStr}`);
+            if (res.ok) setTransactions(await res.json());
+        } catch (error) {
+            console.error(error);
+        }
+        setLoading(false);
+    };
+
+    const shiftReconciliationDate = (dir: number) => {
+        setReconciliationDate(prev => {
+            const d = new Date(prev);
+            if (reconciliationPeriod === 'daily') d.setDate(d.getDate() + dir);
+            else if (reconciliationPeriod === 'weekly') d.setDate(d.getDate() + (dir * 7));
+            else if (reconciliationPeriod === 'monthly') d.setMonth(d.getMonth() + dir);
+            else if (reconciliationPeriod === 'yearly') d.setFullYear(d.getFullYear() + dir);
+            return d;
+        });
+    };
+    
+    useEffect(() => {
+        if (activeTab === "reconciliation" && reconciliationPeriod !== "custom") fetchReconciliation(reconciliationPeriod);
+    }, [reconciliationDate]);
+
+    const shiftHistoryDate = (dir: number) => {
+        setHistoryDate(prev => {
+            const d = new Date(prev);
+            if (historyFilterType === 'daily') d.setDate(d.getDate() + dir);
+            else if (historyFilterType === 'weekly') d.setDate(d.getDate() + (dir * 7));
+            else if (historyFilterType === 'monthly') d.setMonth(d.getMonth() + dir);
+            else if (historyFilterType === 'yearly') d.setFullYear(d.getFullYear() + dir);
+            return d;
+        });
+    };
+    
+    useEffect(() => {
+        if (activeTab === "history" && historyFilterType !== "custom") fetchTransactions(historyFilterType);
+    }, [historyDate, historyFilterType]);
+
     const fetchReconciliation = async (period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom', customStart?: string, customEnd?: string) => {
         setLoading(true);
         try {
-            const now = new Date();
+            const now = reconciliationDate;
             let start = new Date(now);
             let end = new Date(now);
             end.setHours(23, 59, 59, 999);
@@ -362,7 +434,7 @@ export default function AdminDashboard() {
     const getFilteredTransactions = () => {
         let filtered = transactions.filter(trx => {
             const trxDate = new Date(trx.created_at);
-            const now = new Date();
+            const now = historyDate;
             
             if (historyFilterType === 'daily') {
                 return trxDate.toDateString() === now.toDateString();
@@ -1190,9 +1262,23 @@ export default function AdminDashboard() {
                                 <div className="space-y-6">
                                     {/* Global Tab Filter */}
                                     <div className="flex flex-col md:flex-row md:items-center justify-between bg-[#131B2C] p-4 rounded-2xl border border-gray-800/60 shadow-sm gap-4">
-                                        <div>
-                                            <h3 className="font-bold text-white">Laporan Keuangan</h3>
-                                            <p className="text-xs text-gray-500">Pilih periode untuk semua metrik di bawah</p>
+                                        <div className="flex items-center gap-4">
+                                            <div>
+                                                <h3 className="font-bold text-white">Laporan Keuangan</h3>
+                                                <p className="text-xs text-gray-500">Pilih periode untuk semua metrik di bawah</p>
+                                            </div>
+                                            {reconciliationPeriod !== 'custom' && (
+                                                <div className="flex bg-gray-900 rounded-lg overflow-hidden border border-gray-800">
+                                                    <button onClick={() => shiftReconciliationDate(-1)} className="px-3 py-1 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors">&lt;</button>
+                                                    <div className="px-3 py-1 text-sm font-bold text-white border-l border-r border-gray-800 bg-gray-800/30">
+                                                        {reconciliationPeriod === 'daily' ? reconciliationDate.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) :
+                                                         reconciliationPeriod === 'weekly' ? 'Minggu ' + Math.ceil(reconciliationDate.getDate()/7) :
+                                                         reconciliationPeriod === 'monthly' ? reconciliationDate.toLocaleDateString('id-ID', {month:'long', year:'numeric'}) :
+                                                         reconciliationDate.getFullYear()}
+                                                    </div>
+                                                    <button onClick={() => shiftReconciliationDate(1)} className="px-3 py-1 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors">&gt;</button>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex flex-col sm:flex-row items-center gap-3">
                                             {reconciliationPeriod === 'custom' && (
