@@ -1135,7 +1135,7 @@ export default function PosPage() {
                                 <p>Pass: {storeSettings.wifi_password}</p>
                             </div>
                         )}
-                        <p className="mt-4 text-xs">Powered by NexPos</p>
+                        
                     </div>
                 </div>
                 </>

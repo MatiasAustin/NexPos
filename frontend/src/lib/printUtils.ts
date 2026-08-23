@@ -72,7 +72,7 @@ export const generateReceiptText = (
         text += alignCenter(`Pass: ${storeSettings.wifi_password}`) + "\n";
     }
     
-    text += "\n" + alignCenter("Powered by NexPos") + "\n\n\n";
+    
 
     return text;
 };
