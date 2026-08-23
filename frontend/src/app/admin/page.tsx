@@ -1213,14 +1213,14 @@ export default function AdminDashboard() {
                                                     />
                                                 </div>
                                             )}
-                                            <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-800 w-fit">
+                                            <div className="flex flex-wrap bg-gray-900 rounded-xl p-1 border border-gray-800 w-full md:w-fit">
                                                 {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'},{k:'yearly',l:'Tahunan'},{k:'custom',l:'Kustom'}].map(f => (
                                                     <button key={f.k} onClick={() => {
                                                         setReconciliationPeriod(f.k as any);
                                                         if (f.k !== 'custom') fetchReconciliation(f.k as any);
                                                         else if (customDateStart && customDateEnd) fetchReconciliation('custom', customDateStart, customDateEnd);
                                                     }}
-                                                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm font-bold transition-all ${reconciliationPeriod === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                                                        className={`flex-1 md:flex-none text-center px-2 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${reconciliationPeriod === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
                                                         {f.l}
                                                     </button>
                                                 ))}
@@ -1335,10 +1335,10 @@ export default function AdminDashboard() {
                                                             />
                                                         </div>
                                                     )}
-                                                    <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-800 flex-wrap">
+                                                    <div className="flex flex-wrap bg-gray-900 rounded-xl p-1 border border-gray-800 w-full md:w-fit">
                                                         {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'},{k:'yearly',l:'Tahunan'},{k:'custom',l:'Kustom'}].map(f => (
                                                             <button key={f.k} onClick={() => setHistoryFilterType(f.k as any)}
-                                                                className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm font-bold transition-all ${historyFilterType === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                                                                className={`flex-1 md:flex-none text-center px-2 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${historyFilterType === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
                                                                 {f.l}
                                                             </button>
                                                         ))}
@@ -1884,10 +1884,10 @@ export default function AdminDashboard() {
                                             <div className="p-2 md:p-4 bg-gray-800/30 border-b border-gray-800 flex flex-col md:flex-row gap-3 justify-between md:items-center">
                                                 <h3 className="font-bold text-gray-300">Riwayat Pengeluaran</h3>
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700">
+                                                    <div className="flex flex-wrap bg-gray-900 rounded-lg p-1 border border-gray-700 w-full md:w-fit">
                                                         {[{k:'all',l:'Semua'},{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'},{k:'yearly',l:'Tahunan'}].map(f => (
                                                             <button key={f.k} onClick={() => setExpensePeriod(f.k as any)}
-                                                                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${expensePeriod === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                                                                className={`flex-1 md:flex-none text-center px-2 py-1.5 md:px-3 md:py-1 rounded-md text-[10px] md:text-xs font-bold transition-all ${expensePeriod === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
                                                                 {f.l}
                                                             </button>
                                                         ))}
