@@ -959,8 +959,21 @@ export default function PosPage() {
 
             {/* HIDDEN RECEIPT FOR PRINTING */}
             {paymentResult && (
-                <div className="hidden print:block w-full bg-white text-black z-[9999] text-[12px] font-mono leading-snug print:p-0">
-                    <div className="w-[58mm] sm:w-[80mm] max-w-full mx-auto text-center border-b border-dashed border-black pb-4 mb-4">
+                <>
+                    <style type="text/css" media="print">
+                        {`
+                            @page {
+                                size: 58mm auto;
+                                margin: 0mm;
+                            }
+                            body {
+                                margin: 0;
+                                padding: 0;
+                            }
+                        `}
+                    </style>
+                    <div className="hidden print:block w-[58mm] mx-auto bg-white text-black z-[9999] text-[12px] font-mono leading-snug print:p-0">
+                        <div className="w-full text-center border-b border-dashed border-black pb-4 mb-4">
                         {storeSettings?.logo_base64 && (
                             <img src={storeSettings.logo_base64} alt="Logo" style={{ width: storeSettings.logo_size, height: storeSettings.logo_size }} className="mx-auto mb-2 object-contain grayscale" />
                         )}
@@ -969,7 +982,7 @@ export default function PosPage() {
                         <p className="text-xs mt-1">{storeSettings?.store_phone}</p>
                     </div>
                     
-                    <div className="w-[58mm] sm:w-[80mm] max-w-full mx-auto mb-4 text-xs border-b border-dashed border-black pb-4">
+                    <div className="w-full mb-4 text-xs border-b border-dashed border-black pb-4">
                         <div className="flex justify-between mb-1">
                             <span>No: {paymentResult.transaction?.order_reference || paymentResult.order_reference}</span>
                             <span>{new Date().toLocaleDateString('id-ID')}</span>
@@ -985,7 +998,7 @@ export default function PosPage() {
                             </div>
                         )}
                     </div>
-                    <div className="w-[58mm] sm:w-[80mm] max-w-full mx-auto">
+                    <div className="w-full">
                         <table className="w-full text-left mb-4">
                             <tbody>
                                 {paymentResult.transaction?.items?.map((item: any, idx: number) => (
@@ -1004,7 +1017,7 @@ export default function PosPage() {
                         </table>
                     </div>
 
-                    <div className="w-[58mm] sm:w-[80mm] max-w-full mx-auto border-t border-dashed border-black pt-2 mb-4">
+                    <div className="w-full border-t border-dashed border-black pt-2 mb-4">
                         {((paymentResult.transaction?.tax_amount || 0) > 0 || (paymentResult.tax_amount || 0) > 0) && (
                             <>
                                 <div className="flex justify-between text-sm mb-1">
@@ -1033,7 +1046,7 @@ export default function PosPage() {
                         )}
                     </div>
 
-                    <div className="w-[58mm] sm:w-[80mm] max-w-full mx-auto text-center pt-4">
+                    <div className="w-full text-center pt-4">
                         {storeSettings?.qris_image_base64 && (
                             <div className="flex flex-col items-center justify-center my-4">
                                 <p className="font-bold text-xs mb-2">SCAN QRIS UNTUK BAYAR</p>
@@ -1050,6 +1063,7 @@ export default function PosPage() {
                         <p className="mt-4 text-xs">Powered by NexPos</p>
                     </div>
                 </div>
+                </>
             )}
 
             {/* EXPENSES & RAW MATERIALS MODAL */}
