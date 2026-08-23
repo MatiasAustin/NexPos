@@ -599,10 +599,10 @@ export default function PosPage() {
     const filteredProducts = activeCategory === "Semua" ? products : products.filter(p => (p.category || "Uncategorized") === activeCategory);
 
     return (
-        <div className="flex flex-col md:flex-row h-screen bg-[#121214] text-gray-100 overflow-hidden">
-            <ConfirmDialog />
+        <div className="flex flex-col md:flex-row h-screen bg-[#121214] text-gray-100 overflow-hidden print:block print:h-auto print:overflow-visible print:bg-white">
+            <div className="print:hidden"><ConfirmDialog /></div>
             {/* LEFT: PRODUCTS LIST */}
-            <div className="flex-1 flex flex-col overflow-y-auto">
+            <div className="flex-1 flex flex-col overflow-y-auto print:hidden">
                 <div className="p-6 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#1a1a1c]">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white text-xl font-black">N</div>
@@ -739,7 +739,7 @@ export default function PosPage() {
             </div>
 
             {/* RIGHT: CART */}
-            <div className="w-full md:w-[320px] lg:w-[400px] h-[45vh] md:h-screen bg-[#1a1a1c] shadow-2xl flex flex-col border-t-2 md:border-t-0 md:border-l border-gray-800 z-10 shrink-0">
+            <div className="w-full md:w-[320px] lg:w-[400px] h-[45vh] md:h-screen bg-[#1a1a1c] shadow-2xl flex flex-col border-t-2 md:border-t-0 md:border-l border-gray-800 z-10 shrink-0 print:hidden">
                 <div className="p-5 border-b border-gray-800 flex justify-between items-center bg-[#1a1a1c]">
                     <h2 className="text-lg font-bold flex items-center gap-2 text-white">
                         <ShoppingCart className="w-5 h-5 text-blue-500" /> Current Order
@@ -852,7 +852,7 @@ export default function PosPage() {
 
             {/* PAYMENT MODAL */}
             {showPayment && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md print:hidden">
                     <div className="bg-[#1a1a1c] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl overflow-y-auto max-h-[90vh]">
                         {!paymentResult ? (
                             <>
@@ -959,8 +959,8 @@ export default function PosPage() {
 
             {/* HIDDEN RECEIPT FOR PRINTING */}
             {paymentResult && (
-                <div className="hidden print:block fixed inset-0 bg-white text-black z-[9999] p-4 text-sm font-mono leading-tight">
-                    <div className="max-w-[80mm] mx-auto text-center border-b border-dashed border-black pb-4 mb-4">
+                <div className="hidden print:block w-full bg-white text-black z-[9999] text-[12px] font-mono leading-snug print:p-0">
+                    <div className="w-[58mm] sm:w-[80mm] max-w-full mx-auto text-center border-b border-dashed border-black pb-4 mb-4">
                         {storeSettings?.logo_base64 && (
                             <img src={storeSettings.logo_base64} alt="Logo" style={{ width: storeSettings.logo_size, height: storeSettings.logo_size }} className="mx-auto mb-2 object-contain grayscale" />
                         )}
@@ -969,7 +969,7 @@ export default function PosPage() {
                         <p className="text-xs mt-1">{storeSettings?.store_phone}</p>
                     </div>
                     
-                    <div className="max-w-[80mm] mx-auto mb-4 text-xs border-b border-dashed border-black pb-4">
+                    <div className="w-[58mm] sm:w-[80mm] max-w-full mx-auto mb-4 text-xs border-b border-dashed border-black pb-4">
                         <div className="flex justify-between mb-1">
                             <span>No: {paymentResult.transaction?.order_reference || paymentResult.order_reference}</span>
                             <span>{new Date().toLocaleDateString('id-ID')}</span>
@@ -985,7 +985,7 @@ export default function PosPage() {
                             </div>
                         )}
                     </div>
-                    <div className="max-w-[80mm] mx-auto">
+                    <div className="w-[58mm] sm:w-[80mm] max-w-full mx-auto">
                         <table className="w-full text-left mb-4">
                             <tbody>
                                 {paymentResult.transaction?.items?.map((item: any, idx: number) => (
@@ -1004,7 +1004,7 @@ export default function PosPage() {
                         </table>
                     </div>
 
-                    <div className="max-w-[80mm] mx-auto border-t border-dashed border-black pt-2 mb-4">
+                    <div className="w-[58mm] sm:w-[80mm] max-w-full mx-auto border-t border-dashed border-black pt-2 mb-4">
                         {((paymentResult.transaction?.tax_amount || 0) > 0 || (paymentResult.tax_amount || 0) > 0) && (
                             <>
                                 <div className="flex justify-between text-sm mb-1">
@@ -1033,7 +1033,7 @@ export default function PosPage() {
                         )}
                     </div>
 
-                    <div className="max-w-[80mm] mx-auto text-center pt-4">
+                    <div className="w-[58mm] sm:w-[80mm] max-w-full mx-auto text-center pt-4">
                         {storeSettings?.qris_image_base64 && (
                             <div className="flex flex-col items-center justify-center my-4">
                                 <p className="font-bold text-xs mb-2">SCAN QRIS UNTUK BAYAR</p>
@@ -1054,7 +1054,7 @@ export default function PosPage() {
 
             {/* EXPENSES & RAW MATERIALS MODAL */}
             {showExpensesModal && (
-                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4 backdrop-blur-sm overflow-y-auto">
+                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4 backdrop-blur-sm overflow-y-auto print:hidden">
                     <div className="bg-[#1a1a1c] border border-gray-800 rounded-3xl w-full max-w-6xl shadow-2xl p-6 md:p-8 my-8 relative">
                         <button 
                             onClick={() => setShowExpensesModal(false)}
