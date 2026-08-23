@@ -207,7 +207,7 @@ export default function CustomerPage() {
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
                             {products
                                 .filter(p => activeCategory === "Semua" || p.category === activeCategory)
                                 .map((product) => (
@@ -216,7 +216,7 @@ export default function CustomerPage() {
                                         onClick={() => addToCart(product)}
                                         className="bg-[#131B2C] border border-gray-800/80 rounded-2xl overflow-hidden cursor-pointer hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-all group active:scale-95 flex flex-col"
                                     >
-                                        <div className="aspect-square relative bg-gray-900/50 overflow-hidden p-4 flex items-center justify-center">
+                                        <div className="aspect-square relative bg-gray-900/50 overflow-hidden p-3 md:p-4 flex items-center justify-center">
                                             {product.image_url ? (
                                                 <img 
                                                     src={product.image_url} 
@@ -224,12 +224,12 @@ export default function CustomerPage() {
                                                     className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-xl"
                                                 />
                                             ) : (
-                                                <span className="text-6xl group-hover:scale-110 transition-transform duration-500 drop-shadow-xl">{product.image_icon}</span>
+                                                <span className="text-4xl md:text-6xl group-hover:scale-110 transition-transform duration-500 drop-shadow-xl">{product.image_icon}</span>
                                             )}
                                         </div>
-                                        <div className="p-4 bg-gradient-to-t from-[#131B2C] to-[#131B2C]/90 flex-1 flex flex-col justify-end">
-                                            <h3 className="font-bold text-white mb-1 line-clamp-2 leading-tight">{product.name}</h3>
-                                            <p className="text-blue-400 font-black">Rp {product.price.toLocaleString("id-ID")}</p>
+                                        <div className="p-3 md:p-4 bg-gradient-to-t from-[#131B2C] to-[#131B2C]/90 flex-1 flex flex-col justify-end">
+                                            <h3 className="font-bold text-white text-xs md:text-sm mb-1 line-clamp-2 leading-tight">{product.name}</h3>
+                                            <p className="text-blue-400 font-black text-xs md:text-sm">Rp {product.price.toLocaleString("id-ID")}</p>
                                         </div>
                                     </div>
                                 ))}

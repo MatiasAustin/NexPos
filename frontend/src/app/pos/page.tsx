@@ -766,7 +766,7 @@ export default function PosPage() {
                         </div>
                     </div>
 
-                    <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5" : "flex flex-col gap-3"}>
+                    <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4" : "flex flex-col gap-3"}>
                         {filteredProducts.length === 0 ? (
                             <div className="col-span-full text-center text-gray-500 py-10 bg-[#1a1a1c] rounded-2xl border border-gray-800">Belum ada produk di kategori ini.</div>
                         ) : (
@@ -782,22 +782,22 @@ export default function PosPage() {
                                 >
                                     <div className={viewMode === 'grid' ? "flex-1 relative z-10" : "flex items-center gap-4 relative z-10"}>
                                         {viewMode === 'list' && (
-                                            <div className="text-3xl bg-gray-800/50 w-12 h-12 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                                            <div className="text-2xl md:text-3xl bg-gray-800/50 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform">
                                                 {p.image_icon || '☕'}
                                             </div>
                                         )}
                                         <div>
-                                            <h3 className="font-bold text-base md:text-lg leading-tight mb-1 text-white">{p.name}</h3>
-                                            {viewMode === 'list' && <p className="text-gray-500 text-xs md:text-sm">{p.category || 'Uncategorized'}</p>}
+                                            <h3 className="font-bold text-sm md:text-base leading-tight mb-1 text-white">{p.name}</h3>
+                                            {viewMode === 'list' && <p className="text-gray-500 text-xs">{p.category || 'Uncategorized'}</p>}
                                         </div>
                                     </div>
-                                    <p className={`text-blue-400 font-bold ${viewMode === 'grid' ? "mt-4 text-lg" : "text-lg shrink-0"} relative z-10`}>
+                                    <p className={`text-blue-400 font-bold ${viewMode === 'grid' ? "mt-2 text-sm md:text-base" : "text-sm md:text-base shrink-0"} relative z-10`}>
                                         Rp {p.price.toLocaleString("id-ID")}
                                     </p>
                                     
                                     {/* Decorative Background Icon (Grid Only) */}
                                     {viewMode === 'grid' && (
-                                        <div className="absolute -bottom-2 -right-2 text-6xl opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all z-0">
+                                        <div className="absolute -bottom-2 -right-2 text-4xl md:text-5xl opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all z-0">
                                             {p.image_icon || '☕'}
                                         </div>
                                     )}
