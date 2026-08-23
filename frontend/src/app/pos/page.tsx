@@ -960,18 +960,6 @@ export default function PosPage() {
             {/* HIDDEN RECEIPT FOR PRINTING */}
             {paymentResult && (
                 <>
-                    <style type="text/css" media="print">
-                        {`
-                            @page {
-                                size: 58mm auto;
-                                margin: 0mm;
-                            }
-                            body {
-                                margin: 0;
-                                padding: 0;
-                            }
-                        `}
-                    </style>
                     <div className="hidden print:block w-[58mm] mx-auto bg-white text-black z-[9999] text-[12px] font-mono leading-snug print:p-0">
                         <div className="w-full text-center border-b border-dashed border-black pb-4 mb-4">
                         {storeSettings?.logo_base64 && (

@@ -1,9 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300..800&display=swap');
 @import "tailwindcss";
 
-
-
-
 :root {
   --background: #121214;
   --foreground: #ededed;
@@ -36,4 +33,11 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #3a3a3c; 
+}
+
+@media print {
+  @page {
+    size: 58mm auto;
+    margin: 0mm;
+  }
 }

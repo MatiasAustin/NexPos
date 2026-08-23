@@ -2275,7 +2275,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* PRINT ONLY RECEIPT BLOCK */}
-        <div className="hidden print:block print-receipt">
+        <div className="hidden print:block print-receipt w-[58mm] mx-auto bg-white text-black text-[12px] font-mono leading-snug print:p-0">
             {storeSettings.logo_base64 && (
                 <div style={{ textAlign: 'center', marginBottom: '10px' }}>
                     <img src={storeSettings.logo_base64} alt="Logo" style={{ width: `${storeSettings.logo_size}px`, filter: 'grayscale(100%)', margin: '0 auto' }} />
