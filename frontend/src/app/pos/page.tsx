@@ -1000,15 +1000,24 @@ export default function PosPage() {
                                     <span className="text-[10px] uppercase tracking-wider mb-1">Nomor Antrean / Order</span>
                                     <span className="font-bold text-2xl text-white">{paymentResult.transaction?.order_reference || paymentResult.order_reference}</span>
                                 </p>
-                                <div className="flex gap-4">
+                                <div className="flex flex-col md:flex-row gap-4">
                                     <button 
-                                        onClick={() => {
-                                            setTimeout(() => window.print(), 100);
+                                        onClick={async () => {
+                                            try {
+                                                const { BluetoothPrinter } = await import('@/lib/bluetoothPrinter');
+                                                const printer = new BluetoothPrinter();
+                                                await printer.connect();
+                                                await printer.printReceipt(storeSettings?.name || "NexPos", paymentResult);
+                                            } catch (error: any) {
+                                                console.error("Bluetooth print failed:", error);
+                                                // Fallback to web print dialog if BT fails or user cancels
+                                                setTimeout(() => window.print(), 100);
+                                            }
                                         }}
                                         className="w-full bg-gray-800 hover:bg-gray-700 text-white py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                                        Cetak Struk
+                                        Cetak Struk (Bluetooth/Web)
                                     </button>
                                     <button 
                                         onClick={() => {
