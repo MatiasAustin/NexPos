@@ -5,7 +5,7 @@ export class BluetoothPrinter {
     characteristic: any = null;
 
     async connect() {
-        if (!navigator.bluetooth) {
+        if (!(navigator as any).bluetooth) {
             throw new Error("Browser ini tidak mendukung Web Bluetooth (Coba gunakan Google Chrome).");
         }
 
