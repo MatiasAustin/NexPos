@@ -1002,22 +1002,60 @@ export default function PosPage() {
                                 </p>
                                 <div className="flex flex-col md:flex-row gap-4">
                                     <button 
-                                        onClick={async () => {
-                                            try {
-                                                const { BluetoothPrinter } = await import('@/lib/bluetoothPrinter');
-                                                const printer = new BluetoothPrinter();
-                                                await printer.connect();
-                                                await printer.printReceipt(storeSettings?.name || "NexPos", paymentResult);
-                                            } catch (error: any) {
-                                                console.error("Bluetooth print failed:", error);
-                                                // Fallback to web print dialog if BT fails or user cancels
+                                        onClick={() => {
+                                            // Get the receipt HTML element
+                                            const receiptEl = document.getElementById('print-receipt-section');
+                                            if (receiptEl) {
+                                                // Create a standalone HTML document for RawBT
+                                                const htmlContent = `
+                                                    <html>
+                                                    <head>
+                                                        <meta charset="utf-8">
+                                                        <style>
+                                                            body { font-family: monospace; font-size: 12px; color: black; background: white; margin: 0; padding: 0; width: 58mm; }
+                                                            .text-center { text-align: center; }
+                                                            .flex { display: flex; }
+                                                            .justify-between { justify-content: space-between; }
+                                                            .font-bold { font-weight: bold; }
+                                                            .text-xl { font-size: 16px; }
+                                                            .text-xs { font-size: 10px; }
+                                                            .text-sm { font-size: 11px; }
+                                                            .border-b { border-bottom: 1px dashed black; }
+                                                            .border-t { border-top: 1px dashed black; }
+                                                            .pb-4 { padding-bottom: 16px; }
+                                                            .pt-4 { padding-top: 16px; }
+                                                            .mb-4 { margin-bottom: 16px; }
+                                                            .mt-4 { margin-top: 16px; }
+                                                            .w-full { width: 100%; }
+                                                            table { width: 100%; border-collapse: collapse; }
+                                                            td { vertical-align: bottom; }
+                                                            .text-right { text-align: right; }
+                                                        </style>
+                                                    </head>
+                                                    <body>
+                                                        ${receiptEl.innerHTML}
+                                                    </body>
+                                                    </html>
+                                                `;
+                                                const base64Html = btoa(unescape(encodeURIComponent(htmlContent)));
+                                                window.location.href = `intent:base64,${base64Html}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+                                            } else {
                                                 setTimeout(() => window.print(), 100);
                                             }
+                                        }}
+                                        className="w-full bg-orange-600 hover:bg-orange-500 text-white py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                        Cetak (RawBT/Android)
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setTimeout(() => window.print(), 100);
                                         }}
                                         className="w-full bg-gray-800 hover:bg-gray-700 text-white py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                                        Cetak Struk (Bluetooth/Web)
+                                        Cetak (Web)
                                     </button>
                                     <button 
                                         onClick={() => {
@@ -1038,7 +1076,7 @@ export default function PosPage() {
             {/* HIDDEN RECEIPT FOR PRINTING */}
             {paymentResult && (
                 <>
-                    <div className="hidden print:block w-[58mm] mx-auto bg-white text-black z-[9999] text-[12px] font-mono leading-snug print:p-0">
+                    <div id="print-receipt-section" className="hidden print:block w-[58mm] mx-auto bg-white text-black z-[9999] text-[12px] font-mono leading-snug print:p-0">
                         <div className="w-full text-center border-b border-dashed border-black pb-4 mb-4">
                         {storeSettings?.logo_base64 && (
                             <img src={storeSettings.logo_base64} alt="Logo" style={{ width: storeSettings.logo_size, height: storeSettings.logo_size }} className="mx-auto mb-2 object-contain grayscale" />
