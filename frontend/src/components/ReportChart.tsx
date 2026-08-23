@@ -251,19 +251,19 @@ export default function ReportChart({ period, customStartDate, customEndDate }: 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-800">
                         <div className="text-center border-b md:border-b-0 md:border-r border-gray-800 pb-4 md:pb-0">
                             <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Total Omset</p>
-                            <p className="text-lg font-extrabold text-blue-400">{formatRupiah(totals.omset)}</p>
+                            <p className="text-sm md:text-lg font-extrabold text-blue-400">{formatRupiah(totals.omset)}</p>
                         </div>
                         <div className="text-center border-b md:border-b-0 md:border-r border-gray-800 pb-4 md:pb-0">
                             <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Total HPP</p>
-                            <p className="text-lg font-extrabold text-amber-400">{formatRupiah(totals.hpp)}</p>
+                            <p className="text-sm md:text-lg font-extrabold text-amber-400">{formatRupiah(totals.hpp)}</p>
                         </div>
                         <div className="text-center md:border-r border-gray-800">
                             <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Total Pengeluaran</p>
-                            <p className="text-lg font-extrabold text-red-400">{formatRupiah(totals.pengeluaranOp)}</p>
+                            <p className="text-sm md:text-lg font-extrabold text-red-400">{formatRupiah(totals.pengeluaranOp)}</p>
                         </div>
                         <div className="text-center">
                             <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Laba Bersih</p>
-                            <p className={`text-lg font-extrabold ${totals.laba >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            <p className={`text-sm md:text-lg font-extrabold ${totals.laba >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                                 {formatRupiah(totals.laba)}
                             </p>
                         </div>

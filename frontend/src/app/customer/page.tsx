@@ -274,7 +274,7 @@ export default function CustomerPage() {
                                         )}
                                     </div>
                                     <div className="flex-1">
-                                        <h4 className="font-bold text-white text-sm line-clamp-1">{item.product.name}</h4>
+                                        <h4 className="font-bold text-white text-xs md:text-sm line-clamp-1">{item.product.name}</h4>
                                         <p className="text-blue-400 font-bold text-xs mt-1">Rp {item.product.price.toLocaleString("id-ID")}</p>
                                     </div>
                                     <div className="flex flex-col items-end gap-2 shrink-0">

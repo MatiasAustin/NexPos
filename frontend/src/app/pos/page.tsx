@@ -786,7 +786,7 @@ export default function PosPage() {
                                             </div>
                                         )}
                                         <div>
-                                            <h3 className="font-bold text-sm md:text-base leading-tight mb-1 text-white">{p.name}</h3>
+                                            <h3 className="font-bold text-[11px] md:text-xs leading-tight mb-1 text-white">{p.name}</h3>
                                             {viewMode === 'list' && <p className="text-gray-500 text-xs">{p.category || 'Uncategorized'}</p>}
                                         </div>
                                     </div>
@@ -830,7 +830,7 @@ export default function PosPage() {
                                 <div key={idx} className="flex flex-col gap-3 pb-4 border-b border-gray-800/50">
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1 pr-3">
-                                            <p className="font-bold text-sm md:text-base leading-tight text-white mb-1">{item.product.name}</p>
+                                            <p className="font-bold text-xs md:text-sm leading-tight text-white mb-1">{item.product.name}</p>
                                             <p className="text-blue-400 font-bold text-xs md:text-sm">
                                                 Rp {item.product.price.toLocaleString("id-ID")}
                                             </p>
@@ -1074,7 +1074,7 @@ export default function PosPage() {
                         )}
                     </div>
                     <div className="w-full">
-                        <table className="w-full text-left mb-4">
+                        <table className="w-full text-left text-xs md:text-sm mb-4">
                             <tbody>
                                 {paymentResult.transaction?.items?.map((item: any, idx: number) => (
                                     <tr key={idx}>
@@ -1213,7 +1213,7 @@ export default function PosPage() {
                                         {rawMaterials.length === 0 ? (
                                             <p className="p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada bahan baku.</p>
                                         ) : (
-                                            <table className="w-full text-left">
+                                            <table className="w-full text-left text-xs md:text-sm">
                                                 <tbody>
                                                     {rawMaterials.map((mat: any) => (
                                                         <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
@@ -1295,7 +1295,7 @@ export default function PosPage() {
                                         {expenses.length === 0 ? (
                                             <p className="p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran dicatat.</p>
                                         ) : (
-                                            <table className="w-full text-left">
+                                            <table className="w-full text-left text-xs md:text-sm">
                                                 <tbody>
                                                     {expenses.map((exp: any) => (
                                                         <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">

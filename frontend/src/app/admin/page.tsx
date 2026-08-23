@@ -1240,14 +1240,14 @@ export default function AdminDashboard() {
                                             <p className="p-8 text-gray-500 text-center">Belum ada penjualan di periode ini.</p>
                                         ) : (
                                             <div className="overflow-x-auto">
-                                                <table className="w-full text-left border-collapse">
+                                                <table className="w-full text-left border-collapse text-xs md:text-sm">
                                                     <thead>
                                                         <tr className="bg-gray-800/50 border-b border-gray-800">
-                                                            <th className="p-2 md:p-4 font-semibold text-gray-400">Produk</th>
-                                                            <th className="p-2 md:p-4 font-semibold text-gray-400 text-center">Terjual</th>
-                                                            <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Penghasilan Kotor</th>
-                                                            <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Total HPP</th>
-                                                            <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Laba Bersih</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400">Produk</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-center">Terjual</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Penghasilan Kotor</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Total HPP</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Laba Bersih</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -1280,14 +1280,14 @@ export default function AdminDashboard() {
                                             <p className="p-8 text-gray-500 text-center">Belum ada transaksi di periode ini.</p>
                                         ) : (
                                             <div className="overflow-x-auto">
-                                            <table className="w-full text-left border-collapse">
+                                            <table className="w-full text-left border-collapse text-xs md:text-sm">
                                                 <thead>
                                                     <tr className="bg-gray-800/50 border-b border-gray-800">
-                                                        <th className="p-2 md:p-4 font-semibold text-gray-400">Metode</th>
-                                                        <th className="p-2 md:p-4 font-semibold text-gray-400">Trx</th>
-                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">POS Total</th>
-                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Provider Total</th>
-                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Selisih</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400">Metode</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400">Trx</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">POS Total</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Provider Total</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Selisih</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -1541,14 +1541,14 @@ export default function AdminDashboard() {
 
                                     <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                         <div className="overflow-x-auto">
-                                            <table className="w-full text-left border-collapse">
+                                            <table className="w-full text-left border-collapse text-xs md:text-sm">
                                                 <thead>
                                                     <tr className="bg-gray-800/50 border-b border-gray-800">
-                                                        <th className="p-2 md:p-4 font-semibold text-gray-400">Produk</th>
-                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Harga Jual</th>
-                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Profit</th>
-                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-center">Stok</th>
-                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-center">Aksi</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400">Produk</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Harga Jual</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Profit</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-center">Stok</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-center">Aksi</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -1857,7 +1857,7 @@ export default function AdminDashboard() {
                                             {rawMaterials.length === 0 ? (
                                                 <p className="p-2 md:p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada bahan baku.</p>
                                             ) : (
-                                                <table className="w-full text-left">
+                                                <table className="w-full text-left text-xs md:text-sm">
                                                     <tbody>
                                                         {rawMaterials.map((mat: any) => (
                                                             <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
@@ -1904,7 +1904,7 @@ export default function AdminDashboard() {
                                                     <p className="p-2 md:p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran pada periode ini.</p>
                                                 ) : (
                                                     <div className="overflow-x-auto max-h-[600px]">
-                                                        <table className="w-full text-left">
+                                                        <table className="w-full text-left text-xs md:text-sm">
                                                             <tbody>
                                                                 {filteredExpenses.map((exp: any) => (
                                                                     <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20">
@@ -1943,14 +1943,14 @@ export default function AdminDashboard() {
                                             <p className="p-2 md:p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada riwayat update stok.</p>
                                         ) : (
                                             <div className="overflow-x-auto">
-                                                <table className="w-full text-left text-sm">
+                                                <table className="w-full text-left text-xs md:text-sm">
                                                     <thead>
                                                         <tr className="bg-gray-800/50 border-b border-gray-800 text-gray-400">
-                                                            <th className="p-2 md:p-4">Waktu</th>
-                                                            <th className="p-2 md:p-4">Bahan Baku</th>
-                                                            <th className="p-2 md:p-4">Perubahan</th>
-                                                            <th className="p-2 md:p-4">Keterangan</th>
-                                                            <th className="p-2 md:p-4">Oleh</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm">Waktu</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm">Bahan Baku</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm">Perubahan</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm">Keterangan</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm">Oleh</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -2016,13 +2016,13 @@ export default function AdminDashboard() {
                                     </form>
 
                                     <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                        <table className="w-full text-left border-collapse">
+                                        <table className="w-full text-left border-collapse text-xs md:text-sm">
                                             <thead>
                                                 <tr className="bg-gray-800/50 border-b border-gray-800">
-                                                    <th className="p-2 md:p-4 text-gray-400">Nama</th>
-                                                    <th className="p-2 md:p-4 text-gray-400">Role</th>
-                                                    <th className="p-2 md:p-4 text-gray-400">Status</th>
-                                                    <th className="p-2 md:p-4 text-gray-400 text-right">Aksi</th>
+                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400">Nama</th>
+                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400">Role</th>
+                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400">Status</th>
+                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400 text-right">Aksi</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -2325,7 +2325,7 @@ export default function AdminDashboard() {
 
                                     {/* Preview Section */}
                                     <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl flex flex-col items-center">
-                                        <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4 w-full text-left">Live Preview Struk</h3>
+                                        <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4 w-full text-left text-xs md:text-sm">Live Preview Struk</h3>
                                         
                                         <div className="bg-white p-4 md:p-6 text-black font-mono text-sm w-[300px] shadow-2xl rounded-sm">
                                             {storeSettings.logo_base64 && (
