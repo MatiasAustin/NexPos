@@ -1379,7 +1379,7 @@ export default function AdminDashboard() {
                                                     
                                                             {trx.order_items && trx.order_items.length > 0 && (
                                                                 <div className="bg-gray-800/30 p-3 rounded-xl border border-gray-800 mb-3">
-                                                                    <ul className="text-sm space-y-1.5">
+                                                                    <ul className="text-sm space-y-1.5 border-b border-gray-800/50 pb-2 mb-2">
                                                                         {trx.order_items.map((item: any, idx: number) => (
                                                                             <li key={idx} className="flex justify-between text-gray-300">
                                                                                 <span><span className="text-gray-500 mr-2">{item.quantity}x</span> {item.product_name}</span>
@@ -1387,6 +1387,24 @@ export default function AdminDashboard() {
                                                                             </li>
                                                                         ))}
                                                                     </ul>
+                                                                    <div className="text-xs text-gray-400 space-y-1">
+                                                                        {(trx.tax_amount || 0) > 0 && (
+                                                                            <div className="flex justify-between">
+                                                                                <span>Pajak</span>
+                                                                                <span>Rp {Number(trx.tax_amount).toLocaleString('id-ID')}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        <div className="flex justify-between">
+                                                                            <span>Diterima ({trx.payment_methods?.name || 'Cash'})</span>
+                                                                            <span>Rp {Number(trx.amount_received).toLocaleString('id-ID')}</span>
+                                                                        </div>
+                                                                        {(trx.change_given || 0) > 0 && (
+                                                                            <div className="flex justify-between font-bold text-gray-300">
+                                                                                <span>Kembalian</span>
+                                                                                <span>Rp {Number(trx.change_given).toLocaleString('id-ID')}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             )}
 
@@ -1406,7 +1424,7 @@ export default function AdminDashboard() {
                                                         <div className="text-right min-w-[150px] flex flex-col justify-between items-end">
                                                             <div className="w-full">
                                                                 <p className="text-sm text-gray-500 mb-1">Total</p>
-                                                                <p className="font-bold text-lg md:text-2xl text-white">Rp {trx.amount_received.toLocaleString('id-ID')}</p>
+                                                                <p className="font-bold text-lg md:text-2xl text-white">Rp {trx.amount_due.toLocaleString('id-ID')}</p>
                                                             </div>
                                                             
                                                             <div className="flex flex-col gap-2 mt-4 w-full">
