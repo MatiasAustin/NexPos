@@ -2,10 +2,6 @@ import { supabase } from '../config/database';
 
 export class ReconciliationService {
     async getReconciliationReport(startDate: string, endDate: string, mode?: string) {
-        // Build date range. endDate should cover the end of the day.
-        const startISO = new Date(startDate + 'T00:00:00Z').toISOString();
-        const endISO = new Date(endDate + 'T23:59:59Z').toISOString();
-
         // Fetch all transactions within the date range
         const { data: transactions, error } = await supabase
             .from('transactions')
@@ -13,8 +9,8 @@ export class ReconciliationService {
                 id, amount_due, status, payment_method_id, created_at,
                 payment_methods ( name, type )
             `)
-            .gte('created_at', startISO)
-            .lte('created_at', endISO)
+            .gte('created_at', startDate)
+            .lte('created_at', endDate)
             .eq('status', 'Paid');
 
         if (error) throw error;

@@ -1,5 +1,5 @@
 import { supabase } from '../config/database';
-import { PaymentProviderFactory } from '../providers/PaymentProviderFactory';
+
 
 export interface PaymentProviderConfig {
     id: string;

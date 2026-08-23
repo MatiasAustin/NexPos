@@ -70,11 +70,7 @@ router.delete('/admin/products/:id', async (req, res) => {
 router.get('/transactions', async (req, res) => {
     try {
         const { startDate, endDate } = req.query as any;
-        let startISO, endISO;
-        if (startDate) startISO = new Date(startDate + 'T00:00:00Z').toISOString();
-        if (endDate) endISO = new Date(endDate + 'T23:59:59Z').toISOString();
-        
-        const transactions = await transactionService.getTransactionHistory(500, startISO, endISO);
+        const transactions = await transactionService.getTransactionHistory(500, startDate, endDate);
         res.json(transactions);
     } catch (error: any) {
         res.status(400).json({ error: error.message });
@@ -275,9 +271,10 @@ router.get('/reconciliation', async (req, res) => {
     try {
         const { startDate, endDate, mode } = req.query as any;
         // Default: today if no date given
-        const today = new Date().toISOString().split('T')[0];
-        const start = startDate || today;
-        const end = endDate || today;
+        const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+        const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
+        const start = startDate || todayStart.toISOString();
+        const end = endDate || todayEnd.toISOString();
         const report = await reconciliationService.getReconciliationReport(start, end, mode);
         res.json(report);
     } catch (error: any) {

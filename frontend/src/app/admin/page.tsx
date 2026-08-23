@@ -307,8 +307,8 @@ export default function AdminDashboard() {
                 return;
             }
             
-            const startStr = start.toISOString().split('T')[0];
-            const endStr = end.toISOString().split('T')[0];
+            const startStr = start.toISOString();
+            const endStr = end.toISOString();
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions?startDate=${startStr}&endDate=${endStr}`);
             if (res.ok) setTransactions(await res.json());
         } catch (error) {
@@ -378,8 +378,8 @@ export default function AdminDashboard() {
                 return; // Wait until dates are selected
             }
 
-            const startDateStr = start.toISOString().split('T')[0];
-            const endDateStr = end.toISOString().split('T')[0];
+            const startDateStr = start.toISOString();
+            const endDateStr = end.toISOString();
 
             // 1. Rekonsiliasi Pembayaran
             const res = await getReconciliationReport(startDateStr, endDateStr);
