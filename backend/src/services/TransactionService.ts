@@ -69,15 +69,41 @@ export class TransactionService {
             }));
             
             await supabase.from('order_items').insert(orderItems);
-            
-            // Deduct stock for each product
+            // Deduct stock for each product and its ingredients
             for (const item of items) {
                 if (item.product_id) {
-                    const { data: prod } = await supabase.from('products').select('stock').eq('id', item.product_id).single();
+                    const { data: prod } = await supabase.from('products').select('stock, ingredients').eq('id', item.product_id).single();
                     if (prod) {
+                        // Deduct product stock
                         await supabase.from('products')
                             .update({ stock: prod.stock - item.quantity })
                             .eq('id', item.product_id);
+                            
+                        // Deduct ingredients / raw materials
+                        if (prod.ingredients && Array.isArray(prod.ingredients)) {
+                            for (const ing of prod.ingredients) {
+                                if (ing.raw_material_id && ing.qty > 0) {
+                                    const { data: rawMat } = await supabase.from('raw_materials').select('current_stock, name').eq('id', ing.raw_material_id).single();
+                                    if (rawMat) {
+                                        const totalQtyUsed = ing.qty * item.quantity;
+                                        const newStock = rawMat.current_stock - totalQtyUsed;
+                                        
+                                        await supabase.from('raw_materials')
+                                            .update({ current_stock: newStock })
+                                            .eq('id', ing.raw_material_id);
+                                            
+                                        // Log stock reduction
+                                        await supabase.from('material_stock_logs').insert([{
+                                            material_id: ing.raw_material_id,
+                                            material_name: rawMat.name,
+                                            delta: -totalQtyUsed,
+                                            current_stock: newStock,
+                                            note: `Terpotong untuk Penjualan ${item.product_name || item.name} (Ref: ${order_reference})`
+                                        }]);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

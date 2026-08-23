@@ -69,7 +69,7 @@ export default function AdminDashboard() {
     const [expenses, setExpenses] = useState<any[]>([]);
     const [rawMaterials, setRawMaterials] = useState<any[]>([]);
     const [materialStockLogs, setMaterialStockLogs] = useState<any[]>([]); // New state
-    const [newExpense, setNewExpense] = useState({ description: '', amount: 0 });
+    const [newExpense, setNewExpense] = useState({ description: '', amount: 0, material_id: '', quantity: 0 });
     const [newMaterial, setNewMaterial] = useState({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
     const [newStaff, setNewStaff] = useState({ full_name: '', email: '', password: '', role: 'staff' });
     
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
 
     const [products, setProducts] = useState<any[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
-    const [newProduct, setNewProduct] = useState<{name: string, category: string, price: number, cogs: number, stock: number, image_icon: string, image_url: string, ingredients: {name: string, cost: number}[]}>({ 
+    const [newProduct, setNewProduct] = useState<{name: string, category: string, price: number, cogs: number, stock: number, image_icon: string, image_url: string, ingredients: {raw_material_id: string, name: string, qty: number, cost: number}[]}>({ 
         name: '', category: 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '📦', image_url: '', ingredients: [] 
     });
     
@@ -847,8 +847,32 @@ export default function AdminDashboard() {
                 staff_name: profile?.full_name
             }]);
             if (error) throw error;
+            
+            // Handle Material Stock Update if selected
+            if (newExpense.material_id && newExpense.quantity > 0) {
+                const material = rawMaterials.find(m => m.id === newExpense.material_id);
+                if (material) {
+                    const newStock = material.current_stock + Number(newExpense.quantity);
+                    const unitPrice = Number(newExpense.amount) / Number(newExpense.quantity);
+                    const { error: matError } = await supabase.from('raw_materials')
+                        .update({ current_stock: newStock, updated_by_name: profile?.full_name, last_price_per_unit: unitPrice })
+                        .eq('id', newExpense.material_id);
+                    if (matError) throw matError;
+                    
+                    await supabase.from('material_stock_logs').insert([{
+                        material_id: material.id,
+                        material_name: material.name,
+                        delta: Number(newExpense.quantity),
+                        current_stock: newStock,
+                        price: Number(newExpense.amount) / Number(newExpense.quantity),
+                        staff_name: profile?.full_name,
+                        note: `Dari Pengeluaran: ${newExpense.description}`
+                    }]);
+                }
+            }
+            
             toast.success("Pengeluaran berhasil dicatat.");
-            setNewExpense({ description: '', amount: 0 });
+            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0 });
             fetchData();
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
@@ -949,7 +973,7 @@ export default function AdminDashboard() {
     const addIngredient = () => {
         setNewProduct(prev => ({
             ...prev,
-            ingredients: [...prev.ingredients, { name: '', cost: 0 }]
+            ingredients: [...prev.ingredients, { raw_material_id: '', name: '', qty: 0, cost: 0 }]
         }));
     };
 
@@ -957,6 +981,18 @@ export default function AdminDashboard() {
         setNewProduct(prev => {
             const newIngs = [...prev.ingredients];
             newIngs[index] = { ...newIngs[index], [field]: value };
+            
+            // Auto calculate cost if qty changes and material is selected
+            if (field === 'qty' || field === 'raw_material_id') {
+                const materialId = field === 'raw_material_id' ? value : newIngs[index].raw_material_id;
+                const qty = field === 'qty' ? value : newIngs[index].qty;
+                const mat = rawMaterials.find(m => m.id === materialId);
+                if (mat) {
+                    newIngs[index].cost = Number(qty) * Number(mat.last_price_per_unit || 0);
+                    newIngs[index].name = mat.name;
+                }
+            }
+            
             return { ...prev, ingredients: newIngs };
         });
     };
@@ -972,7 +1008,7 @@ export default function AdminDashboard() {
     const addIngredientEdit = () => {
         setEditingProduct((prev: any) => ({
             ...prev,
-            ingredients: [...(prev.ingredients || []), { name: '', cost: 0 }]
+            ingredients: [...(prev.ingredients || []), { raw_material_id: '', name: '', qty: 0, cost: 0 }]
         }));
     };
 
@@ -980,6 +1016,18 @@ export default function AdminDashboard() {
         setEditingProduct((prev: any) => {
             const newIngs = [...(prev.ingredients || [])];
             newIngs[index] = { ...newIngs[index], [field]: value };
+            
+            // Auto calculate cost if qty changes and material is selected
+            if (field === 'qty' || field === 'raw_material_id') {
+                const materialId = field === 'raw_material_id' ? value : newIngs[index].raw_material_id;
+                const qty = field === 'qty' ? value : newIngs[index].qty;
+                const mat = rawMaterials.find(m => m.id === materialId);
+                if (mat) {
+                    newIngs[index].cost = Number(qty) * Number(mat.last_price_per_unit || 0);
+                    newIngs[index].name = mat.name;
+                }
+            }
+
             return { ...prev, ingredients: newIngs };
         });
     };
@@ -1435,9 +1483,24 @@ export default function AdminDashboard() {
                                                 <button type="button" onClick={addIngredient} className="text-sm px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold rounded-lg hover:bg-blue-500/20">+ Tambah</button>
                                             </div>
                                             {newProduct.ingredients.map((ing, i) => (
-                                                <div key={i} className="flex gap-3 items-center mb-3">
-                                                    <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredient(i, 'name', e.target.value)} className="flex-1 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
-                                                    <input type="number" placeholder="Biaya" value={ing.cost} onChange={(e) => updateIngredient(i, 'cost', Number(e.target.value))} className="w-32 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                <div key={i} className="flex gap-2 items-center mb-3 flex-wrap">
+                                                    <select
+                                                        value={ing.raw_material_id || ''}
+                                                        onChange={(e) => updateIngredient(i, 'raw_material_id', e.target.value)}
+                                                        className="flex-1 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none"
+                                                    >
+                                                        <option value="">-- Manual (Ketik Nama) --</option>
+                                                        {rawMaterials.map(m => (
+                                                            <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
+                                                        ))}
+                                                    </select>
+                                                    {!ing.raw_material_id && (
+                                                        <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredient(i, 'name', e.target.value)} className="w-1/3 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                    )}
+                                                    {ing.raw_material_id && (
+                                                        <input type="number" placeholder="Qty/Porsi" value={ing.qty || ''} onChange={(e) => updateIngredient(i, 'qty', Number(e.target.value))} className="w-24 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required step="any" />
+                                                    )}
+                                                    <input type="number" placeholder="Biaya (Rp)" value={ing.cost || ''} onChange={(e) => updateIngredient(i, 'cost', Number(e.target.value))} className="w-28 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
                                                     <button type="button" onClick={() => removeIngredient(i)} className="text-red-400 p-2 hover:bg-red-500/10 rounded-lg">Hapus</button>
                                                 </div>
                                             ))}
@@ -1556,9 +1619,24 @@ export default function AdminDashboard() {
                                                             <button type="button" onClick={addIngredientEdit} className="text-sm px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold rounded-lg hover:bg-blue-500/20">+ Tambah</button>
                                                         </div>
                                                         {(editingProduct.ingredients || []).map((ing: any, i: number) => (
-                                                            <div key={i} className="flex gap-3 items-center mb-3">
-                                                                <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredientEdit(i, 'name', e.target.value)} className="flex-1 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
-                                                                <input type="number" placeholder="Biaya" value={ing.cost} onChange={(e) => updateIngredientEdit(i, 'cost', Number(e.target.value))} className="w-32 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                            <div key={i} className="flex gap-2 items-center mb-3 flex-wrap">
+                                                                <select
+                                                                    value={ing.raw_material_id || ''}
+                                                                    onChange={(e) => updateIngredientEdit(i, 'raw_material_id', e.target.value)}
+                                                                    className="flex-1 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none"
+                                                                >
+                                                                    <option value="">-- Manual (Ketik Nama) --</option>
+                                                                    {rawMaterials.map(m => (
+                                                                        <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
+                                                                    ))}
+                                                                </select>
+                                                                {!ing.raw_material_id && (
+                                                                    <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredientEdit(i, 'name', e.target.value)} className="w-1/3 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                                )}
+                                                                {ing.raw_material_id && (
+                                                                    <input type="number" placeholder="Qty/Porsi" value={ing.qty || ''} onChange={(e) => updateIngredientEdit(i, 'qty', Number(e.target.value))} className="w-24 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required step="any" />
+                                                                )}
+                                                                <input type="number" placeholder="Biaya (Rp)" value={ing.cost || ''} onChange={(e) => updateIngredientEdit(i, 'cost', Number(e.target.value))} className="w-28 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
                                                                 <button type="button" onClick={() => removeIngredientEdit(i)} className="text-red-400 p-2 hover:bg-red-500/10 rounded-lg">Hapus</button>
                                                             </div>
                                                         ))}
@@ -1710,6 +1788,35 @@ export default function AdminDashboard() {
                                             <form onSubmit={handleCreateExpense} className="space-y-4">
                                                 <input type="text" placeholder="Deskripsi Pengeluaran" required value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                                 <input type="number" placeholder="Nominal (Rp)" required value={newExpense.amount || ''} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="text-xs text-gray-500 mb-1 block">Bahan Baku (Opsional)</label>
+                                                        <select 
+                                                            value={newExpense.material_id || ''} 
+                                                            onChange={e => setNewExpense({...newExpense, material_id: e.target.value})}
+                                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white"
+                                                        >
+                                                            <option value="">Pilih Bahan Baku...</option>
+                                                            {rawMaterials.map(m => (
+                                                                <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    {newExpense.material_id && (
+                                                        <div>
+                                                            <label className="text-xs text-gray-500 mb-1 block">Kuantitas Tambahan</label>
+                                                            <input 
+                                                                type="number" 
+                                                                placeholder="Jml" 
+                                                                value={newExpense.quantity || ''} 
+                                                                onChange={e => setNewExpense({...newExpense, quantity: Number(e.target.value)})}
+                                                                className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+
                                                 <button type="submit" disabled={loading} className="w-full py-3 bg-red-600/20 text-red-400 border border-red-500/30 rounded-xl font-bold hover:bg-red-500/30 mt-2">Catat Pengeluaran</button>
                                             </form>
                                         </div>
