@@ -666,7 +666,7 @@ export default function PosPage() {
     const filteredProducts = activeCategory === "Semua" ? products : products.filter(p => (p.category || "Uncategorized") === activeCategory);
 
     return (
-        <div className="flex flex-col lg:flex-row h-screen bg-[#121214] text-gray-100 overflow-hidden print:block print:h-auto print:overflow-visible print:bg-white">
+        <div className="flex flex-col sm:flex-row h-screen bg-[#121214] text-gray-100 overflow-hidden print:block print:h-auto print:overflow-visible print:bg-white text-sm md:text-base">
             <div className="print:hidden"><ConfirmDialog /></div>
             {/* LEFT: PRODUCTS LIST */}
             <div className="flex-1 flex flex-col overflow-y-auto print:hidden">
@@ -809,9 +809,9 @@ export default function PosPage() {
             </div>
 
             {/* RIGHT: CART */}
-            <div className="w-full lg:w-[320px] xl:w-[400px] h-[45vh] lg:h-screen bg-[#1a1a1c] shadow-2xl flex flex-col border-t-2 lg:border-t-0 lg:border-l border-gray-800 z-10 shrink-0 print:hidden">
-                <div className="p-5 border-b border-gray-800 flex justify-between items-center bg-[#1a1a1c]">
-                    <h2 className="text-lg font-bold flex items-center gap-2 text-white">
+            <div className="w-full sm:w-[260px] md:w-[280px] lg:w-[320px] xl:w-[400px] h-[45vh] sm:h-screen bg-[#1a1a1c] shadow-2xl flex flex-col border-t-2 sm:border-t-0 sm:border-l border-gray-800 z-10 shrink-0 print:hidden">
+                <div className="p-3 sm:p-4 md:p-5 border-b border-gray-800 flex justify-between items-center bg-[#1a1a1c]">
+                    <h2 className="text-sm sm:text-base md:text-lg font-bold flex items-center gap-2 text-white">
                         <ShoppingCart className="w-5 h-5 text-blue-500" /> Current Order
                     </h2>
                     <button onClick={clearCart} className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors border border-transparent hover:border-red-500/20">

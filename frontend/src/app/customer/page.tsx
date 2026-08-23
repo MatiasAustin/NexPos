@@ -167,7 +167,7 @@ export default function CustomerPage() {
     const categories = ["Semua", ...(storeSettings?.categories || [])];
 
     return (
-        <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans selection:bg-blue-500/30">
+        <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans selection:bg-blue-500/30 text-sm md:text-base">
             {/* LEFT: Menu Area */}
             <div className="flex-[3] flex flex-col h-full bg-[#0B0F19] border-r border-gray-800">
                 <div className="bg-[#131B2C] border-b border-gray-800 p-6 md:p-8 flex items-center justify-between shadow-sm z-10">
@@ -237,24 +237,24 @@ export default function CustomerPage() {
                     )}
                 </div>
                     {/* Spacer for mobile bottom bar */}
-                <div className="h-24 md:hidden"></div>
+                <div className="h-24 sm:hidden"></div>
             </div>
 
-            {/* SIDEBAR CART (35%) */}
-            <div className={`${showMobileCart ? 'fixed inset-0 z-50 flex' : 'hidden md:flex'} md:relative md:inset-auto md:z-10 w-full md:w-[35%] lg:w-[30%] bg-[#0B0F19] md:border-l border-gray-800 flex-col shadow-2xl transition-all`}>
+            {/* SIDEBAR CART */}
+            <div className={`${showMobileCart ? 'fixed inset-0 z-50 flex' : 'hidden sm:flex'} sm:relative sm:inset-auto sm:z-10 w-full sm:w-[35%] lg:w-[30%] bg-[#0B0F19] sm:border-l border-gray-800 flex-col shadow-2xl transition-all`}>
                 {showMobileCart && (
-                    <button onClick={() => setShowMobileCart(false)} className="md:hidden absolute top-4 right-4 p-2 bg-gray-800 rounded-full text-white z-50">
+                    <button onClick={() => setShowMobileCart(false)} className="sm:hidden absolute top-4 right-4 p-2 bg-gray-800 rounded-full text-white z-50">
                         X
                     </button>
                 )}
-                <div className="p-6 md:p-8 bg-[#121214] border-b border-gray-800 flex items-center gap-3">
+                <div className="p-4 sm:p-6 md:p-8 bg-[#121214] border-b border-gray-800 flex items-center gap-3">
                     <div className="p-2 bg-blue-600/20 text-blue-400 rounded-lg">
-                        <ShoppingBag className="w-6 h-6" />
+                        <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <h2 className="text-xl md:text-2xl font-black text-white">Pesanan Anda</h2>
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white">Pesanan Anda</h2>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 md:p-6 no-scrollbar">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 no-scrollbar">
                     {cart.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-4 opacity-50">
                             <div className="w-20 h-20 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center mb-2">
@@ -330,7 +330,7 @@ export default function CustomerPage() {
             </div>
             {/* MOBILE BOTTOM BAR */}
             {!showMobileCart && cart.length > 0 && orderStatus === 'idle' && (
-                <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-blue-600 text-white flex justify-between items-center rounded-t-3xl shadow-[0_-10px_40px_rgba(37,99,235,0.3)] z-40 animate-in slide-in-from-bottom-full cursor-pointer" onClick={() => setShowMobileCart(true)}>
+                <div className="sm:hidden fixed bottom-0 left-0 right-0 p-4 bg-blue-600 text-white flex justify-between items-center rounded-t-3xl shadow-[0_-10px_40px_rgba(37,99,235,0.3)] z-40 animate-in slide-in-from-bottom-full cursor-pointer" onClick={() => setShowMobileCart(true)}>
                     <div className="flex items-center gap-3">
                         <div className="relative">
                             <ShoppingBag className="w-6 h-6" />

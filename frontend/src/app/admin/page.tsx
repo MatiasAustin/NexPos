@@ -1057,9 +1057,9 @@ export default function AdminDashboard() {
                 .print-receipt { position: absolute; left: 0; top: 0; width: 100%; max-width: 80mm; padding: 10px; font-family: monospace; color: #000; background: #fff; }
             }
         `}} />
-        <div className="min-h-screen bg-[#0B0F19] text-gray-100 flex flex-col md:flex-row font-sans selection:bg-blue-500/30 print:hidden">
+        <div className="min-h-screen bg-[#0B0F19] text-gray-100 flex flex-col sm:flex-row font-sans selection:bg-blue-500/30 print:hidden text-sm md:text-base">
             {/* Sidebar */}
-            <div className="w-full md:w-[280px] bg-[#131B2C] border-b md:border-b-0 md:border-r border-gray-800/60 flex flex-col shrink-0 z-20">
+            <div className="w-full sm:w-[240px] md:w-[280px] bg-[#131B2C] border-b sm:border-b-0 sm:border-r border-gray-800/60 flex flex-col shrink-0 z-20">
                 <div className="p-6 border-b border-gray-800/60 flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-3">
