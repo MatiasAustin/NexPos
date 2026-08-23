@@ -43,7 +43,7 @@ interface ReportChartProps {
 export default function ReportChart({ period, customStartDate, customEndDate }: ReportChartProps) {
     const [chartData, setChartData] = useState<ChartPoint[]>([]);
     const [loading, setLoading] = useState(true);
-    const [totals, setTotals] = useState({ omset: 0, pengeluaran: 0, laba: 0 });
+    const [totals, setTotals] = useState({ omset: 0, pengeluaranOp: 0, hpp: 0, laba: 0 });
     const [periodLabel, setPeriodLabel] = useState('');
 
     useEffect(() => {
@@ -75,10 +75,9 @@ export default function ReportChart({ period, customStartDate, customEndDate }: 
         } else if (period === 'yearly') {
             start.setMonth(0, 1);
             start.setHours(0, 0, 0, 0);
-            label = `Tahun Ini (${start.getFullYear()})`;
+            label = `Tahun Ini (${start.toLocaleDateString('id-ID', { year: 'numeric' })})`;
         } else if (period === 'custom' && customStartDate && customEndDate) {
             start = new Date(customStartDate);
-            start.setHours(0, 0, 0, 0);
             end = new Date(customEndDate);
             end.setHours(23, 59, 59, 999);
             label = `Kustom (${start.toLocaleDateString('id-ID')} - ${end.toLocaleDateString('id-ID')})`;
@@ -107,72 +106,73 @@ export default function ReportChart({ period, customStartDate, customEndDate }: 
             .gte('created_at', start.toISOString())
             .lte('created_at', end.toISOString());
 
-        const map: Record<string, { omset: number; pengeluaran: number }> = {};
+        const map: Record<string, { omset: number; pengeluaranOp: number; hpp: number }> = {};
 
         for (const trx of transactions || []) {
             const lbl = getPeriodLabel(trx.created_at, period);
-            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaran: 0 };
+            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0 };
             map[lbl].omset += parseFloat(trx.amount_due) || 0;
         }
 
         for (const item of orderItems || []) {
             const lbl = getPeriodLabel(item.created_at, period);
-            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaran: 0 };
-            map[lbl].pengeluaran += (parseFloat(item.cogs_at_time) || 0) * (item.quantity || 1);
+            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0 };
+            map[lbl].hpp += (parseFloat(item.cogs_at_time) || 0) * (item.quantity || 1);
         }
 
         for (const exp of expenses || []) {
             const dateStr = exp.expense_date || exp.created_at;
             const lbl = getPeriodLabel(dateStr, period);
-            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaran: 0 };
-            map[lbl].pengeluaran += parseFloat(exp.amount) || 0;
+            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0 };
+            map[lbl].pengeluaranOp += parseFloat(exp.amount) || 0;
         }
 
-        let points: ChartPoint[] = [];
+        let points: any[] = [];
         
         if (period === 'daily') {
             for (let i = 0; i < 24; i++) {
                 const lbl = `${i.toString().padStart(2, '0')}:00`;
-                points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaran: map[lbl]?.pengeluaran || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaran || 0) });
+                points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0) });
             }
         } else if (period === 'weekly') {
             const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
-            points = days.map(d => ({ label: d, omset: map[d]?.omset || 0, pengeluaran: map[d]?.pengeluaran || 0, laba: (map[d]?.omset || 0) - (map[d]?.pengeluaran || 0) }));
+            points = days.map(d => ({ label: d, omset: map[d]?.omset || 0, pengeluaranOp: map[d]?.pengeluaranOp || 0, hpp: map[d]?.hpp || 0, laba: (map[d]?.omset || 0) - (map[d]?.pengeluaranOp || 0) }));
         } else if (period === 'monthly') {
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             for (let i = 1; i <= daysInMonth; i++) {
                 const d = new Date(now.getFullYear(), now.getMonth(), i);
                 const lbl = `${d.getDate().toString().padStart(2, '0')} ${d.toLocaleString('id-ID', { month: 'short' })}`;
-                points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaran: map[lbl]?.pengeluaran || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaran || 0) });
+                points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0) });
             }
         } else if (period === 'yearly') {
             for (let i = 0; i < 12; i++) {
                 const d = new Date(now.getFullYear(), i, 1);
                 const lbl = d.toLocaleString('id-ID', { month: 'short', year: 'numeric' });
-                points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaran: map[lbl]?.pengeluaran || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaran || 0) });
+                points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0) });
             }
         } else if (period === 'custom') {
-            // For custom, just show sorted keys that exist
             const sorted = Object.keys(map).sort();
             points = sorted.map(lbl => ({
                 label: lbl,
                 omset: map[lbl].omset,
-                pengeluaran: map[lbl].pengeluaran,
-                laba: map[lbl].omset - map[lbl].pengeluaran
+                pengeluaranOp: map[lbl].pengeluaranOp,
+                hpp: map[lbl].hpp,
+                laba: map[lbl].omset - map[lbl].pengeluaranOp
             }));
         }
 
         const totalOmset = points.reduce((s, p) => s + p.omset, 0);
-        const totalPengeluaran = points.reduce((s, p) => s + p.pengeluaran, 0);
-        setTotals({ omset: totalOmset, pengeluaran: totalPengeluaran, laba: totalOmset - totalPengeluaran });
+        const totalPengeluaranOp = points.reduce((s, p) => s + p.pengeluaranOp, 0);
+        const totalHpp = points.reduce((s, p) => s + p.hpp, 0);
+        setTotals({ omset: totalOmset, pengeluaranOp: totalPengeluaranOp, hpp: totalHpp, laba: totalOmset - totalPengeluaranOp });
         setChartData(points);
         setLoading(false);
     };
 
     const exportCSV = () => {
         const rows = [
-            ['Waktu', 'Omset (Rp)', 'Pengeluaran+HPP (Rp)', 'Laba Bersih (Rp)'],
-            ...chartData.map(p => [p.label, p.omset, p.pengeluaran, p.laba])
+            ['Waktu', 'Omset (Rp)', 'Total HPP (Rp)', 'Pengeluaran (Rp)', 'Laba Bersih (Rp)'],
+            ...chartData.map(p => [p.label, p.omset, p.hpp, p.pengeluaranOp, p.laba])
         ];
         const csv = rows.map(r => r.join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
@@ -195,7 +195,7 @@ export default function ReportChart({ period, customStartDate, customEndDate }: 
                         onClick={exportCSV}
                         className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-500 flex items-center gap-1"
                     >
-                        ↓ Export CSV
+                        Export CSV
                     </button>
                 </div>
             </div>
@@ -238,21 +238,26 @@ export default function ReportChart({ period, customStartDate, customEndDate }: 
                         />
                         <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px' }} />
                         <Bar dataKey="omset" name="Omset" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                        <Bar dataKey="pengeluaran" name="Pengeluaran (HPP+Operasional)" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                        <Bar dataKey="hpp" name="Total HPP" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                        <Bar dataKey="pengeluaranOp" name="Pengeluaran (Operasional)" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={50} />
                         <Line type="monotone" dataKey="laba" name="Laba Bersih" stroke="#22c55e" strokeWidth={2} dot={false} />
                     </ComposedChart>
                 </ResponsiveContainer>
             )}
 
             {!loading && (
-                <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-800">
-                    <div className="text-center">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-800">
+                    <div className="text-center border-b md:border-b-0 md:border-r border-gray-800 pb-4 md:pb-0">
                         <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Total Omset</p>
                         <p className="text-lg font-extrabold text-blue-400">{formatRupiah(totals.omset)}</p>
                     </div>
-                    <div className="text-center border-x border-gray-800">
+                    <div className="text-center border-b md:border-b-0 md:border-r border-gray-800 pb-4 md:pb-0">
+                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Total HPP</p>
+                        <p className="text-lg font-extrabold text-amber-400">{formatRupiah(totals.hpp)}</p>
+                    </div>
+                    <div className="text-center md:border-r border-gray-800">
                         <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Total Pengeluaran</p>
-                        <p className="text-lg font-extrabold text-red-400">{formatRupiah(totals.pengeluaran)}</p>
+                        <p className="text-lg font-extrabold text-red-400">{formatRupiah(totals.pengeluaranOp)}</p>
                     </div>
                     <div className="text-center">
                         <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Laba Bersih</p>
