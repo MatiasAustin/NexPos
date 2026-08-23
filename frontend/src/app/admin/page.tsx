@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { getReconciliationReport, getAuditLogs } from "@/lib/api";
 import Link from "next/link";
-import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload, Loader2, Maximize } from "lucide-react";
+import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload, Loader2, Maximize, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import ReportChart from "@/components/ReportChart";
@@ -45,7 +45,7 @@ const CategoryDropdown = ({ value, onChange, categories, onAdd, onRemove }: { va
 };
 
 export default function AdminDashboard() {
-    const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses">("reconciliation");
+    const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses" | "cash_sessions">("reconciliation");
     const [reconciliation, setReconciliation] = useState<any[]>([]);
     const [reconciliationPeriod, setReconciliationPeriod] = useState<"daily" | "weekly" | "monthly" | "yearly" | "custom">("daily");
     const [customDateStart, setCustomDateStart] = useState("");
@@ -56,6 +56,7 @@ export default function AdminDashboard() {
     const [historyFilterType, setHistoryFilterType] = useState<"daily" | "weekly" | "monthly" | "yearly" | "custom">("daily");
     const [historySortOrder, setHistorySortOrder] = useState<"desc" | "asc">("desc");
     const [staffList, setStaffList] = useState<any[]>([]);
+    const [cashSessions, setCashSessions] = useState<any[]>([]);
     
     // Edit & Expenses States
     const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -175,6 +176,9 @@ export default function AdminDashboard() {
                 } catch(e) {
                     console.error("Store settings table might not exist yet", e);
                 }
+                        } else if (activeTab === "cash_sessions") {
+                const { data } = await supabase.from('cash_sessions').select('*').order('created_at', { ascending: false });
+                if (data) setCashSessions(data);
             } else if (activeTab === "expenses") {
                 const [expRes, matRes, logRes] = await Promise.all([
                     supabase.from('expenses').select('*').order('created_at', { ascending: expenseSortOrder === 'desc' ? false : true }),
@@ -1083,6 +1087,7 @@ export default function AdminDashboard() {
                     {[
                         { id: "reconciliation", label: "Laporan Rekonsiliasi", icon: AlertTriangle },
                         { id: "history", label: "Riwayat Transaksi", icon: FileText },
+                        { id: "cash_sessions", label: "Riwayat Shift", icon: Wallet },
                         { id: "inventory", label: "Produk & Stok", icon: Package },
                         { id: "expenses", label: "Bahan & Pengeluaran", icon: FileText },
                         { id: "staff", label: "Manajemen Staf", icon: Users },
@@ -1481,6 +1486,47 @@ export default function AdminDashboard() {
                                     </div>
                                 );
                             })()}
+
+                                                        {/* CASH SESSIONS TAB */}
+                            {activeTab === "cash_sessions" && (
+                                <div className="space-y-4">
+                                    <h3 className="font-bold text-xl text-white border-b border-gray-800 pb-3 mb-4">Riwayat Shift Kasir (Arus Kas Laci)</h3>
+                                    {cashSessions.length === 0 ? (
+                                        <p className="p-8 text-center text-gray-500 bg-[#131B2C] rounded-2xl border border-gray-800">Belum ada riwayat shift kasir.</p>
+                                    ) : (
+                                        cashSessions.map((session: any) => (
+                                            <div key={session.id} className="p-4 bg-[#131B2C] rounded-2xl border border-gray-800 flex flex-col md:flex-row justify-between gap-4">
+                                                <div>
+                                                    <p className="text-gray-300 font-bold mb-1">
+                                                        Shift ID: {session.id.substring(0, 8)} 
+                                                        <span className={`ml-3 text-xs px-2 py-1 rounded-full ${session.status === 'open' ? 'bg-green-500/20 text-green-400' : 'bg-gray-800 text-gray-400'}`}>
+                                                            {session.status.toUpperCase()}
+                                                        </span>
+                                                    </p>
+                                                    <p className="text-sm text-gray-400 mb-1">Kasir ID: {session.staff_id || 'Unknown'}</p>
+                                                    <p className="text-xs text-gray-500">
+                                                        Buka: {new Date(session.created_at).toLocaleString('id-ID')}
+                                                        {session.closed_at && ` | Tutup: ${new Date(session.closed_at).toLocaleString('id-ID')}`}
+                                                    </p>
+                                                </div>
+                                                <div className="flex flex-col gap-1 text-sm bg-gray-900/50 p-3 rounded-xl border border-gray-800 min-w-[200px]">
+                                                    <div className="flex justify-between text-gray-400"><span>Modal Awal (Buka)</span><span>Rp {Number(session.opening_cash).toLocaleString('id-ID')}</span></div>
+                                                    <div className="flex justify-between text-blue-400"><span>Target Laci (Sistem)</span><span>Rp {Number(session.expected_cash).toLocaleString('id-ID')}</span></div>
+                                                    {session.status === 'closed' && (
+                                                        <>
+                                                            <div className="flex justify-between text-green-400 font-bold border-t border-gray-700 mt-1 pt-1"><span>Aktual di Laci (Tutup)</span><span>Rp {Number(session.actual_cash).toLocaleString('id-ID')}</span></div>
+                                                            <div className={`flex justify-between font-bold ${Number(session.difference) < 0 ? 'text-red-400' : 'text-gray-300'}`}>
+                                                                <span>Selisih</span><span>Rp {Number(session.difference).toLocaleString('id-ID')}</span>
+                                                            </div>
+                                                            {session.discrepancy_reason && <p className="text-xs text-red-400 mt-1 italic">"{session.discrepancy_reason}"</p>}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
 
                             {/* INVENTORY TAB */}
                             {activeTab === "inventory" && (
