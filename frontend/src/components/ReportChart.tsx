@@ -39,9 +39,10 @@ interface ReportChartProps {
     period: PeriodMode;
     customStartDate?: string;
     customEndDate?: string;
+    referenceDate?: Date;
 }
 
-export default function ReportChart({ period, customStartDate, customEndDate }: ReportChartProps) {
+export default function ReportChart({ period, customStartDate, customEndDate, referenceDate }: ReportChartProps) {
     const [chartData, setChartData] = useState<ChartPoint[]>([]);
     const [loading, setLoading] = useState(true);
     const [totals, setTotals] = useState({ omset: 0, pengeluaranOp: 0, hpp: 0, laba: 0 });
@@ -49,12 +50,12 @@ export default function ReportChart({ period, customStartDate, customEndDate }: 
 
     useEffect(() => {
         fetchChartData();
-    }, [period, customStartDate, customEndDate]);
+    }, [period, customStartDate, customEndDate, referenceDate]);
 
     const fetchChartData = async () => {
         setLoading(true);
 
-        const now = new Date();
+        const now = referenceDate || new Date();
         let start = new Date(now);
         let end = new Date(now);
         end.setHours(23, 59, 59, 999);

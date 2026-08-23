@@ -1319,7 +1319,7 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
 
-                                    <ReportChart period={reconciliationPeriod} customStartDate={customDateStart} customEndDate={customDateEnd} />
+                                    <ReportChart period={reconciliationPeriod} customStartDate={customDateStart} customEndDate={customDateEnd} referenceDate={reconciliationDate} />
 
                                     {/* Data Penjualan Produk (Requested Feature) */}
                                     <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
