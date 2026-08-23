@@ -158,7 +158,7 @@ router.delete('/staff/:id', async (req, res) => {
 // PAYMENT METHODS
 // =======================
 router.get('/payment-methods', async (req, res) => {
-    const { data, error } = await supabase.from('payment_methods').select('*');
+    const { data, error } = await supabase.from('payment_methods').select('*').eq('is_active', true);
     if (error) return res.status(400).json({ error: error.message });
     res.json(data);
 });

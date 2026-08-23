@@ -220,20 +220,19 @@ export default function PosPage() {
 
     useEffect(() => {
         if (hasSession && staff) {
-            getPaymentMethods().then(methods => {
-                const uniqueMethods = methods.reduce((acc: any[], current: any) => {
-                    const x = acc.find(item => item.name === current.name);
-                    if (!x) {
-                        return acc.concat([current]);
-                    } else {
+            // Fetch directly from Supabase to ensure real-time accuracy and bypass API cache
+            supabase.from('payment_methods').select('*').eq('is_active', true).order('created_at', { ascending: true })
+                .then(({ data }) => {
+                    const methods = data || [];
+                    const uniqueMethods = methods.reduce((acc: any[], current: any) => {
+                        const x = acc.find(item => item.name === current.name);
+                        if (!x) return acc.concat([current]);
                         return acc;
-                    }
-                }, []);
-                setPaymentMethods(uniqueMethods);
-                if (uniqueMethods && uniqueMethods.length > 0) {
-                    setSelectedMethod(uniqueMethods[0]);
-                }
-            });
+                    }, []);
+                    setPaymentMethods(uniqueMethods);
+                    if (uniqueMethods.length > 0) setSelectedMethod(uniqueMethods[0]);
+                });
+            
             getActiveProducts().then(prods => setProducts(prods));
             
             // Listen for localStorage changes for incoming customer orders
