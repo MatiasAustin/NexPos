@@ -37,7 +37,12 @@ body {
 
 @media print {
   @page {
-    size: 58mm auto;
+    size: 58mm 297mm;
     margin: 0mm;
+  }
+  body {
+    width: 58mm;
+    margin: 0;
+    padding: 0;
   }
 }

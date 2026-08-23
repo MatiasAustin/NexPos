@@ -1420,8 +1420,8 @@ export default function AdminDashboard() {
                                                                         </button>
                                                                         <button 
                                                                             onClick={async () => {
-                                                                                const { generateReceiptHtml, printWithRawBT } = await import('@/lib/printUtils');
-                                                                                const text = generateReceiptHtml(
+                                                                                const { generateReceiptText, printWithRawBT } = await import('@/lib/printUtils');
+                                                                                const text = generateReceiptText(
                                                                                     storeSettings,
                                                                                     trx,
                                                                                     trx.order_items || [],
@@ -1432,7 +1432,7 @@ export default function AdminDashboard() {
                                                                             }}
                                                                             className="w-full px-4 py-2 bg-orange-600 text-white border border-orange-500 rounded-xl text-sm font-bold hover:bg-orange-500 transition-colors"
                                                                         >
-                                                                            Cetak (RawBT)
+                                                                            Teks Cepat (RawBT)
                                                                         </button>
                                                                         <button 
                                                                             onClick={() => {
@@ -1441,7 +1441,7 @@ export default function AdminDashboard() {
                                                                             }}
                                                                             className="w-full px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl text-sm font-bold hover:bg-blue-500/20 transition-colors"
                                                                         >
-                                                                            Cetak (Web)
+                                                                            Cetak Desain (Web)
                                                                         </button>
                                                                     </>
                                                                 )}
@@ -2395,7 +2395,7 @@ export default function AdminDashboard() {
                                         <div className="flex flex-col md:flex-row gap-4 mt-8">
                                             <button 
                                                 onClick={async () => {
-                                                    const { generateReceiptHtml, printWithRawBT } = await import('@/lib/printUtils');
+                                                    const { generateReceiptText, printWithRawBT } = await import('@/lib/printUtils');
                                                     // Dummy transaction for testing
                                                     const dummyTx = {
                                                         order_reference: 'TEST-123',
@@ -2410,18 +2410,18 @@ export default function AdminDashboard() {
                                                         { product_name: 'Test Item 1', quantity: 1, price_at_time: 20000 },
                                                         { product_name: 'Test Item 2', quantity: 1, price_at_time: 30000 }
                                                     ];
-                                                    const text = generateReceiptHtml(storeSettings, dummyTx, dummyItems, 'Admin Test', 'QRIS');
+                                                    const text = generateReceiptText(storeSettings, dummyTx, dummyItems, 'Admin Test', 'QRIS');
                                                     printWithRawBT(text);
                                                 }}
                                                 className="px-6 py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-500 transition-colors flex items-center justify-center gap-2"
                                             >
-                                                Test Cetak (RawBT)
+                                                Test Teks Cepat (RawBT)
                                             </button>
                                             <button 
                                                 onClick={handleTestPrint}
                                                 className="px-6 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
                                             >
-                                                Test Cetak (Web/PDF)
+                                                Test Cetak Desain (Web/PDF)
                                             </button>
                                         </div>
                                     </div>

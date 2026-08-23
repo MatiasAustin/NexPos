@@ -1003,56 +1003,31 @@ export default function PosPage() {
                                 <div className="flex flex-col md:flex-row gap-4">
                                     <button 
                                         onClick={async () => {
-                                            const { printWithRawBT } = await import('@/lib/printUtils');
-                                            const receiptEl = document.getElementById('print-receipt-section');
-                                            if (receiptEl) {
-                                                const htmlContent = `
-                                                    <html>
-                                                    <head>
-                                                        <meta charset="utf-8">
-                                                        <style>
-                                                            body { font-family: monospace; font-size: 12px; color: black; background: white; margin: 0; padding: 0; width: 58mm; }
-                                                            .text-center { text-align: center; }
-                                                            .flex { display: flex; }
-                                                            .justify-between { justify-content: space-between; }
-                                                            .font-bold { font-weight: bold; }
-                                                            .text-xl { font-size: 16px; }
-                                                            .text-xs { font-size: 10px; }
-                                                            .text-sm { font-size: 11px; }
-                                                            .border-b { border-bottom: 1px dashed black; }
-                                                            .border-t { border-top: 1px dashed black; }
-                                                            .pb-4 { padding-bottom: 16px; }
-                                                            .pt-4 { padding-top: 16px; }
-                                                            .mb-4 { margin-bottom: 16px; }
-                                                            .mt-4 { margin-top: 16px; }
-                                                            .w-full { width: 100%; }
-                                                            table { width: 100%; border-collapse: collapse; }
-                                                            td { vertical-align: bottom; }
-                                                            .text-right { text-align: right; }
-                                                        </style>
-                                                    </head>
-                                                    <body>
-                                                        ${receiptEl.innerHTML}
-                                                    </body>
-                                                    </html>
-                                                `;
-                                                printWithRawBT(htmlContent);
-                                            }
+                                            const { generateReceiptText, printWithRawBT } = await import('@/lib/printUtils');
+                                            const text = generateReceiptText(
+                                                storeSettings,
+                                                paymentResult.transaction || paymentResult,
+                                                paymentResult.transaction?.items || paymentResult.items || [],
+                                                staff?.full_name || 'Admin',
+                                                paymentResult.payment_method_name || 'TUNAI'
+                                            );
+                                            printWithRawBT(text);
                                         }}
                                         className="w-full bg-orange-600 hover:bg-orange-500 text-white py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                                        Cetak (RawBT/Android)
+                                        Teks Cepat (RawBT)
                                     </button>
                                     <button 
                                         onClick={() => {
                                             setTimeout(() => window.print(), 100);
                                         }}
-                                        className="w-full bg-gray-800 hover:bg-gray-700 text-white py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
+                                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                                        Cetak (Web)
+                                        Cetak Desain (Web)
                                     </button>
+
                                     <button 
                                         onClick={() => {
                                             setPaymentResult(null);
