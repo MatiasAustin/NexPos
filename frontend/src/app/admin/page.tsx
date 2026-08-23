@@ -31,7 +31,7 @@ const CategoryDropdown = ({ value, onChange, categories, onAdd, onRemove }: { va
                                     <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(cat); }} className="text-gray-500 hover:text-red-400 opacity-50 group-hover:opacity-100 transition-opacity">✕</button>
                                 </div>
                             ))}
-                            {categories.length === 0 && <div className="p-4 text-center text-gray-500 text-xs">Belum ada kategori</div>}
+                            {categories.length === 0 && <div className="p-2 md:p-4 text-center text-gray-500 text-xs">Belum ada kategori</div>}
                         </div>
                         <div className="p-3 border-t border-gray-800 bg-gray-900 flex gap-2">
                             <input type="text" value={newCat} onChange={e=>setNewCat(e.target.value)} placeholder="Kategori Baru..." className="flex-1 bg-[#0B0F19] rounded-lg px-3 py-2 text-sm text-white outline-none border border-gray-700 focus:border-blue-500 transition-colors" onKeyDown={e => { if(e.key==='Enter') { e.preventDefault(); onAdd(newCat); setNewCat(''); }}} />
@@ -1060,9 +1060,9 @@ export default function AdminDashboard() {
         <div className="min-h-screen bg-[#0B0F19] text-gray-100 flex flex-col sm:flex-row font-sans selection:bg-blue-500/30 print:hidden text-sm md:text-base">
             {/* Sidebar */}
             <div className="w-full sm:w-[240px] md:w-[280px] bg-[#131B2C] border-b sm:border-b-0 sm:border-r border-gray-800/60 flex flex-col shrink-0 z-20">
-                <div className="p-6 border-b border-gray-800/60 flex items-center justify-between">
+                <div className="p-2 md:p-4 md:p-6 border-b border-gray-800/60 flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-3">
+                        <h1 className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-3">
                             <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-lg shadow-lg shadow-blue-900/20">N</span>
                             Dashbrd X
                         </h1>
@@ -1100,7 +1100,7 @@ export default function AdminDashboard() {
                     ))}
                 </div>
                 
-                <div className="p-4 border-t border-gray-800/60 hidden md:block">
+                <div className="p-2 md:p-4 border-t border-gray-800/60 hidden md:block">
                     <Link href="/" className="hidden md:flex items-center gap-2 text-gray-500 hover:text-gray-300 transition-colors w-full px-4 py-2 font-medium">
                         <ArrowLeft className="w-4 h-4" /> Kembali ke Home
                     </Link>
@@ -1149,7 +1149,7 @@ export default function AdminDashboard() {
                             {/* Refund Modal */}
                             {refundTarget && (
                                 <div className="fixed inset-0 bg-black/70 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-sm">
-                                    <div className="bg-[#131B2C] border border-gray-800 rounded-3xl p-6 w-full max-w-md shadow-2xl my-auto flex-shrink-0">
+                                    <div className="bg-[#131B2C] border border-gray-800 rounded-3xl p-4 md:p-6 w-full max-w-md shadow-2xl my-auto flex-shrink-0">
                                         <h3 className="font-bold text-xl text-white mb-1">Proses Refund</h3>
                                         <p className="text-gray-400 text-sm mb-5">Transaksi: <span className="text-white font-semibold">{refundTarget.order_reference}</span></p>
                                         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 mb-5">
@@ -1232,7 +1232,7 @@ export default function AdminDashboard() {
 
                                     {/* Data Penjualan Produk (Requested Feature) */}
                                     <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                        <div className="p-6 border-b border-gray-800">
+                                        <div className="p-2 md:p-4 md:p-6 border-b border-gray-800">
                                             <h3 className="font-bold text-xl text-white">Ringkasan Penjualan Produk (Terlaris)</h3>
                                             <p className="text-gray-400 text-sm mt-1">Data penjualan, HPP, dan pendapatan bersih berdasarkan periode yang dipilih.</p>
                                         </div>
@@ -1243,26 +1243,26 @@ export default function AdminDashboard() {
                                                 <table className="w-full text-left border-collapse">
                                                     <thead>
                                                         <tr className="bg-gray-800/50 border-b border-gray-800">
-                                                            <th className="p-4 font-semibold text-gray-400">Produk</th>
-                                                            <th className="p-4 font-semibold text-gray-400 text-center">Terjual</th>
-                                                            <th className="p-4 font-semibold text-gray-400 text-right">Penghasilan Kotor</th>
-                                                            <th className="p-4 font-semibold text-gray-400 text-right">Total HPP</th>
-                                                            <th className="p-4 font-semibold text-gray-400 text-right">Laba Bersih</th>
+                                                            <th className="p-2 md:p-4 font-semibold text-gray-400">Produk</th>
+                                                            <th className="p-2 md:p-4 font-semibold text-gray-400 text-center">Terjual</th>
+                                                            <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Penghasilan Kotor</th>
+                                                            <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Total HPP</th>
+                                                            <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Laba Bersih</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         {productSalesData.map((row, idx) => (
                                                             <tr key={idx} className="border-b border-gray-800 hover:bg-gray-800/30">
-                                                                <td className="p-4">
+                                                                <td className="p-2 md:p-4">
                                                                     <div className="font-bold text-gray-200">{row.name}</div>
                                                                     <div className="text-xs text-gray-500">{row.category}</div>
                                                                 </td>
-                                                                <td className="p-4 text-center">
+                                                                <td className="p-2 md:p-4 text-center">
                                                                     <span className="px-3 py-1 bg-gray-800 text-gray-300 font-bold rounded-full text-sm">{row.terjual}</span>
                                                                 </td>
-                                                                <td className="p-4 text-right font-medium text-blue-400">Rp {row.kotor.toLocaleString('id-ID')}</td>
-                                                                <td className="p-4 text-right font-medium text-red-400">- Rp {row.hpp_total.toLocaleString('id-ID')}</td>
-                                                                <td className="p-4 text-right font-bold text-green-400">Rp {row.bersih.toLocaleString('id-ID')}</td>
+                                                                <td className="p-2 md:p-4 text-right font-medium text-blue-400">Rp {row.kotor.toLocaleString('id-ID')}</td>
+                                                                <td className="p-2 md:p-4 text-right font-medium text-red-400">- Rp {row.hpp_total.toLocaleString('id-ID')}</td>
+                                                                <td className="p-2 md:p-4 text-right font-bold text-green-400">Rp {row.bersih.toLocaleString('id-ID')}</td>
                                                             </tr>
                                                         ))}
                                                     </tbody>
@@ -1273,7 +1273,7 @@ export default function AdminDashboard() {
 
                                     {/* Rekonsiliasi Pembayaran */}
                                     <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                        <div className="p-6 border-b border-gray-800">
+                                        <div className="p-2 md:p-4 md:p-6 border-b border-gray-800">
                                             <h3 className="font-bold text-xl text-white">Rekonsiliasi Metode Pembayaran</h3>
                                         </div>
                                         {reconciliation.length === 0 ? (
@@ -1283,21 +1283,21 @@ export default function AdminDashboard() {
                                             <table className="w-full text-left border-collapse">
                                                 <thead>
                                                     <tr className="bg-gray-800/50 border-b border-gray-800">
-                                                        <th className="p-4 font-semibold text-gray-400">Metode</th>
-                                                        <th className="p-4 font-semibold text-gray-400">Trx</th>
-                                                        <th className="p-4 font-semibold text-gray-400 text-right">POS Total</th>
-                                                        <th className="p-4 font-semibold text-gray-400 text-right">Provider Total</th>
-                                                        <th className="p-4 font-semibold text-gray-400 text-right">Selisih</th>
+                                                        <th className="p-2 md:p-4 font-semibold text-gray-400">Metode</th>
+                                                        <th className="p-2 md:p-4 font-semibold text-gray-400">Trx</th>
+                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">POS Total</th>
+                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Provider Total</th>
+                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Selisih</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {reconciliation.map((row, idx) => (
                                                         <tr key={idx} className="border-b border-gray-800 hover:bg-gray-800/30">
-                                                            <td className="p-4 font-medium text-gray-200">{row.method_name}</td>
-                                                            <td className="p-4 text-gray-400">{row.transaction_count}</td>
-                                                            <td className="p-4 text-right font-bold text-blue-400">{row.pos_total.toLocaleString('id-ID')}</td>
-                                                            <td className="p-4 text-right text-gray-400">{row.pos_total.toLocaleString('id-ID')}</td>
-                                                            <td className="p-4 text-right font-bold text-green-400">0</td>
+                                                            <td className="p-2 md:p-4 font-medium text-gray-200">{row.method_name}</td>
+                                                            <td className="p-2 md:p-4 text-gray-400">{row.transaction_count}</td>
+                                                            <td className="p-2 md:p-4 text-right font-bold text-blue-400">{row.pos_total.toLocaleString('id-ID')}</td>
+                                                            <td className="p-2 md:p-4 text-right text-gray-400">{row.pos_total.toLocaleString('id-ID')}</td>
+                                                            <td className="p-2 md:p-4 text-right font-bold text-green-400">0</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -1314,7 +1314,7 @@ export default function AdminDashboard() {
 
                                 return (
                                     <div className="space-y-6">
-                                        <div className="bg-[#131B2C] p-5 rounded-2xl border border-gray-800/60 shadow-lg flex flex-col md:flex-row gap-4 md:items-center justify-between">
+                                        <div className="bg-[#131B2C] p-4 md:p-5 rounded-2xl border border-gray-800/60 shadow-lg flex flex-col md:flex-row gap-4 md:items-center justify-between">
                                             <div>
                                                 <h3 className="font-bold text-white mb-2">Filter Periode Transaksi</h3>
                                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -1364,7 +1364,7 @@ export default function AdminDashboard() {
                                                 const subTotal = trx.amount_due - (trx.tax_amount || 0);
                                                 const netProfit = subTotal - itemCogs;
                                                 return (
-                                                    <div key={trx.id} className="p-5 bg-[#131B2C] rounded-2xl border border-gray-800/60 shadow-lg flex flex-col md:flex-row gap-4 justify-between transition-colors hover:border-blue-500/30">
+                                                    <div key={trx.id} className="p-2 md:p-4 md:p-5 bg-[#131B2C] rounded-2xl border border-gray-800/60 shadow-lg flex flex-col md:flex-row gap-4 justify-between transition-colors hover:border-blue-500/30">
                                                         <div className="flex-1">
                                                             <div className="flex items-center gap-3 mb-2">
                                                                 <span className="font-bold text-white text-lg">{trx.order_reference}</span>
@@ -1406,7 +1406,7 @@ export default function AdminDashboard() {
                                                         <div className="text-right min-w-[150px] flex flex-col justify-between items-end">
                                                             <div className="w-full">
                                                                 <p className="text-sm text-gray-500 mb-1">Total</p>
-                                                                <p className="font-bold text-2xl text-white">Rp {trx.amount_received.toLocaleString('id-ID')}</p>
+                                                                <p className="font-bold text-lg md:text-2xl text-white">Rp {trx.amount_received.toLocaleString('id-ID')}</p>
                                                             </div>
                                                             
                                                             <div className="flex flex-col gap-2 mt-4 w-full">
@@ -1467,15 +1467,15 @@ export default function AdminDashboard() {
                             {/* INVENTORY TAB */}
                             {activeTab === "inventory" && (
                                 <div className="space-y-6">
-                                    <form onSubmit={handleCreateProduct} className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
+                                    <form onSubmit={handleCreateProduct} className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                         <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Produk Baru</h3>
                                         
                                         {/* Upload Gambar */}
-                                        <div className="flex items-center gap-6 mb-6">
+                                        <div className="flex items-center gap-4 md:p-6 mb-6">
                                             <div className="w-24 h-24 rounded-2xl bg-gray-900 border-2 border-dashed border-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                                                 {newProduct.image_url 
                                                     ? <img src={newProduct.image_url} alt="preview" className="w-full h-full object-cover" />
-                                                    : <span className="text-4xl">{newProduct.image_icon || '📦'}</span>
+                                                    : <span className="text-2xl md:text-4xl">{newProduct.image_icon || '📦'}</span>
                                                 }
                                             </div>
                                             <div>
@@ -1490,7 +1490,7 @@ export default function AdminDashboard() {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-5 mb-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:p-5 mb-6">
                                             <input type="text" placeholder="Nama Produk" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
                                             <CategoryDropdown
                                                 value={newProduct.category}
@@ -1505,7 +1505,7 @@ export default function AdminDashboard() {
                                             <div><label className="text-xs text-gray-500 mb-2 block">Stok Awal</label><input type="number" placeholder="0" required value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
                                         </div>
                                         
-                                        <div className="mb-6 p-5 bg-gray-900 border border-gray-800 rounded-xl">
+                                        <div className="mb-6 p-4 md:p-5 bg-gray-900 border border-gray-800 rounded-xl">
                                             <div className="flex justify-between items-center mb-4">
                                                 <h4 className="font-bold text-gray-300">Bahan Baku (Opsional)</h4>
                                                 <button type="button" onClick={addIngredient} className="text-sm px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold rounded-lg hover:bg-blue-500/20">+ Tambah</button>
@@ -1544,18 +1544,18 @@ export default function AdminDashboard() {
                                             <table className="w-full text-left border-collapse">
                                                 <thead>
                                                     <tr className="bg-gray-800/50 border-b border-gray-800">
-                                                        <th className="p-4 font-semibold text-gray-400">Produk</th>
-                                                        <th className="p-4 font-semibold text-gray-400 text-right">Harga Jual</th>
-                                                        <th className="p-4 font-semibold text-gray-400 text-right">Profit</th>
-                                                        <th className="p-4 font-semibold text-gray-400 text-center">Stok</th>
-                                                        <th className="p-4 font-semibold text-gray-400 text-center">Aksi</th>
+                                                        <th className="p-2 md:p-4 font-semibold text-gray-400">Produk</th>
+                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Harga Jual</th>
+                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-right">Profit</th>
+                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-center">Stok</th>
+                                                        <th className="p-2 md:p-4 font-semibold text-gray-400 text-center">Aksi</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
 
                                                     {products.map((p: any) => (
                                                         <tr key={p.id} className="border-b border-gray-800 hover:bg-gray-800/30">
-                                                            <td className="p-4 flex items-center gap-4">
+                                                            <td className="p-2 md:p-4 flex items-center gap-4">
                                                                 <div className="w-14 h-14 bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
                                                                     {p.image_url 
                                                                         ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
@@ -1567,18 +1567,18 @@ export default function AdminDashboard() {
                                                                     <p className="text-xs text-gray-500">{p.category}</p>
                                                                 </div>
                                                             </td>
-                                                            <td className="p-4 text-right">
+                                                            <td className="p-2 md:p-4 text-right">
                                                                 <p className="font-bold text-gray-200">Rp {p.price.toLocaleString('id-ID')}</p>
                                                                 <p className="text-xs text-gray-500">
                                                                     HPP: Rp {p.cogs.toLocaleString('id-ID')}
                                                                     {p.ingredients && p.ingredients.length > 0 && ` (${p.ingredients.length} Bahan)`}
                                                                 </p>
                                                             </td>
-                                                            <td className="p-4 text-right font-bold text-green-400">Rp {(p.price - p.cogs).toLocaleString('id-ID')}</td>
-                                                            <td className="p-4 text-center">
+                                                            <td className="p-2 md:p-4 text-right font-bold text-green-400">Rp {(p.price - p.cogs).toLocaleString('id-ID')}</td>
+                                                            <td className="p-2 md:p-4 text-center">
                                                                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-gray-300'}`}>{p.stock}</span>
                                                             </td>
-                                                            <td className="p-4 text-center">
+                                                            <td className="p-2 md:p-4 text-center">
                                                                 <div className="flex flex-wrap gap-2 justify-center">
                                                                     <button onClick={() => setAdjustingProductStock(p)} className="px-2 py-1 text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-600 hover:text-white transition-colors">+/- Stok</button>
                                                                     <button onClick={() => handleViewProductHistory(p)} className="px-2 py-1 text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-600 hover:text-white transition-colors">Riwayat</button>
@@ -1596,15 +1596,15 @@ export default function AdminDashboard() {
                                     {/* Edit Product Modal */}
                                     {editingProduct && (
                                         <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md overflow-y-auto">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[540px] shadow-2xl my-auto flex-shrink-0">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-[540px] shadow-2xl my-auto flex-shrink-0">
                                                 <h3 className="font-bold text-xl text-white mb-6">Edit Produk: {editingProduct.name}</h3>
                                                 <form onSubmit={handleUpdateProduct} className="space-y-4">
                                                     {/* Image Upload Edit */}
-                                                    <div className="flex items-center gap-5 mb-2">
+                                                    <div className="flex items-center gap-4 md:p-5 mb-2">
                                                         <div className="w-20 h-20 rounded-xl bg-gray-900 border-2 border-dashed border-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                                                             {editingProduct.image_url 
                                                                 ? <img src={editingProduct.image_url} alt={editingProduct.name} className="w-full h-full object-cover" />
-                                                                : <span className="text-3xl">{editingProduct.image_icon || '📦'}</span>
+                                                                : <span className="text-2xl md:text-3xl">{editingProduct.image_icon || '📦'}</span>
                                                             }
                                                         </div>
                                                         <div>
@@ -1630,7 +1630,7 @@ export default function AdminDashboard() {
                                                             onRemove={handleRemoveCategory}
                                                         />
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-4">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         <div>
                                                             <label className="text-sm font-bold text-gray-400 block mb-2">Harga Jual</label>
                                                             <input type="number" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
@@ -1641,7 +1641,7 @@ export default function AdminDashboard() {
                                                         </div>
                                                     </div>
 
-                                                    <div className="mb-6 p-5 bg-gray-900 border border-gray-800 rounded-xl">
+                                                    <div className="mb-6 p-4 md:p-5 bg-gray-900 border border-gray-800 rounded-xl">
                                                         <div className="flex justify-between items-center mb-4">
                                                             <h4 className="font-bold text-gray-300">Bahan Baku (Opsional)</h4>
                                                             <button type="button" onClick={addIngredientEdit} className="text-sm px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold rounded-lg hover:bg-blue-500/20">+ Tambah</button>
@@ -1681,7 +1681,7 @@ export default function AdminDashboard() {
                                     {/* Adjust Product Stock Modal */}
                                     {adjustingProductStock && (
                                         <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md overflow-y-auto">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-sm shadow-2xl my-auto flex-shrink-0">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-sm shadow-2xl my-auto flex-shrink-0">
                                                 <h3 className="font-bold text-xl text-white mb-2">Update Stok</h3>
                                                 <p className="text-gray-400 mb-6 font-bold">{adjustingProductStock.name}</p>
                                                 <form onSubmit={handleUpdateProductStock} className="space-y-4">
@@ -1708,7 +1708,7 @@ export default function AdminDashboard() {
                                     {/* Product History Modal */}
                                     {viewingProductHistory && (
                                         <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md overflow-y-auto">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl my-auto flex-shrink-0">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl my-auto flex-shrink-0">
                                                 <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
                                                     <div>
                                                         <h3 className="font-bold text-xl text-white">Riwayat Terjual</h3>
@@ -1749,7 +1749,7 @@ export default function AdminDashboard() {
                                     {/* INPUTS ROW */}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                         {/* Bahan Baku */}
-                                        <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
+                                        <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                             <div className="flex items-center gap-2 mb-6 border-b border-gray-800 pb-3">
                                                 <button onClick={() => setMaterialMode('add')} className={`pb-2 px-2 text-lg font-bold border-b-2 transition-colors ${materialMode === 'add' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-400 hover:text-white'}`}>Tambah Bahan</button>
                                                 <button onClick={() => setMaterialMode('update')} className={`pb-2 px-2 text-lg font-bold border-b-2 transition-colors ${materialMode === 'update' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-400 hover:text-white'}`}>+/- Stok</button>
@@ -1768,7 +1768,7 @@ export default function AdminDashboard() {
                                             ) : (
                                                 <div className="space-y-4">
                                                     {!selectedMaterial ? (
-                                                        <div className="text-gray-400 text-sm text-center py-4 border border-dashed border-gray-700 rounded-xl">
+                                                        <div className="text-gray-400 text-sm text-center py-3 md:py-4 border border-dashed border-gray-700 rounded-xl">
                                                             Pilih bahan baku dari tabel di bawah untuk mengatur stok.
                                                         </div>
                                                     ) : (
@@ -1778,7 +1778,7 @@ export default function AdminDashboard() {
                                                                 <span className="text-xs bg-gray-800 px-2 py-1 rounded-md text-gray-300">Stok saat ini: {selectedMaterial.current_stock} {selectedMaterial.unit}</span>
                                                             </div>
                                                             <form onSubmit={handleAdjustStock} className="space-y-4">
-                                                                <div className="grid grid-cols-2 gap-4">
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                                     <div>
                                                                         <label className="text-xs text-gray-500 mb-1 block">Penambahan/Pengurangan Stok</label>
                                                                         <div className="flex items-center gap-3">
@@ -1811,13 +1811,13 @@ export default function AdminDashboard() {
                                         </div>
 
                                         {/* Pengeluaran */}
-                                        <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
+                                        <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                             <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Catat Pengeluaran</h3>
                                             <form onSubmit={handleCreateExpense} className="space-y-4">
                                                 <input type="text" placeholder="Deskripsi Pengeluaran" required value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                                 <input type="number" placeholder="Nominal (Rp)" required value={newExpense.amount || ''} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                                 
-                                                <div className="grid grid-cols-2 gap-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
                                                         <label className="text-xs text-gray-500 mb-1 block">Bahan Baku (Opsional)</label>
                                                         <select 
@@ -1853,20 +1853,20 @@ export default function AdminDashboard() {
                                     {/* TABLES ROW */}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                         <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                            <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Daftar Bahan Baku</h3>
+                                            <h3 className="p-2 md:p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Daftar Bahan Baku</h3>
                                             {rawMaterials.length === 0 ? (
-                                                <p className="p-6 text-gray-500 text-center text-sm">Belum ada bahan baku.</p>
+                                                <p className="p-2 md:p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada bahan baku.</p>
                                             ) : (
                                                 <table className="w-full text-left">
                                                     <tbody>
                                                         {rawMaterials.map((mat: any) => (
                                                             <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
-                                                                <td className="p-4">
+                                                                <td className="p-2 md:p-4">
                                                                     <div className="font-bold text-white">{mat.name}</div>
                                                                     {mat.updated_by_name && <div className="text-[10px] text-blue-400 mt-1">Oleh: {mat.updated_by_name}</div>}
                                                                 </td>
-                                                                <td className="p-4 text-center"><span className="px-3 py-1 bg-gray-800 rounded-lg text-sm">{mat.current_stock} {mat.unit}</span></td>
-                                                                <td className="p-4 text-right text-gray-400 text-sm">Rp {mat.last_price_per_unit.toLocaleString('id-ID')}/{mat.unit}</td>
+                                                                <td className="p-2 md:p-4 text-center"><span className="px-3 py-1 bg-gray-800 rounded-lg text-sm">{mat.current_stock} {mat.unit}</span></td>
+                                                                <td className="p-2 md:p-4 text-right text-gray-400 text-sm">Rp {mat.last_price_per_unit.toLocaleString('id-ID')}/{mat.unit}</td>
                                                                 <td className="p-3 text-right">
                                                                     <div className="flex gap-1 justify-end">
                                                                         <button onClick={() => { setSelectedMaterial({...mat}); setMaterialMode('update'); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
@@ -1881,7 +1881,7 @@ export default function AdminDashboard() {
                                         </div>
                                         {/* Pengeluaran */}
                                         <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                            <div className="p-4 bg-gray-800/30 border-b border-gray-800 flex flex-col md:flex-row gap-3 justify-between md:items-center">
+                                            <div className="p-2 md:p-4 bg-gray-800/30 border-b border-gray-800 flex flex-col md:flex-row gap-3 justify-between md:items-center">
                                                 <h3 className="font-bold text-gray-300">Riwayat Pengeluaran</h3>
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700">
@@ -1901,25 +1901,25 @@ export default function AdminDashboard() {
                                             {(() => {
                                                 const filteredExpenses = getFilteredExpenses();
                                                 return filteredExpenses.length === 0 ? (
-                                                    <p className="p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran pada periode ini.</p>
+                                                    <p className="p-2 md:p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran pada periode ini.</p>
                                                 ) : (
                                                     <div className="overflow-x-auto max-h-[600px]">
                                                         <table className="w-full text-left">
                                                             <tbody>
                                                                 {filteredExpenses.map((exp: any) => (
                                                                     <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20">
-                                                                        <td className="p-4">
+                                                                        <td className="p-2 md:p-4">
                                                                             <p className="font-bold text-white">{exp.description}</p>
                                                                             <p className="text-xs text-gray-500">{new Date(exp.expense_date || exp.created_at).toLocaleString('id-ID')}</p>
                                                                         </td>
-                                                                        <td className="p-4 text-center">
+                                                                        <td className="p-2 md:p-4 text-center">
                                                                             {exp.staff_name ? (
                                                                                 <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{exp.staff_name}</span>
                                                                             ) : (
                                                                                 <span className="px-2 py-1 bg-gray-800 text-gray-400 rounded-md text-[10px] border border-gray-700">Owner</span>
                                                                             )}
                                                                         </td>
-                                                                        <td className="p-4 text-right font-bold text-red-400 whitespace-nowrap">- Rp {Number(exp.amount).toLocaleString('id-ID')}</td>
+                                                                        <td className="p-2 md:p-4 text-right font-bold text-red-400 whitespace-nowrap">- Rp {Number(exp.amount).toLocaleString('id-ID')}</td>
                                                                         <td className="p-3 text-right">
                                                                             <div className="flex gap-1 justify-end">
                                                                                 <button onClick={() => setEditingExpense({...exp})} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
@@ -1938,33 +1938,33 @@ export default function AdminDashboard() {
                                     
                                     {/* Material Stock Logs Row */}
                                     <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl mt-8">
-                                        <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Riwayat Update Stok Bahan Baku</h3>
+                                        <h3 className="p-2 md:p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Riwayat Update Stok Bahan Baku</h3>
                                         {materialStockLogs.length === 0 ? (
-                                            <p className="p-6 text-gray-500 text-center text-sm">Belum ada riwayat update stok.</p>
+                                            <p className="p-2 md:p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada riwayat update stok.</p>
                                         ) : (
                                             <div className="overflow-x-auto">
                                                 <table className="w-full text-left text-sm">
                                                     <thead>
                                                         <tr className="bg-gray-800/50 border-b border-gray-800 text-gray-400">
-                                                            <th className="p-4">Waktu</th>
-                                                            <th className="p-4">Bahan Baku</th>
-                                                            <th className="p-4">Perubahan</th>
-                                                            <th className="p-4">Keterangan</th>
-                                                            <th className="p-4">Oleh</th>
+                                                            <th className="p-2 md:p-4">Waktu</th>
+                                                            <th className="p-2 md:p-4">Bahan Baku</th>
+                                                            <th className="p-2 md:p-4">Perubahan</th>
+                                                            <th className="p-2 md:p-4">Keterangan</th>
+                                                            <th className="p-2 md:p-4">Oleh</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         {materialStockLogs.map((log: any) => (
                                                             <tr key={log.id} className="border-b border-gray-800 hover:bg-gray-800/20">
-                                                                <td className="p-4 text-gray-400">{new Date(log.created_at).toLocaleString('id-ID')}</td>
-                                                                <td className="p-4 font-bold text-white">{log.material_name}</td>
-                                                                <td className="p-4">
+                                                                <td className="p-2 md:p-4 text-gray-400">{new Date(log.created_at).toLocaleString('id-ID')}</td>
+                                                                <td className="p-2 md:p-4 font-bold text-white">{log.material_name}</td>
+                                                                <td className="p-2 md:p-4">
                                                                     <span className={`px-2 py-1 rounded-md font-bold text-xs ${log.delta > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
                                                                         {log.delta > 0 ? '+' : ''}{log.delta}
                                                                     </span>
                                                                 </td>
-                                                                <td className="p-4 text-gray-400">{log.note || '-'}</td>
-                                                                <td className="p-4">
+                                                                <td className="p-2 md:p-4 text-gray-400">{log.note || '-'}</td>
+                                                                <td className="p-2 md:p-4">
                                                                     {log.staff_name ? (
                                                                         <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{log.staff_name}</span>
                                                                     ) : (
@@ -1982,7 +1982,7 @@ export default function AdminDashboard() {
                                     {/* Edit Expense Modal */}
                                     {editingExpense && (
                                         <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-md shadow-2xl my-auto flex-shrink-0">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-6 rounded-3xl w-full max-w-md shadow-2xl my-auto flex-shrink-0">
                                                 <h3 className="font-bold text-xl text-white mb-5">Edit Pengeluaran</h3>
                                                 <form onSubmit={handleUpdateExpense} className="space-y-4">
                                                     <input type="text" placeholder="Deskripsi" value={editingExpense.description} onChange={e => setEditingExpense({...editingExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
@@ -2001,7 +2001,7 @@ export default function AdminDashboard() {
                             {/* STAFF TAB */}
                             {activeTab === "staff" && (
                                 <div className="space-y-6">
-                                    <form onSubmit={handleCreateStaff} className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
+                                    <form onSubmit={handleCreateStaff} className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                         <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Akun Baru</h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                             <input type="text" placeholder="Nama Lengkap" required value={newStaff.full_name} onChange={e => setNewStaff({...newStaff, full_name: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
@@ -2019,19 +2019,19 @@ export default function AdminDashboard() {
                                         <table className="w-full text-left border-collapse">
                                             <thead>
                                                 <tr className="bg-gray-800/50 border-b border-gray-800">
-                                                    <th className="p-4 text-gray-400">Nama</th>
-                                                    <th className="p-4 text-gray-400">Role</th>
-                                                    <th className="p-4 text-gray-400">Status</th>
-                                                    <th className="p-4 text-gray-400 text-right">Aksi</th>
+                                                    <th className="p-2 md:p-4 text-gray-400">Nama</th>
+                                                    <th className="p-2 md:p-4 text-gray-400">Role</th>
+                                                    <th className="p-2 md:p-4 text-gray-400">Status</th>
+                                                    <th className="p-2 md:p-4 text-gray-400 text-right">Aksi</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {staffList.map((st: any) => (
                                                     <tr key={st.id} className="border-b border-gray-800 hover:bg-gray-800/30">
-                                                        <td className="p-4 font-bold text-white">{st.full_name}<p className="text-xs text-gray-500 font-normal">{st.email}</p></td>
-                                                        <td className="p-4"><span className={`px-3 py-1 text-xs font-bold rounded-lg ${st.role === 'owner' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-gray-800 text-gray-300'}`}>{st.role.toUpperCase()}</span></td>
-                                                        <td className="p-4"><span className="text-green-400 font-bold text-sm">Aktif</span></td>
-                                                        <td className="p-4 text-right flex justify-end gap-2">
+                                                        <td className="p-2 md:p-4 font-bold text-white">{st.full_name}<p className="text-xs text-gray-500 font-normal">{st.email}</p></td>
+                                                        <td className="p-2 md:p-4"><span className={`px-3 py-1 text-xs font-bold rounded-lg ${st.role === 'owner' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-gray-800 text-gray-300'}`}>{st.role.toUpperCase()}</span></td>
+                                                        <td className="p-2 md:p-4"><span className="text-green-400 font-bold text-sm">Aktif</span></td>
+                                                        <td className="p-2 md:p-4 text-right flex justify-end gap-2">
                                                             <button onClick={() => setEditingStaff(st)} className="px-3 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
                                                             <button onClick={() => handleDeleteStaff(st.id)} className="px-3 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Hapus</button>
                                                         </td>
@@ -2044,7 +2044,7 @@ export default function AdminDashboard() {
                                     {/* Edit Staff Modal */}
                                     {editingStaff && (
                                         <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl my-auto flex-shrink-0">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl my-auto flex-shrink-0">
                                                 <h3 className="font-bold text-xl text-white mb-6">Edit Staf: {editingStaff.full_name}</h3>
                                                 <form onSubmit={handleUpdateStaff} className="space-y-4">
                                                     <div>
@@ -2094,7 +2094,7 @@ export default function AdminDashboard() {
                                         </div>
                                     ) : (
                                         auditLogs.map((log: any) => (
-                                            <div key={log.id} className="p-5 rounded-2xl bg-[#131B2C] border border-gray-800 flex justify-between items-center shadow-lg">
+                                            <div key={log.id} className="p-2 md:p-4 md:p-5 rounded-2xl bg-[#131B2C] border border-gray-800 flex justify-between items-center shadow-lg">
                                                 <div>
                                                     <p className="font-bold text-white capitalize text-lg">{String(log.action || '').replace(/_/g, ' ')}</p>
                                                     <p className="text-sm text-gray-500 mt-1">Entity: <span className="text-gray-300">{log.entity_type}</span> | Staff: <span className="text-gray-300">{log.staff_id || 'System'}</span></p>
@@ -2109,10 +2109,10 @@ export default function AdminDashboard() {
                             )}
                             {/* SETTINGS TAB */}
                             {activeTab === "settings" && (
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:p-6">
                                     <div className="space-y-6">
                                         {/* Brand Settings */}
-                                        <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
+                                        <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                             <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4">Pengaturan Brand Toko</h3>
                                             
                                             <div className="space-y-6">
@@ -2129,7 +2129,7 @@ export default function AdminDashboard() {
 
                                                 <div>
                                                     <label className="block text-sm font-bold text-gray-300 mb-2">Logo Struk & Kiosk (Max 1MB)</label>
-                                                    <div className="flex items-center gap-6">
+                                                    <div className="flex items-center gap-4 md:p-6">
                                                         {storeSettings.logo_base64 ? (
                                                             <img src={storeSettings.logo_base64} alt="Logo" className="w-24 h-24 object-contain bg-white rounded-xl p-2 border border-gray-800" />
                                                         ) : (
@@ -2153,11 +2153,11 @@ export default function AdminDashboard() {
                                         </div>
 
                                         {/* Receipt Settings */}
-                                        <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
+                                        <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                             <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4">Template Struk & Biaya</h3>
                                             
                                             <div className="space-y-6">
-                                                <div className="grid grid-cols-2 gap-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
                                                         <label className="block text-sm font-bold text-gray-300 mb-2">Nama WiFi (Tampil di struk)</label>
                                                         <input 
@@ -2217,7 +2217,7 @@ export default function AdminDashboard() {
 
                                                 <div>
                                                     <label className="block text-sm font-bold text-gray-300 mb-2">QRIS Statis Toko (Opsional)</label>
-                                                    <div className="flex items-center gap-6">
+                                                    <div className="flex items-center gap-4 md:p-6">
                                                         {storeSettings.qris_image_base64 ? (
                                                             <img src={storeSettings.qris_image_base64} alt="QRIS" className="w-24 h-24 object-contain bg-white rounded-xl p-2 border border-gray-800" />
                                                         ) : (
@@ -2238,7 +2238,7 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-6 p-5 bg-gray-900 border border-gray-800 rounded-xl">
+                                                <div className="mt-6 p-4 md:p-5 bg-gray-900 border border-gray-800 rounded-xl">
                                                     <h4 className="font-bold text-gray-300 mb-4">Kelola Metode Pembayaran</h4>
                                                     <div className="flex flex-wrap gap-2 mb-4">
                                                         {paymentMethods.map((pm: any) => (
@@ -2273,7 +2273,7 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-6 p-5 bg-gray-900 border border-gray-800 rounded-xl">
+                                                <div className="mt-6 p-4 md:p-5 bg-gray-900 border border-gray-800 rounded-xl">
                                                     <h4 className="font-bold text-gray-300 mb-4">Kelola Kategori Menu</h4>
                                                     <div className="flex flex-wrap gap-2 mb-4">
                                                         {storeSettings.categories.map((cat: string) => (
@@ -2312,7 +2312,7 @@ export default function AdminDashboard() {
                                                 <button 
                                                     onClick={handleSaveSettings}
                                                     disabled={loading}
-                                                    className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors disabled:opacity-50 mt-4"
+                                                    className="w-full py-3 md:py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors disabled:opacity-50 mt-4"
                                                 >
                                                     {loading ? "Menyimpan..." : "Simpan Semua Pengaturan"}
                                                 </button>
@@ -2324,10 +2324,10 @@ export default function AdminDashboard() {
                                     </div>
 
                                     {/* Preview Section */}
-                                    <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl flex flex-col items-center">
+                                    <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl flex flex-col items-center">
                                         <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4 w-full text-left">Live Preview Struk</h3>
                                         
-                                        <div className="bg-white p-6 text-black font-mono text-sm w-[300px] shadow-2xl rounded-sm">
+                                        <div className="bg-white p-4 md:p-6 text-black font-mono text-sm w-[300px] shadow-2xl rounded-sm">
                                             {storeSettings.logo_base64 && (
                                                 <div className="flex justify-center mb-4">
                                                     <img src={storeSettings.logo_base64} alt="Logo" style={{ width: storeSettings.logo_size, height: storeSettings.logo_size }} className="object-contain grayscale" />
