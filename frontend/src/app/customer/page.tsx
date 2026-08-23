@@ -37,18 +37,14 @@ export default function CustomerPage() {
             if (local) setStoreSettings(JSON.parse(local));
             
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/store_settings?select=*&limit=1`, {
-                    headers: {
-                        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
-                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
-                    }
-                });
-                const data = await res.json();
+                const { data } = await supabase.from('store_settings').select('*').limit(1);
                 if (data && data.length > 0) {
                     setStoreSettings(data[0]);
                     localStorage.setItem("nexpos_store_settings", JSON.stringify(data[0]));
                 }
-            } catch(e) {}
+            } catch(e) {
+                console.error("Failed to load settings:", e);
+            }
         };
         loadSettings();
     }, []);
@@ -144,7 +140,12 @@ export default function CustomerPage() {
                 status: 'pending'
             };
 
-            await supabase.from('kiosk_orders').insert([newOrder]);
+            const { error: insertError } = await supabase.from('kiosk_orders').insert([newOrder]);
+            if (insertError) {
+                console.error("Supabase Insert Error:", insertError);
+                throw insertError;
+            }
+            
             setQueueNumber(generatedQueueNumber);
             setOrderStatus('waiting_payment');
             setShowMobileCart(false);

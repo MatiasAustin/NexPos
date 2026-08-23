@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+if (typeof window !== 'undefined' && (apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1')) && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    apiUrl = apiUrl.replace(/localhost|127\.0\.0\.1/, window.location.hostname);
+}
+
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+    baseURL: apiUrl,
     headers: {
         'Content-Type': 'application/json',
     },
