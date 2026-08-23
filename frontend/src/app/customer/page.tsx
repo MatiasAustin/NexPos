@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { ShoppingCart, Send, Trash2, Minus, Plus, LayoutGrid, List, Clock, ShoppingBag } from "lucide-react";
-import { getActiveProducts } from "@/lib/api";
 import { SkeletonCard } from "@/components/Loading";
 import { supabase } from "@/lib/supabase";
 
@@ -22,8 +21,9 @@ export default function CustomerPage() {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const data = await getActiveProducts();
-                setProducts(data);
+                const { data, error } = await supabase.from('products').select('*').eq('is_active', true).order('name');
+                if (data) setProducts(data);
+                if (error) throw error;
             } catch (err) {
                 console.error("Failed to fetch products:", err);
             } finally {
@@ -123,31 +123,27 @@ export default function CustomerPage() {
     const sendOrderToCashier = async () => {
         if (cart.length === 0) return;
         
-        // Generate Queue Number (1-999 daily)
-        const today = new Date().toISOString().split('T')[0];
-        const counterData = JSON.parse(localStorage.getItem("nexpos_queue_counter") || "{}");
-        
-        let nextNumber = 1;
-        if (counterData.date === today) {
-            nextNumber = (counterData.count || 0) + 1;
-        }
-        
-        localStorage.setItem("nexpos_queue_counter", JSON.stringify({
-            date: today,
-            count: nextNumber
-        }));
-        
-        const generatedQueueNumber = nextNumber.toString().padStart(3, '0');
-        
-        const newOrder = {
-            queue_number: generatedQueueNumber,
-            customer_name: customerName,
-            items: cart,
-            total: grandTotal,
-            status: 'pending'
-        };
-
         try {
+            // Generate Queue Number (1-999 daily) by checking DB
+            const todayStart = new Date();
+            todayStart.setHours(0,0,0,0);
+            
+            const { count } = await supabase
+                .from('kiosk_orders')
+                .select('*', { count: 'exact', head: true })
+                .gte('created_at', todayStart.toISOString());
+                
+            const nextNumber = (count || 0) + 1;
+            const generatedQueueNumber = nextNumber.toString().padStart(3, '0');
+        
+            const newOrder = {
+                queue_number: generatedQueueNumber,
+                customer_name: customerName,
+                items: cart,
+                total: grandTotal,
+                status: 'pending'
+            };
+
             await supabase.from('kiosk_orders').insert([newOrder]);
             setQueueNumber(generatedQueueNumber);
             setOrderStatus('waiting_payment');
