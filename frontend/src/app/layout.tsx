@@ -10,7 +10,22 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-full antialiased print:h-auto">
-      <body className="min-h-full flex flex-col bg-[#121214] text-gray-100 font-sans print:block print:min-h-0 print:bg-white">
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @page {
+            size: 58mm 210mm;
+            margin: 0;
+          }
+          @media print {
+            html, body {
+              width: 58mm !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+          }
+        `}} />
+      </head>
+      <body className="min-h-full flex flex-col bg-[#121214] text-gray-100 font-sans print:block print:min-h-0 print:bg-white print:w-[58mm] print:mx-auto">
         <ToastProvider>
           {children}
         </ToastProvider>
