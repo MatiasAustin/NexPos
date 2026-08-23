@@ -1052,7 +1052,7 @@ export default function PosPage() {
                         {storeSettings?.logo_base64 && (
                             <img src={storeSettings.logo_base64} alt="Logo" style={{ width: storeSettings.logo_size, height: storeSettings.logo_size }} className="mx-auto mb-2 object-contain grayscale" />
                         )}
-                        <h2 className="font-bold text-xl">{storeSettings?.store_name || 'NEXPOS'}</h2>
+                        <h2 className="font-bold text-xl">{storeSettings?.cafe_name || 'NEXPOS'}</h2>
                         <p className="text-xs mt-1">{storeSettings?.store_address}</p>
                         <p className="text-xs mt-1">{storeSettings?.store_phone}</p>
                     </div>

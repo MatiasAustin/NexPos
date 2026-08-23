@@ -20,7 +20,7 @@ export const generateReceiptText = (
 
     let text = "";
     
-    text += alignCenter(storeSettings?.store_name || 'NEXPOS') + "\n";
+    text += alignCenter(storeSettings?.cafe_name || 'NEXPOS') + "\n";
     if (storeSettings?.store_address) text += alignCenter(storeSettings.store_address) + "\n";
     if (storeSettings?.store_phone) text += alignCenter(storeSettings.store_phone) + "\n";
     text += "--------------------------------\n";
