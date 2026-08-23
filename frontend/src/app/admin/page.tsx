@@ -1419,13 +1419,29 @@ export default function AdminDashboard() {
                                                                             Refund
                                                                         </button>
                                                                         <button 
+                                                                            onClick={async () => {
+                                                                                const { generateReceiptText, printWithRawBT } = await import('@/lib/printUtils');
+                                                                                const text = generateReceiptText(
+                                                                                    storeSettings,
+                                                                                    trx,
+                                                                                    trx.order_items || [],
+                                                                                    'Admin',
+                                                                                    trx.payment_methods?.name || 'TUNAI'
+                                                                                );
+                                                                                printWithRawBT(text);
+                                                                            }}
+                                                                            className="w-full px-4 py-2 bg-orange-600 text-white border border-orange-500 rounded-xl text-sm font-bold hover:bg-orange-500 transition-colors"
+                                                                        >
+                                                                            Cetak (RawBT)
+                                                                        </button>
+                                                                        <button 
                                                                             onClick={() => {
                                                                                 setPrintTransaction(trx);
                                                                                 setTimeout(() => window.print(), 100);
                                                                             }}
                                                                             className="w-full px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl text-sm font-bold hover:bg-blue-500/20 transition-colors"
                                                                         >
-                                                                            Cetak Struk
+                                                                            Cetak (Web)
                                                                         </button>
                                                                     </>
                                                                 )}
@@ -2376,12 +2392,38 @@ export default function AdminDashboard() {
                                             </div>
                                         </div>
 
-                                        <button 
-                                            onClick={handleTestPrint}
-                                            className="mt-8 px-6 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 transition-colors flex items-center gap-2"
-                                        >
-                                            Test Cetak (Print PDF)
-                                        </button>
+                                        <div className="flex flex-col md:flex-row gap-4 mt-8">
+                                            <button 
+                                                onClick={async () => {
+                                                    const { generateReceiptText, printWithRawBT } = await import('@/lib/printUtils');
+                                                    // Dummy transaction for testing
+                                                    const dummyTx = {
+                                                        order_reference: 'TEST-123',
+                                                        created_at: new Date().toISOString(),
+                                                        customer_name: 'Mr. Tester',
+                                                        tax_amount: 5000,
+                                                        amount_due: 55000,
+                                                        amount_received: 100000,
+                                                        change_given: 45000
+                                                    };
+                                                    const dummyItems = [
+                                                        { product_name: 'Test Item 1', quantity: 1, price_at_time: 20000 },
+                                                        { product_name: 'Test Item 2', quantity: 1, price_at_time: 30000 }
+                                                    ];
+                                                    const text = generateReceiptText(storeSettings, dummyTx, dummyItems, 'Admin Test', 'QRIS');
+                                                    printWithRawBT(text);
+                                                }}
+                                                className="px-6 py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-500 transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                Test Cetak (RawBT)
+                                            </button>
+                                            <button 
+                                                onClick={handleTestPrint}
+                                                className="px-6 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                Test Cetak (Web/PDF)
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
