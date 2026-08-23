@@ -1420,8 +1420,8 @@ export default function AdminDashboard() {
                                                                         </button>
                                                                         <button 
                                                                             onClick={async () => {
-                                                                                const { generateReceiptText, printWithRawBT } = await import('@/lib/printUtils');
-                                                                                const text = generateReceiptText(
+                                                                                const { generateReceiptHtml, printWithRawBT } = await import('@/lib/printUtils');
+                                                                                const text = generateReceiptHtml(
                                                                                     storeSettings,
                                                                                     trx,
                                                                                     trx.order_items || [],
@@ -2395,7 +2395,7 @@ export default function AdminDashboard() {
                                         <div className="flex flex-col md:flex-row gap-4 mt-8">
                                             <button 
                                                 onClick={async () => {
-                                                    const { generateReceiptText, printWithRawBT } = await import('@/lib/printUtils');
+                                                    const { generateReceiptHtml, printWithRawBT } = await import('@/lib/printUtils');
                                                     // Dummy transaction for testing
                                                     const dummyTx = {
                                                         order_reference: 'TEST-123',
@@ -2410,7 +2410,7 @@ export default function AdminDashboard() {
                                                         { product_name: 'Test Item 1', quantity: 1, price_at_time: 20000 },
                                                         { product_name: 'Test Item 2', quantity: 1, price_at_time: 30000 }
                                                     ];
-                                                    const text = generateReceiptText(storeSettings, dummyTx, dummyItems, 'Admin Test', 'QRIS');
+                                                    const text = generateReceiptHtml(storeSettings, dummyTx, dummyItems, 'Admin Test', 'QRIS');
                                                     printWithRawBT(text);
                                                 }}
                                                 className="px-6 py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-500 transition-colors flex items-center justify-center gap-2"

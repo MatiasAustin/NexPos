@@ -1003,15 +1003,41 @@ export default function PosPage() {
                                 <div className="flex flex-col md:flex-row gap-4">
                                     <button 
                                         onClick={async () => {
-                                            const { generateReceiptText, printWithRawBT } = await import('@/lib/printUtils');
-                                            const text = generateReceiptText(
-                                                storeSettings,
-                                                paymentResult.transaction || paymentResult,
-                                                paymentResult.transaction?.items || paymentResult.items || [],
-                                                staff?.full_name || 'Admin',
-                                                paymentResult.payment_method_name || 'TUNAI'
-                                            );
-                                            printWithRawBT(text);
+                                            const { printWithRawBT } = await import('@/lib/printUtils');
+                                            const receiptEl = document.getElementById('print-receipt-section');
+                                            if (receiptEl) {
+                                                const htmlContent = `
+                                                    <html>
+                                                    <head>
+                                                        <meta charset="utf-8">
+                                                        <style>
+                                                            body { font-family: monospace; font-size: 12px; color: black; background: white; margin: 0; padding: 0; width: 58mm; }
+                                                            .text-center { text-align: center; }
+                                                            .flex { display: flex; }
+                                                            .justify-between { justify-content: space-between; }
+                                                            .font-bold { font-weight: bold; }
+                                                            .text-xl { font-size: 16px; }
+                                                            .text-xs { font-size: 10px; }
+                                                            .text-sm { font-size: 11px; }
+                                                            .border-b { border-bottom: 1px dashed black; }
+                                                            .border-t { border-top: 1px dashed black; }
+                                                            .pb-4 { padding-bottom: 16px; }
+                                                            .pt-4 { padding-top: 16px; }
+                                                            .mb-4 { margin-bottom: 16px; }
+                                                            .mt-4 { margin-top: 16px; }
+                                                            .w-full { width: 100%; }
+                                                            table { width: 100%; border-collapse: collapse; }
+                                                            td { vertical-align: bottom; }
+                                                            .text-right { text-align: right; }
+                                                        </style>
+                                                    </head>
+                                                    <body>
+                                                        ${receiptEl.innerHTML}
+                                                    </body>
+                                                    </html>
+                                                `;
+                                                printWithRawBT(htmlContent);
+                                            }
                                         }}
                                         className="w-full bg-orange-600 hover:bg-orange-500 text-white py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
                                     >
