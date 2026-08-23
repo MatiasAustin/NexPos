@@ -11,7 +11,8 @@ export type PeriodMode = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
 interface ChartPoint {
     label: string;
     omset: number;
-    pengeluaran: number;
+    pengeluaranOp: number;
+    hpp: number;
     laba: number;
 }
 
