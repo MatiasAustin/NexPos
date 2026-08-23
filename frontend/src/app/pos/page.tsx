@@ -921,8 +921,8 @@ export default function PosPage() {
 
             {/* PAYMENT MODAL */}
             {showPayment && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md print:hidden">
-                    <div className="bg-[#1a1a1c] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl overflow-y-auto max-h-[90vh]">
+                <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 backdrop-blur-md overflow-y-auto print:hidden">
+                    <div className="bg-[#1a1a1c] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl my-auto flex-shrink-0">
                         {!paymentResult ? (
                             <>
                                 <h2 className="text-2xl font-bold mb-6 border-b border-gray-800 pb-4 text-white">Pilih Pembayaran</h2>
@@ -1134,8 +1134,8 @@ export default function PosPage() {
 
             {/* EXPENSES & RAW MATERIALS MODAL */}
             {showExpensesModal && (
-                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4 backdrop-blur-sm overflow-y-auto print:hidden">
-                    <div className="bg-[#1a1a1c] border border-gray-800 rounded-3xl w-full max-w-6xl shadow-2xl p-6 md:p-8 my-8 relative">
+                <div className="fixed inset-0 bg-black/90 flex items-start justify-center z-[100] p-4 backdrop-blur-sm overflow-y-auto print:hidden">
+                    <div className="bg-[#1a1a1c] border border-gray-800 rounded-3xl w-full max-w-6xl shadow-2xl p-6 md:p-8 my-auto flex-shrink-0 relative">
                         <button 
                             onClick={() => setShowExpensesModal(false)}
                             className="absolute top-6 right-6 w-10 h-10 bg-gray-800 hover:bg-red-500 hover:text-white rounded-full flex items-center justify-center text-gray-400 transition-colors"

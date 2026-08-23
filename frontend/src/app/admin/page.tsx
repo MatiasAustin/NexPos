@@ -1148,8 +1148,8 @@ export default function AdminDashboard() {
                         <div className="space-y-6">
                             {/* Refund Modal */}
                             {refundTarget && (
-                                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                                    <div className="bg-[#131B2C] border border-gray-800 rounded-3xl p-6 w-full max-w-md shadow-2xl">
+                                <div className="fixed inset-0 bg-black/70 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-sm">
+                                    <div className="bg-[#131B2C] border border-gray-800 rounded-3xl p-6 w-full max-w-md shadow-2xl my-auto flex-shrink-0">
                                         <h3 className="font-bold text-xl text-white mb-1">Proses Refund</h3>
                                         <p className="text-gray-400 text-sm mb-5">Transaksi: <span className="text-white font-semibold">{refundTarget.order_reference}</span></p>
                                         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 mb-5">
@@ -1579,8 +1579,8 @@ export default function AdminDashboard() {
                                     
                                     {/* Edit Product Modal */}
                                     {editingProduct && (
-                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[540px] shadow-2xl my-4">
+                                        <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md overflow-y-auto">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[540px] shadow-2xl my-auto flex-shrink-0">
                                                 <h3 className="font-bold text-xl text-white mb-6">Edit Produk: {editingProduct.name}</h3>
                                                 <form onSubmit={handleUpdateProduct} className="space-y-4">
                                                     {/* Image Upload Edit */}
@@ -1664,8 +1664,8 @@ export default function AdminDashboard() {
                                     )}
                                     {/* Adjust Product Stock Modal */}
                                     {adjustingProductStock && (
-                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-sm shadow-2xl my-4">
+                                        <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md overflow-y-auto">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-sm shadow-2xl my-auto flex-shrink-0">
                                                 <h3 className="font-bold text-xl text-white mb-2">Update Stok</h3>
                                                 <p className="text-gray-400 mb-6 font-bold">{adjustingProductStock.name}</p>
                                                 <form onSubmit={handleUpdateProductStock} className="space-y-4">
@@ -1691,8 +1691,8 @@ export default function AdminDashboard() {
 
                                     {/* Product History Modal */}
                                     {viewingProductHistory && (
-                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl my-4">
+                                        <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md overflow-y-auto">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl my-auto flex-shrink-0">
                                                 <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
                                                     <div>
                                                         <h3 className="font-bold text-xl text-white">Riwayat Terjual</h3>
@@ -1965,8 +1965,8 @@ export default function AdminDashboard() {
 
                                     {/* Edit Expense Modal */}
                                     {editingExpense && (
-                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-md shadow-2xl">
+                                        <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-md shadow-2xl my-auto flex-shrink-0">
                                                 <h3 className="font-bold text-xl text-white mb-5">Edit Pengeluaran</h3>
                                                 <form onSubmit={handleUpdateExpense} className="space-y-4">
                                                     <input type="text" placeholder="Deskripsi" value={editingExpense.description} onChange={e => setEditingExpense({...editingExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
@@ -2027,8 +2027,8 @@ export default function AdminDashboard() {
 
                                     {/* Edit Staff Modal */}
                                     {editingStaff && (
-                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl">
+                                        <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl my-auto flex-shrink-0">
                                                 <h3 className="font-bold text-xl text-white mb-6">Edit Staf: {editingStaff.full_name}</h3>
                                                 <form onSubmit={handleUpdateStaff} className="space-y-4">
                                                     <div>

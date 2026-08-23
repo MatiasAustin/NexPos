@@ -349,9 +349,9 @@ export default function CustomerPage() {
 
             {/* FULLSCREEN POPUP OVERLAY */}
             {(orderStatus === 'waiting_payment' || orderStatus === 'paid' || orderStatus === 'draft') && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto">
                     {orderStatus === 'waiting_payment' ? (
-                        <div className="w-full max-w-md bg-blue-600 text-white p-10 rounded-3xl font-bold text-center flex flex-col items-center justify-center gap-4 shadow-2xl shadow-blue-900/50 animate-in zoom-in duration-300">
+                        <div className="w-full max-w-md bg-blue-600 text-white p-10 rounded-3xl font-bold text-center flex flex-col items-center justify-center gap-4 shadow-2xl shadow-blue-900/50 my-auto flex-shrink-0 animate-in zoom-in duration-300">
                             <span className="text-lg text-blue-200 uppercase tracking-widest font-semibold">Nomor Antrean Anda</span>
                             <span className="text-8xl font-black my-4">{queueNumber}</span>
                             <div className="w-16 h-1 bg-blue-400/50 rounded-full mb-2"></div>
@@ -361,7 +361,7 @@ export default function CustomerPage() {
                             </div>
                         </div>
                     ) : orderStatus === 'paid' ? (
-                        <div className="w-full max-w-md bg-green-600 text-white p-10 rounded-3xl font-bold text-center flex flex-col items-center justify-center gap-4 shadow-2xl shadow-green-900/50 animate-in zoom-in duration-300">
+                        <div className="w-full max-w-md bg-green-600 text-white p-10 rounded-3xl font-bold text-center flex flex-col items-center justify-center gap-4 shadow-2xl shadow-green-900/50 my-auto flex-shrink-0 animate-in zoom-in duration-300">
                             <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-4">
                                 <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"></path>
