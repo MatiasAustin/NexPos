@@ -38,6 +38,9 @@ export default function PosPage() {
     
     // Auth State
     const [staff, setStaff] = useState<any>(null);
+    const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
+    const [actualCashInput, setActualCashInput] = useState("");
+
     const router = useRouter();
     const toast = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
@@ -180,18 +183,13 @@ export default function PosPage() {
         setLoading(false);
     };
 
-    const handleCloseSession = async () => {
-        const isConfirmed = await confirm({
-            title: "Tutup Shift",
-            message: "Yakin ingin menutup shift sekarang? Uang laci harus dihitung.",
-            variant: "warning",
-            confirmText: "Tutup Shift"
-        });
-        if (!isConfirmed) return;
+    const handleCloseSession = () => {
+        setActualCashInput("");
+        setShowCloseShiftModal(true);
+    };
 
-        const actualCash = window.prompt("Masukkan jumlah uang tunai fisik yang ada di laci saat ini:");
-        if (actualCash === null) return; // Cancel
-
+    const submitCloseSession = async () => {
+        if (!actualCashInput) return;
         setLoading(true);
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/close`, {
@@ -199,7 +197,7 @@ export default function PosPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     sessionId: sessionId,
-                    actualCash: Number(actualCash),
+                    actualCash: Number(actualCashInput),
                     discrepancyReason: "Ditutup manual oleh kasir" // Default reason for demo
                 })
             });
@@ -208,6 +206,7 @@ export default function PosPage() {
                 setHasSession(false);
                 setSessionId(null);
                 setOpeningCash("");
+                setShowCloseShiftModal(false);
             } else {
                 const err = await res.json();
                 toast.error(`Gagal menutup shift: ${err.error}`);
@@ -1161,6 +1160,38 @@ export default function PosPage() {
             )}
 
             {/* EXPENSES & RAW MATERIALS MODAL */}
+                        {showCloseShiftModal && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
+                    <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-md shadow-2xl">
+                        <h3 className="font-bold text-xl text-white mb-2">Tutup Shift</h3>
+                        <p className="text-gray-400 text-sm mb-6">Hitung seluruh uang fisik (kertas & koin) yang ada di dalam laci kasir saat ini, lalu masukkan totalnya di bawah ini.</p>
+                        <input 
+                            type="number" 
+                            placeholder="Total Uang Fisik Laci (Rp)" 
+                            value={actualCashInput}
+                            onChange={(e) => setActualCashInput(e.target.value)}
+                            className="w-full p-4 text-lg bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white font-bold mb-6"
+                            autoFocus
+                        />
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setShowCloseShiftModal(false)}
+                                className="flex-1 py-3 md:py-4 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-colors"
+                            >
+                                Batal
+                            </button>
+                            <button 
+                                onClick={submitCloseSession}
+                                disabled={!actualCashInput || loading}
+                                className="flex-1 py-3 md:py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-500 transition-colors disabled:opacity-50"
+                            >
+                                {loading ? 'Menutup...' : 'Tutup Shift'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {showExpensesModal && (
                 <div className="fixed inset-0 bg-black/90 flex items-start justify-center z-[100] p-4 backdrop-blur-sm overflow-y-auto print:hidden">
                     <div className="bg-[#1a1a1c] border border-gray-800 rounded-3xl w-full max-w-6xl shadow-2xl p-4 md:p-6 md:p-4 md:p-8 my-auto flex-shrink-0 relative">
