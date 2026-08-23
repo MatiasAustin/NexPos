@@ -30,8 +30,9 @@ export class TransactionService {
         provider_transaction_id?: string;
         payment_reference?: string;
         items?: any[]; // The cart items: { product_id, product_name, quantity, price, cogs }
+        staff_name?: string;
     }) {
-        const { order_reference, amount_due, amount_received, tax_amount, customer_name, payment_method_id, items } = payload;
+        const { order_reference, amount_due, amount_received, tax_amount, customer_name, payment_method_id, items, staff_name } = payload;
         
         const change_given = amount_received >= amount_due ? amount_received - amount_due : 0;
         const status = amount_received >= amount_due ? 'Paid' : 'Pending';
@@ -98,7 +99,8 @@ export class TransactionService {
                                             material_name: rawMat.name,
                                             delta: -totalQtyUsed,
                                             current_stock: newStock,
-                                            note: `Terpotong untuk Penjualan ${item.product_name || item.name} (Ref: ${order_reference})`
+                                            note: `Terpotong untuk Penjualan ${item.product_name || item.name} (Ref: ${order_reference})`,
+                                            staff_name: payload.staff_name || 'System'
                                         }]);
                                     }
                                 }

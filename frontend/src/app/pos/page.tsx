@@ -233,7 +233,7 @@ export default function PosPage() {
                 try {
                     const { data, error } = await supabase.from('kiosk_orders')
                         .select('*')
-                        .in('status', ['pending', 'draft'])
+                        .in('status', ['pending', 'draft', 'waiting_payment'])
                         .order('created_at', { ascending: false });
                     if (data) setPendingOrders(data);
                 } catch(e) {}
@@ -536,7 +536,8 @@ export default function PosPage() {
                     quantity: item.qty,
                     price: item.product.price,
                     cogs: item.product.cogs || 0
-                }))
+                })),
+                staff_name: staff?.full_name || 'System'
             };
             
             const result = await processPayment(payload);
