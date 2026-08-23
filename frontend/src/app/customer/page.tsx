@@ -143,15 +143,16 @@ export default function CustomerPage() {
             const { error: insertError } = await supabase.from('kiosk_orders').insert([newOrder]);
             if (insertError) {
                 console.error("Supabase Insert Error:", insertError);
-                throw insertError;
+                alert("Gagal: " + (insertError.message || JSON.stringify(insertError)));
+                return;
             }
             
             setQueueNumber(generatedQueueNumber);
             setOrderStatus('waiting_payment');
             setShowMobileCart(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Gagal mengirim pesanan:", error);
-            alert("Gagal mengirim pesanan. Silahkan coba lagi.");
+            alert("Error jaringan/sistem: " + (error.message || "Silahkan coba lagi."));
         }
     };
 
