@@ -1754,7 +1754,7 @@ export default function AdminDashboard() {
                                                         <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Harga Jual</th>
                                                         <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Profit</th>
                                                         <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-center">Stok</th>
-<th className=\"p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-center\">Status</th>
+<th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-center">Status</th>
 <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-center">Aksi</th>
                                                     </tr>
                                                 </thead>
