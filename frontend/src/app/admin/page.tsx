@@ -740,6 +740,29 @@ export default function AdminDashboard() {
         }
     };
 
+    const toggleProductStatus = async (product: any) => {
+        setLoading(true);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${product.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...product,
+                    is_active: !product.is_active
+                })
+            });
+            if (res.ok) {
+                toast.success(`Produk ${product.name} ${!product.is_active ? 'diaktifkan' : 'dinonaktifkan'}.`);
+                fetchData();
+            } else {
+                toast.error("Gagal mengubah status produk.");
+            }
+        } catch(error) {
+            toast.error("Terjadi kesalahan jaringan.");
+        }
+        setLoading(false);
+    };
+
     const handleDeleteProduct = async (product: any) => {
         const ok = await confirm({
             title: "Hapus Menu",
@@ -1759,7 +1782,12 @@ export default function AdminDashboard() {
                                                             <td className="p-2 md:p-4 text-center">
                                                                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-gray-300'}`}>{p.stock}</span>
                                                             </td>
-                                                            <td className="p-2 md:p-4 text-center">
+<td className="p-2 md:p-4 text-center">
+    <button onClick={() => toggleProductStatus(p)} disabled={loading} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors border ${p.is_active ? 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20' : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'}`}>
+        {p.is_active ? 'Tersedia' : 'Habis/Off'}
+    </button>
+</td>
+<td className="p-2 md:p-4 text-center">
                                                                 <div className="flex flex-wrap gap-2 justify-center">
                                                                     <button onClick={() => setAdjustingProductStock(p)} className="px-2 py-1 text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-600 hover:text-white transition-colors">+/- Stok</button>
                                                                     <button onClick={() => handleViewProductHistory(p)} className="px-2 py-1 text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-600 hover:text-white transition-colors">Riwayat</button>
