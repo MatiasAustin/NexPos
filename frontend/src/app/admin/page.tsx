@@ -981,8 +981,30 @@ export default function AdminDashboard() {
                 })
                 .eq('id', editingExpense.id);
             if (error) throw error;
+
+            if (newExpense.material_id && newExpense.quantity !== 0) {
+                const material = rawMaterials.find(m => m.id === newExpense.material_id);
+                if (material) {
+                    const newStock = material.current_stock + Number(newExpense.quantity);
+                    const { error: matError } = await supabase.from('raw_materials')
+                        .update({ current_stock: newStock, updated_by_name: profile?.full_name })
+                        .eq('id', newExpense.material_id);
+                    if (matError) throw matError;
+                    
+                    await supabase.from('material_stock_logs').insert([{
+                        material_id: material.id,
+                        material_name: material.name,
+                        delta: Number(newExpense.quantity),
+                        current_stock: newStock,
+                        staff_name: profile?.full_name,
+                        note: `Koreksi dr Edit Pengeluaran: ${editingExpense.description}`
+                    }]);
+                }
+            }
+
             toast.success("Pengeluaran berhasil diperbarui.");
             setEditingExpense(null);
+            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
             fetchData();
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
