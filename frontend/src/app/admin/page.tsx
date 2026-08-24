@@ -178,7 +178,7 @@ export default function AdminDashboard() {
                     console.error("Store settings table might not exist yet", e);
                 }
                         } else if (activeTab === "cash_sessions") {
-                const { data: sessions } = await supabase.from('cash_sessions').select('*').order('created_at', { ascending: false });
+                const { data: sessions, error } = await supabase.from('cash_sessions').select('*').order('opened_at', { ascending: false }); if (error) console.error('Error fetching cash sessions:', error);
                 const { data: movements } = await supabase.from('cash_movements').select('session_id, amount').eq('type', 'expense');
                 if (sessions) {
                     const merged = sessions.map(s => {
@@ -1621,7 +1621,7 @@ export default function AdminDashboard() {
                                                     </p>
                                                     <p className="text-sm text-gray-400 mb-1">Kasir ID: {session.staff_id || 'Unknown'}</p>
                                                     <p className="text-xs text-gray-500">
-                                                        Buka: {new Date(session.created_at).toLocaleString('id-ID')}
+                                                        Buka: {new Date(session.opened_at).toLocaleString('id-ID')}
                                                         {session.closed_at && ` | Tutup: ${new Date(session.closed_at).toLocaleString('id-ID')}`}
                                                     </p>
                                                 </div>
