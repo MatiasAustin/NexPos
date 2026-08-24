@@ -1322,6 +1322,16 @@ export default function PosPage() {
                                         )}
                                     </div>
                                     <form onSubmit={editingExpense ? handleUpdateExpense : handleCreateExpense} className="space-y-4">
+                                        <div className="flex gap-4 mb-4">
+                                            <label className="flex items-center gap-2 text-white cursor-pointer">
+                                                <input type="radio" name="payment_method_pos" value="CASH" checked={newExpense.payment_method === 'CASH'} onChange={e => setNewExpense({...newExpense, payment_method: e.target.value})} className="w-4 h-4 text-blue-500" />
+                                                <span>Uang Kasir (Cash)</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 text-white cursor-pointer">
+                                                <input type="radio" name="payment_method_pos" value="QRIS" checked={newExpense.payment_method === 'QRIS'} onChange={e => setNewExpense({...newExpense, payment_method: e.target.value})} className="w-4 h-4 text-blue-500" />
+                                                <span>Saldo Rekening (QRIS/Trf)</span>
+                                            </label>
+                                        </div>
                                         <input type="text" placeholder="Deskripsi Pengeluaran (contoh: Beli Es Batu)" required value={editingExpense ? editingExpense.description : newExpense.description} onChange={e => editingExpense ? setEditingExpense({...editingExpense, description: e.target.value}) : setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                         <input type="number" placeholder="Nominal (Rp)" required value={editingExpense ? editingExpense.amount || '' : newExpense.amount || ''} onChange={e => editingExpense ? setEditingExpense({...editingExpense, amount: Number(e.target.value)}) : setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                         

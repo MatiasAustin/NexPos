@@ -1973,6 +1973,16 @@ export default function AdminDashboard() {
                                         <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                             <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Catat Pengeluaran</h3>
                                             <form onSubmit={handleCreateExpense} className="space-y-4">
+                                                <div className="flex gap-4 mb-2">
+                                                    <label className="flex items-center gap-2 text-white cursor-pointer text-sm">
+                                                        <input type="radio" name="admin_payment_method" value="CASH" checked={newExpense.payment_method === 'CASH'} onChange={e => setNewExpense({...newExpense, payment_method: e.target.value})} className="w-4 h-4" />
+                                                        <span>Uang Kasir (Cash)</span>
+                                                    </label>
+                                                    <label className="flex items-center gap-2 text-white cursor-pointer text-sm">
+                                                        <input type="radio" name="admin_payment_method" value="QRIS" checked={newExpense.payment_method === 'QRIS'} onChange={e => setNewExpense({...newExpense, payment_method: e.target.value})} className="w-4 h-4" />
+                                                        <span>Saldo Rek (QRIS)</span>
+                                                    </label>
+                                                </div>
                                                 <input type="text" placeholder="Deskripsi Pengeluaran" required value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                                 <input type="number" placeholder="Nominal (Rp)" required value={newExpense.amount || ''} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                                 
