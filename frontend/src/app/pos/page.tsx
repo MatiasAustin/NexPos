@@ -32,7 +32,7 @@ export default function PosPage() {
     const [showExpensesModal, setShowExpensesModal] = useState(false);
     const [expenses, setExpenses] = useState<any[]>([]);
     const [rawMaterials, setRawMaterials] = useState<any[]>([]);
-    const [newExpense, setNewExpense] = useState({ description: '', amount: 0, material_id: '', quantity: 0 });
+    const [newExpense, setNewExpense] = useState({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
     const [newMaterial, setNewMaterial] = useState({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
     const [editingMaterial, setEditingMaterial] = useState<any>(null);
     
@@ -342,7 +342,7 @@ export default function PosPage() {
         setLoading(true);
         try {
             const { data: expData, error } = await supabase.from('expenses').insert([{
-                description: newExpense.description,
+                description: newExpense.payment_method === 'CASH' ? newExpense.description : `[${newExpense.payment_method}] ${newExpense.description}`,
                 amount: Number(newExpense.amount),
                 recorded_by: staff?.id,
                 staff_name: staff?.full_name
@@ -374,8 +374,8 @@ export default function PosPage() {
                 }
             }
 
-            // Deduct from cash drawer if shift is open
-            if (sessionId && staff) {
+            // Deduct from cash drawer if shift is open AND paid with CASH
+            if (sessionId && staff && newExpense.payment_method === 'CASH') {
                 try {
                     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-movements`, {
                         method: 'POST',
@@ -394,7 +394,7 @@ export default function PosPage() {
             }
 
             toast.success("Pengeluaran berhasil dicatat (Laci dikurangi).");
-            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0 });
+            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
             fetchExpensesAndMaterials();
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);

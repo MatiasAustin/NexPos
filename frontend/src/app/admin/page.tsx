@@ -72,7 +72,7 @@ export default function AdminDashboard() {
     const [expenses, setExpenses] = useState<any[]>([]);
     const [rawMaterials, setRawMaterials] = useState<any[]>([]);
     const [materialStockLogs, setMaterialStockLogs] = useState<any[]>([]); // New state
-    const [newExpense, setNewExpense] = useState({ description: '', amount: 0, material_id: '', quantity: 0 });
+    const [newExpense, setNewExpense] = useState({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
     const [newMaterial, setNewMaterial] = useState({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
     const [newStaff, setNewStaff] = useState({ full_name: '', email: '', password: '', role: 'staff' });
     
@@ -178,8 +178,16 @@ export default function AdminDashboard() {
                     console.error("Store settings table might not exist yet", e);
                 }
                         } else if (activeTab === "cash_sessions") {
-                const { data } = await supabase.from('cash_sessions').select('*').order('created_at', { ascending: false });
-                if (data) setCashSessions(data);
+                const { data: sessions } = await supabase.from('cash_sessions').select('*').order('created_at', { ascending: false });
+                const { data: movements } = await supabase.from('cash_movements').select('session_id, amount').eq('type', 'expense');
+                if (sessions) {
+                    const merged = sessions.map(s => {
+                        const sm = movements?.filter(m => m.session_id === s.id) || [];
+                        const expense = sm.reduce((sum, m) => sum + Math.abs(m.amount), 0);
+                        return { ...s, total_expense: expense };
+                    });
+                    setCashSessions(merged);
+                }
             } else if (activeTab === "expenses") {
                 const [expRes, matRes, logRes] = await Promise.all([
                     supabase.from('expenses').select('*').order('created_at', { ascending: expenseSortOrder === 'desc' ? false : true }),
@@ -924,7 +932,7 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             const { error } = await supabase.from('expenses').insert([{
-                description: newExpense.description,
+                description: newExpense.payment_method === 'CASH' ? newExpense.description : `[${newExpense.payment_method}] ${newExpense.description}`,
                 amount: Number(newExpense.amount),
                 recorded_by: profile?.id,
                 staff_name: profile?.full_name
@@ -955,7 +963,7 @@ export default function AdminDashboard() {
             }
             
             toast.success("Pengeluaran berhasil dicatat.");
-            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0 });
+            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
             fetchData();
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
@@ -1597,7 +1605,8 @@ export default function AdminDashboard() {
                                                 </div>
                                                 <div className="flex flex-col gap-1 text-sm bg-gray-900/50 p-3 rounded-xl border border-gray-800 min-w-[200px]">
                                                     <div className="flex justify-between text-gray-400"><span>Modal Awal (Buka)</span><span>Rp {Number(session.opening_cash).toLocaleString('id-ID')}</span></div>
-                                                    <div className="flex justify-between text-blue-400"><span>Target Laci (Sistem)</span><span>Rp {Number(session.expected_cash).toLocaleString('id-ID')}</span></div>
+                                                    <div className="flex justify-between text-red-400"><span>Pengeluaran (Cash)</span><span>-Rp {Number(session.total_expense || 0).toLocaleString('id-ID')}</span></div>
+                                                    <div className="flex justify-between text-blue-400"><span>Sisa/Target (Sistem)</span><span>Rp {Number(session.expected_cash).toLocaleString('id-ID')}</span></div>
                                                     {session.status === 'closed' && (
                                                         <>
                                                             <div className="flex justify-between text-green-400 font-bold border-t border-gray-700 mt-1 pt-1"><span>Aktual di Laci (Tutup)</span><span>Rp {Number(session.actual_cash).toLocaleString('id-ID')}</span></div>
