@@ -222,7 +222,7 @@ router.post('/refunds/:id/approve', async (req, res) => {
 // CASH SESSIONS
 // =======================
 router.get('/health2', (req, res) => res.json({ status: 'v3' }));
-router.get('/debug-sessions', async (req, res) => { const { data } = await supabase.from('cash_sessions').select('*').order('created_at', { ascending: false }).limit(10); res.json(data); });
+router.get('/debug-sessions2', async (req, res) => { const { data, error } = await supabase.from('cash_sessions').select('*').order('created_at', { ascending: false }).limit(10); res.json({ data, error }); });
 router.get('/cash-sessions/active', async (req, res) => {
     try {
         const { staffId, terminalId } = req.query;
