@@ -63,7 +63,7 @@ export default function PosPage() {
         try {
             // We can just call the active session endpoint again to get full updated data including total_expense
             if (!staff?.id) return;
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staff.id}&terminalId=pos-terminal-1`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staff.id}&terminalId=TERM-01`);
             if (res.ok) {
                 const sess = await res.json();
                 setSessionData(sess);
@@ -122,7 +122,7 @@ export default function PosPage() {
                 const sess = await res.json();
                 if (sess && sess.id) {
                     setSessionId(sess.id);
-                    fetchSessionData(sess.id);
+                    setSessionData(sess);
                     setHasSession(true);
                 }
             }
