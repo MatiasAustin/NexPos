@@ -56,6 +56,13 @@ export default function PosPage() {
     // Merged Auth & Session check below
 
     const [sessionId, setSessionId] = useState<string | null>(null);
+    const [sessionData, setSessionData] = useState<any>(null);
+
+    const fetchSessionData = async (id: string) => {
+        if (!id) return;
+        const { data } = await supabase.from('cash_sessions').select('*').eq('id', id).single();
+        if (data) setSessionData(data);
+    };
     const [isCheckingSession, setIsCheckingSession] = useState(true);
     const [storeSettings, setStoreSettings] = useState<any>(null);
 
@@ -106,6 +113,7 @@ export default function PosPage() {
                 const sess = await res.json();
                 if (sess && sess.id) {
                     setSessionId(sess.id);
+                    fetchSessionData(sess.id);
                     setHasSession(true);
                 }
             }
@@ -170,6 +178,7 @@ export default function PosPage() {
             if (res.ok) {
                 const sess = await res.json();
                 setSessionId(sess.id);
+                fetchSessionData(sess.id);
                 // Also update the local 'staff' state so the header shows the selected person
                 const selectedProfile = allStaff.find(s => s.id === activeStaffId);
                 if (selectedProfile) setStaff(selectedProfile);
@@ -181,6 +190,11 @@ export default function PosPage() {
             console.error("Error opening session:", error);
         }
         setLoading(false);
+    };
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.push('/login');
     };
 
     const handleCloseSession = () => {
@@ -396,6 +410,7 @@ export default function PosPage() {
             toast.success("Pengeluaran berhasil dicatat (Laci dikurangi).");
             setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
             fetchExpensesAndMaterials();
+            if (sessionId) fetchSessionData(sessionId);
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
     };
@@ -433,6 +448,7 @@ export default function PosPage() {
             setEditingExpense(null);
             setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
             fetchExpensesAndMaterials();
+            if (sessionId) fetchSessionData(sessionId);
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
     };
@@ -445,6 +461,7 @@ export default function PosPage() {
             if (error) throw error;
             toast.success("Pengeluaran dihapus.");
             fetchExpensesAndMaterials();
+            if (sessionId) fetchSessionData(sessionId);
         } catch (e: any) { toast.error(e.message); }
     };
 
@@ -722,20 +739,31 @@ export default function PosPage() {
                     </div>
                     
                     {/* Staff Profile in POS Header */}
-                    <div className="bg-[#121214] border border-gray-800 p-2 pr-4 rounded-full font-semibold flex items-center gap-3 text-sm shadow-sm">
-                        <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-blue-400">
+                    <div className="bg-[#121214] border border-gray-800 p-2 pr-4 rounded-full font-semibold flex items-center gap-3 text-sm shadow-sm overflow-x-auto whitespace-nowrap hide-scrollbar max-w-full">
+                        <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-blue-400 shrink-0">
                             <Banknote className="w-4 h-4" />
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-white text-xs leading-tight">Kasir</span>
-                            <span className="text-gray-400 text-xs">{staff?.full_name}</span>
+                        <div className="flex flex-col shrink-0">
+                            <span className="text-gray-400 text-[10px] leading-tight">Kasir</span>
+                            <span className="text-white text-xs font-bold">{staff?.full_name}</span>
                         </div>
-                        <button onClick={() => setShowExpensesModal(true)} className="ml-3 px-3 py-1 bg-orange-500/10 text-orange-400 rounded-full hover:bg-orange-500/20 font-bold text-[10px] uppercase tracking-wider border border-orange-500/20 transition-colors">
-                            Catat Pengeluaran
-                        </button>
-                        <button onClick={handleCloseSession} className="px-3 py-1 bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20 font-bold text-[10px] uppercase tracking-wider border border-red-500/20 transition-colors">
-                            Tutup Shift
-                        </button>
+                        {sessionData && (
+                            <div className="flex flex-col ml-2 pl-3 border-l border-gray-800 shrink-0">
+                                <span className="text-gray-400 text-[10px] leading-tight">Laci (Sistem)</span>
+                                <span className="text-green-400 text-xs font-bold">Rp {Number(sessionData.expected_cash || 0).toLocaleString('id-ID')}</span>
+                            </div>
+                        )}
+                        <div className="flex gap-2 ml-4 shrink-0">
+                            <button onClick={() => setShowExpensesModal(true)} className="px-3 py-1 bg-orange-500/10 text-orange-400 rounded-full hover:bg-orange-500/20 font-bold text-[10px] uppercase tracking-wider border border-orange-500/20 transition-colors">
+                                Catat Pengeluaran
+                            </button>
+                            <button onClick={handleCloseSession} className="px-3 py-1 bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20 font-bold text-[10px] uppercase tracking-wider border border-red-500/20 transition-colors">
+                                Tutup Shift
+                            </button>
+                            <button onClick={handleLogout} className="px-3 py-1 bg-gray-800 text-gray-300 rounded-full hover:bg-gray-700 font-bold text-[10px] uppercase tracking-wider transition-colors">
+                                Logout
+                            </button>
+                        </div>
                     </div>
                 </div>
 
