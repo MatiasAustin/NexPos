@@ -221,6 +221,7 @@ router.post('/refunds/:id/approve', async (req, res) => {
 // =======================
 // CASH SESSIONS
 // =======================
+router.get('/health2', (req, res) => res.json({ status: 'v3' }));
 router.get('/cash-sessions/active', async (req, res) => {
     try {
         const { staffId, terminalId } = req.query;
