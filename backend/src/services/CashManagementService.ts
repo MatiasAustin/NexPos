@@ -26,7 +26,7 @@ export class CashManagementService {
             .eq('staff_id', staffId)
             .eq('terminal_id', terminalId)
             .eq('status', 'open')
-            .order('created_at', { ascending: false })
+            .order('opened_at', { ascending: false })
             .limit(1);
             
         return data && data.length > 0 ? data[0] : null;
