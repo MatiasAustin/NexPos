@@ -223,6 +223,17 @@ router.post('/refunds/:id/approve', async (req, res) => {
 // =======================
 router.get('/health2', (req, res) => res.json({ status: 'v3' }));
 router.get('/debug-sessions2', async (req, res) => { const { data, error } = await supabase.from('cash_sessions').select('*').order('created_at', { ascending: false }).limit(10); res.json({ data, error }); });
+router.delete('/admin/cash-sessions/:id', async (req, res) => {
+    try {
+        await supabase.from('cash_movements').delete().eq('session_id', req.params.id);
+        const { error } = await supabase.from('cash_sessions').delete().eq('id', req.params.id);
+        if (error) throw error;
+        res.status(204).send();
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 router.get('/admin/cash-sessions', async (req, res) => {
     try {
         const { data, error } = await supabase.from('cash_sessions').select('*').order('opened_at', { ascending: false });

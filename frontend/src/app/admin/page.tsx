@@ -765,6 +765,29 @@ export default function AdminDashboard() {
         setLoading(false);
     };
 
+    const handleDeleteSession = async (id: string) => {
+        const ok = await confirm({
+            title: "Hapus Shift",
+            message: "Hapus shift ini secara permanen?",
+            confirmText: "Hapus",
+            variant: "danger"
+        });
+        if (!ok) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/cash-sessions/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                toast.success("Shift berhasil dihapus.");
+                fetchData();
+            } else {
+                toast.error("Gagal menghapus shift.");
+            }
+        } catch(error) {
+            toast.error("Terjadi kesalahan jaringan.");
+        }
+        setLoading(false);
+    };
+
     const handleDeleteProduct = async (product: any) => {
         const ok = await confirm({
             title: "Hapus Menu",

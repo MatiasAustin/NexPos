@@ -61,7 +61,11 @@ export default function PosPage() {
     const fetchSessionData = async (id: string) => {
         if (!id) return;
         const { data } = await supabase.from('cash_sessions').select('*').eq('id', id).single();
-        if (data) setSessionData(data);
+        if (data) {
+            const { data: movements } = await supabase.from('cash_movements').select('amount').eq('session_id', id).eq('type', 'expense');
+            const total_expense = movements ? movements.reduce((sum, m) => sum + Math.abs(m.amount), 0) : 0;
+            setSessionData({ ...data, total_expense });
+        }
     };
     const [isCheckingSession, setIsCheckingSession] = useState(true);
     const [storeSettings, setStoreSettings] = useState<any>(null);
@@ -748,9 +752,19 @@ export default function PosPage() {
                             <span className="text-white text-xs font-bold">{staff?.full_name}</span>
                         </div>
                         {sessionData && (
-                            <div className="flex flex-col ml-2 pl-3 border-l border-gray-800 shrink-0">
-                                <span className="text-gray-400 text-[10px] leading-tight">Laci (Sistem)</span>
-                                <span className="text-green-400 text-xs font-bold">Rp {Number(sessionData.expected_cash || 0).toLocaleString('id-ID')}</span>
+                            <div className="flex gap-4 ml-2 pl-3 border-l border-gray-800 shrink-0 items-center">
+                                <div className="flex flex-col">
+                                    <span className="text-gray-400 text-[10px] leading-tight">Modal</span>
+                                    <span className="text-blue-400 text-xs font-bold">Rp {Number(sessionData.opening_cash || 0).toLocaleString('id-ID')}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-gray-400 text-[10px] leading-tight">Pengeluaran</span>
+                                    <span className="text-red-400 text-xs font-bold">Rp {Number(sessionData.total_expense || 0).toLocaleString('id-ID')}</span>
+                                </div>
+                                <div className="flex flex-col border-l border-gray-800 pl-4">
+                                    <span className="text-gray-400 text-[10px] leading-tight">Laci (Sistem)</span>
+                                    <span className="text-green-400 text-xs font-bold">Rp {Number(sessionData.expected_cash || 0).toLocaleString('id-ID')}</span>
+                                </div>
                             </div>
                         )}
                         <div className="flex gap-2 ml-4 shrink-0">
