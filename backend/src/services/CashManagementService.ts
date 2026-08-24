@@ -29,7 +29,13 @@ export class CashManagementService {
             .order('opened_at', { ascending: false })
             .limit(1);
             
-        return data && data.length > 0 ? data[0] : null;
+        if (data && data.length > 0) {
+            const session = data[0];
+            const { data: movements } = await supabase.from('cash_movements').select('amount').eq('session_id', session.id).eq('type', 'expense');
+            session.total_expense = movements ? movements.reduce((sum, m) => sum + Math.abs(m.amount), 0) : 0;
+            return session;
+        }
+        return null;
     }
 
     async recordMovement(payload: {

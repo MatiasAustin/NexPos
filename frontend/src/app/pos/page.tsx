@@ -60,11 +60,16 @@ export default function PosPage() {
 
     const fetchSessionData = async (id: string) => {
         if (!id) return;
-        const { data } = await supabase.from('cash_sessions').select('*').eq('id', id).single();
-        if (data) {
-            const { data: movements } = await supabase.from('cash_movements').select('amount').eq('session_id', id).eq('type', 'expense');
-            const total_expense = movements ? movements.reduce((sum, m) => sum + Math.abs(m.amount), 0) : 0;
-            setSessionData({ ...data, total_expense });
+        try {
+            // We can just call the active session endpoint again to get full updated data including total_expense
+            if (!staff?.id) return;
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staff.id}&terminalId=pos-terminal-1`);
+            if (res.ok) {
+                const sess = await res.json();
+                setSessionData(sess);
+            }
+        } catch(e) {
+            console.error(e);
         }
     };
     const [isCheckingSession, setIsCheckingSession] = useState(true);
@@ -182,7 +187,7 @@ export default function PosPage() {
             if (res.ok) {
                 const sess = await res.json();
                 setSessionId(sess.id);
-                fetchSessionData(sess.id);
+                setSessionData({...sess, total_expense: 0});
                 // Also update the local 'staff' state so the header shows the selected person
                 const selectedProfile = allStaff.find(s => s.id === activeStaffId);
                 if (selectedProfile) setStaff(selectedProfile);
@@ -752,9 +757,9 @@ export default function PosPage() {
                             <span className="text-white text-xs font-bold">{staff?.full_name}</span>
                         </div>
                         {sessionData && (
-                            <div className="flex gap-4 ml-2 pl-3 border-l border-gray-800 shrink-0 items-center">
+                            <div className="flex gap-4 ml-2 pl-3 border-l border-gray-800 shrink-0 items-center bg-gray-900/50 p-2 rounded-xl border border-gray-800">
                                 <div className="flex flex-col">
-                                    <span className="text-gray-400 text-[10px] leading-tight">Modal</span>
+                                    <span className="text-gray-400 text-[10px] leading-tight">Modal Awal</span>
                                     <span className="text-blue-400 text-xs font-bold">Rp {Number(sessionData.opening_cash || 0).toLocaleString('id-ID')}</span>
                                 </div>
                                 <div className="flex flex-col">
@@ -764,6 +769,10 @@ export default function PosPage() {
                                 <div className="flex flex-col border-l border-gray-800 pl-4">
                                     <span className="text-gray-400 text-[10px] leading-tight">Laci (Sistem)</span>
                                     <span className="text-green-400 text-xs font-bold">Rp {Number(sessionData.expected_cash || 0).toLocaleString('id-ID')}</span>
+                                </div>
+                                <div className="flex flex-col border-l border-gray-800 pl-4">
+                                    <span className="text-gray-400 text-[10px] leading-tight">Selisih (Penjualan)</span>
+                                    <span className="text-purple-400 text-xs font-bold">Rp {Number((sessionData.expected_cash || 0) - (sessionData.opening_cash || 0) + (sessionData.total_expense || 0)).toLocaleString('id-ID')}</span>
                                 </div>
                             </div>
                         )}
