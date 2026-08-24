@@ -223,6 +223,16 @@ router.post('/refunds/:id/approve', async (req, res) => {
 // =======================
 router.get('/health2', (req, res) => res.json({ status: 'v3' }));
 router.get('/debug-sessions2', async (req, res) => { const { data, error } = await supabase.from('cash_sessions').select('*').order('created_at', { ascending: false }).limit(10); res.json({ data, error }); });
+router.get('/admin/cash-sessions', async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('cash_sessions').select('*').order('opened_at', { ascending: false });
+        if (error) throw error;
+        res.json(data);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 router.get('/cash-sessions/active', async (req, res) => {
     try {
         const { staffId, terminalId } = req.query;

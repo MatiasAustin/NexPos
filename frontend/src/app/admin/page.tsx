@@ -178,10 +178,12 @@ export default function AdminDashboard() {
                     console.error("Store settings table might not exist yet", e);
                 }
                         } else if (activeTab === "cash_sessions") {
-                const { data: sessions, error } = await supabase.from('cash_sessions').select('*').order('opened_at', { ascending: false }); if (error) console.error('Error fetching cash sessions:', error);
-                const { data: movements } = await supabase.from('cash_movements').select('session_id, amount').eq('type', 'expense');
-                if (sessions) {
-                    const merged = sessions.map(s => {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/cash-sessions`);
+                if (res.ok) {
+                    const sessions = await res.json();
+                    const { data: movements } = await supabase.from('cash_movements').select('session_id, amount').eq('type', 'expense');
+
+                    const merged = sessions.map((s: any) => {
                         const sm = movements?.filter(m => m.session_id === s.id) || [];
                         const expense = sm.reduce((sum, m) => sum + Math.abs(m.amount), 0);
                         return { ...s, total_expense: expense };
