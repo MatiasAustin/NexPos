@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Lock, User, Eye, EyeOff } from "lucide-react";
@@ -13,6 +13,18 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const toast = useToast();
+
+    useEffect(() => {
+        const checkExistingSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                const { data: profile } = await supabase.from('staff_profiles').select('role').eq('id', session.user.id).single();
+                if (profile?.role === 'owner') router.push('/admin');
+                else if (profile) router.push('/pos');
+            }
+        };
+        checkExistingSession();
+    }, [router]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
