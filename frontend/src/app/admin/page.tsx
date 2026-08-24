@@ -1672,7 +1672,8 @@ export default function AdminDashboard() {
                                                         Buka: {new Date(session.opened_at).toLocaleString('id-ID')}
                                                         {session.closed_at && ` | Tutup: ${new Date(session.closed_at).toLocaleString('id-ID')}`}
                                                     </p>
-                                                </div>
+                                                    <button onClick={() => handleDeleteSession(session.id)} disabled={loading} className="mt-2 text-[10px] uppercase font-bold tracking-wider px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full hover:bg-red-500/20 w-fit transition-colors">Hapus Shift</button>
+</div>
                                                 <div className="flex flex-col gap-1 text-sm bg-gray-900/50 p-3 rounded-xl border border-gray-800 min-w-[200px]">
                                                     <div className="flex justify-between text-gray-400"><span>Modal Awal (Buka)</span><span>Rp {Number(session.opening_cash).toLocaleString('id-ID')}</span></div>
                                                     <div className="flex justify-between text-red-400"><span>Pengeluaran (Cash)</span><span>-Rp {Number(session.total_expense || 0).toLocaleString('id-ID')}</span></div>
