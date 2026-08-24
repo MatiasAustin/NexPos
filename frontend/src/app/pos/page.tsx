@@ -1296,7 +1296,7 @@ export default function PosPage() {
                                             {editingExpense ? 'Edit Pengeluaran' : 'Catat Pengeluaran Operasional'}
                                         </h3>
                                         {editingExpense && (
-                                            <button onClick={() => { setEditingExpense(null); setNewExpense({description: '', amount: 0, material_id: '', quantity: 0}); }} className="text-xs text-blue-400 hover:text-blue-300">Batal Edit</button>
+                                            <button onClick={() => { setEditingExpense(null); setNewExpense({description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH'}); }} className="text-xs text-blue-400 hover:text-blue-300">Batal Edit</button>
                                         )}
                                     </div>
                                     <form onSubmit={editingExpense ? handleUpdateExpense : handleCreateExpense} className="space-y-4">
