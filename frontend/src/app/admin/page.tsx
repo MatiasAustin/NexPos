@@ -2156,6 +2156,34 @@ export default function AdminDashboard() {
                                                 <form onSubmit={handleUpdateExpense} className="space-y-4">
                                                     <input type="text" placeholder="Deskripsi" value={editingExpense.description} onChange={e => setEditingExpense({...editingExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
                                                     <input type="number" placeholder="Nominal (Rp)" value={editingExpense.amount} onChange={e => setEditingExpense({...editingExpense, amount: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                    
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="text-xs text-gray-500 mb-1 block">Koreksi Stok (Opsional, minus jika berlebih)</label>
+                                                            <select 
+                                                                value={newExpense.material_id || ''} 
+                                                                onChange={e => setNewExpense({...newExpense, material_id: e.target.value})}
+                                                                className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm"
+                                                            >
+                                                                <option value="">Pilih Bahan Baku...</option>
+                                                                {rawMaterials.map(m => (
+                                                                    <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        {newExpense.material_id && (
+                                                            <div>
+                                                                <label className="text-xs text-gray-500 mb-1 block">Jml Koreksi</label>
+                                                                <input 
+                                                                    type="number" 
+                                                                    placeholder="Jml" 
+                                                                    value={newExpense.quantity || ''} 
+                                                                    onChange={e => setNewExpense({...newExpense, quantity: Number(e.target.value)})}
+                                                                    className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <div className="flex gap-3 mt-4">
                                                         <button type="button" onClick={() => setEditingExpense(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
                                                         <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan</button>
