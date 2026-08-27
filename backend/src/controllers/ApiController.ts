@@ -276,23 +276,20 @@ router.get('/cash-sessions/active', async (req, res) => {
 
 router.get('/fix-drawer', async (req, res) => {
     try {
-        // Find the 20000 refund movement
-        const { data: movements } = await supabase.from('cash_movements').select('*').eq('type', 'refund').eq('amount', -20000);
-        if (!movements || movements.length === 0) return res.json({ message: 'No 20k refund found' });
+        // Find all open sessions
+        const { data: sessions } = await supabase.from('cash_sessions').select('*').eq('status', 'open');
+        
+        if (!sessions || sessions.length === 0) {
+             return res.json({ message: 'Tidak ada shift kasir yang sedang buka saat ini.' });
+        }
         
         let fixed = 0;
-        for (const m of movements) {
-            // Delete movement
-            await supabase.from('cash_movements').delete().eq('id', m.id);
-            // Restore expected_cash
-            const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', m.session_id).single();
-            if (session) {
-                const newExpected = parseFloat(session.expected_cash) + 20000;
-                await supabase.from('cash_sessions').update({ expected_cash: newExpected }).eq('id', m.session_id);
-            }
+        for (const session of sessions) {
+            const newExpected = parseFloat(session.expected_cash) + 20000;
+            await supabase.from('cash_sessions').update({ expected_cash: newExpected }).eq('id', session.id);
             fixed++;
         }
-        res.json({ message: `Fixed ${fixed} refunds of 20.000` });
+        res.json({ message: `BERHASIL! Uang laci telah ditambah Rp 20.000 untuk ${fixed} shift aktif. Silakan refresh halaman kasir Anda!` });
     } catch (error: any) {
         res.status(400).json({ error: error.message });
     }
