@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ShoppingCart, CreditCard, Banknote, Trash2, Clock, Minus, Plus, LayoutGrid, List, Maximize } from "lucide-react";
 import { processPayment, getPaymentMethods, getActiveProducts } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
@@ -780,6 +781,9 @@ export default function PosPage() {
                             <button onClick={() => setShowExpensesModal(true)} className="px-3 py-1 bg-orange-500/10 text-orange-400 rounded-full hover:bg-orange-500/20 font-bold text-[10px] uppercase tracking-wider border border-orange-500/20 transition-colors">
                                 Catat Pengeluaran
                             </button>
+                            <Link href="/admin" className="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full hover:bg-blue-500/20 font-bold text-[10px] uppercase tracking-wider border border-blue-500/20 transition-colors flex items-center justify-center">
+                                Dashboard
+                            </Link>
                             <button onClick={handleCloseSession} className="px-3 py-1 bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20 font-bold text-[10px] uppercase tracking-wider border border-red-500/20 transition-colors">
                                 Tutup Shift
                             </button>
