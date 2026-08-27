@@ -464,26 +464,6 @@ export default function PosPage() {
                 .eq('id', editingExpense.id);
             if (error) throw error;
 
-            if (newExpense.material_id && newExpense.quantity !== 0) {
-                const material = rawMaterials.find(m => m.id === newExpense.material_id);
-                if (material) {
-                    const newStock = material.current_stock + Number(newExpense.quantity);
-                    const { error: matError } = await supabase.from('raw_materials')
-                        .update({ current_stock: newStock, updated_by_name: staff?.full_name })
-                        .eq('id', newExpense.material_id);
-                    if (matError) throw matError;
-                    
-                    await supabase.from('material_stock_logs').insert([{
-                        material_id: material.id,
-                        material_name: material.name,
-                        delta: Number(newExpense.quantity),
-                        current_stock: newStock,
-                        staff_name: staff?.full_name,
-                        note: `Koreksi dr Edit Pengeluaran: ${editingExpense.description}`
-                    }]);
-                }
-            }
-
             toast.success("Pengeluaran diperbarui.");
             setEditingExpense(null);
             setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
@@ -1428,9 +1408,10 @@ export default function PosPage() {
                                         <input type="text" placeholder="Deskripsi Pengeluaran (contoh: Beli Es Batu)" required value={editingExpense ? editingExpense.description : newExpense.description} onChange={e => editingExpense ? setEditingExpense({...editingExpense, description: e.target.value}) : setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                         <input type="number" placeholder="Nominal (Rp)" required value={editingExpense ? editingExpense.amount || '' : newExpense.amount || ''} onChange={e => editingExpense ? setEditingExpense({...editingExpense, amount: Number(e.target.value)}) : setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                         
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {!editingExpense && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="text-xs text-gray-500 mb-1 block">{editingExpense ? 'Koreksi Stok (opsional, gunakan minus jika kurang)' : 'Tambah Stok Bahan (Opsional)'}</label>
+                                                    <label className="text-xs text-gray-500 mb-1 block">Tambah Stok Bahan (Opsional)</label>
                                                     <select 
                                                         value={newExpense.material_id || ''} 
                                                         onChange={e => setNewExpense({...newExpense, material_id: e.target.value})}
@@ -1455,6 +1436,7 @@ export default function PosPage() {
                                                     </div>
                                                 )}
                                             </div>
+                                        )}
                                         
                                         <button type="submit" disabled={loading} className="w-full py-3 bg-orange-600/20 text-orange-400 border border-orange-500/30 rounded-xl font-bold hover:bg-orange-500/30 mt-2">
                                             {editingExpense ? 'Simpan Perubahan' : 'Simpan Pengeluaran'}
