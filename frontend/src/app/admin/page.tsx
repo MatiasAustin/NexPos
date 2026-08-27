@@ -641,6 +641,31 @@ export default function AdminDashboard() {
                 })
             });
             if(res.ok) {
+                // Manually handle active session cash deduction if payment method was cash
+                try {
+                    const pmName = refundTarget.payment_methods?.name || '';
+                    const isCash = pmName.toLowerCase().includes('cash') || pmName.toLowerCase().includes('tunai');
+                    if (isCash) {
+                        const { data: sessions } = await supabase.from('cash_sessions').select('*').eq('status', 'open').order('opened_at', { ascending: false }).limit(1);
+                        if (sessions && sessions.length > 0) {
+                            const actSession = sessions[0];
+                            const rAmount = -Math.abs(refundTarget.amount_received);
+                            // Insert movement
+                            await supabase.from('cash_movements').insert({
+                                session_id: actSession.id,
+                                staff_id: session?.user?.id || actSession.staff_id,
+                                type: 'refund',
+                                amount: rAmount,
+                                reason: refundReason,
+                                transaction_id: refundTarget.id
+                            });
+                            // Update expected cash
+                            const newExpected = parseFloat(actSession.expected_cash) + rAmount;
+                            await supabase.from('cash_sessions').update({ expected_cash: newExpected }).eq('id', actSession.id);
+                        }
+                    }
+                } catch(e) { console.error('Failed to update cash session for refund', e); }
+
                 toast.success("Refund berhasil diproses!");
                 fetchData();
             } else {
