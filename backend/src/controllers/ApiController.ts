@@ -81,8 +81,11 @@ router.delete('/admin/transactions/:id', async (req, res) => {
     try {
         const trxId = req.params.id;
         
-        // Hapus child table (transaction_items) terlebih dahulu jika tidak ada CASCADE
+        // Hapus child tables terlebih dahulu jika tidak ada CASCADE
+        await supabase.from('refunds').delete().eq('transaction_id', trxId);
+        await supabase.from('cash_movements').delete().eq('transaction_id', trxId);
         await supabase.from('transaction_items').delete().eq('transaction_id', trxId);
+        await supabase.from('order_items').delete().eq('transaction_id', trxId);
         
         // Hapus master table (transactions)
         const { error } = await supabase.from('transactions').delete().eq('id', trxId);
