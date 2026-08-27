@@ -262,7 +262,22 @@ router.get('/admin/cash-sessions', async (req, res) => {
     try {
         const { data, error } = await supabase.from('cash_sessions').select('*').order('opened_at', { ascending: false });
         if (error) throw error;
-        res.json(data);
+        
+        // Fetch movements for all sessions
+        const { data: movements } = await supabase.from('cash_movements').select('session_id, amount, type').in('type', ['expense', 'refund']);
+        
+        const sessionsWithTotals = data.map(session => {
+            const sessionMovements = movements ? movements.filter(m => m.session_id === session.id) : [];
+            const total_expense = sessionMovements.filter(m => m.type === 'expense').reduce((sum, m) => sum + Math.abs(m.amount), 0);
+            const total_refund = sessionMovements.filter(m => m.type === 'refund').reduce((sum, m) => sum + Math.abs(m.amount), 0);
+            return {
+                ...session,
+                total_expense,
+                total_refund
+            };
+        });
+        
+        res.json(sessionsWithTotals);
     } catch (error: any) {
         res.status(400).json({ error: error.message });
     }
