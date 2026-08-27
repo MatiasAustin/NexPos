@@ -81,6 +81,19 @@ router.delete('/admin/transactions/:id', async (req, res) => {
     try {
         const trxId = req.params.id;
         
+        // Cek apakah ada refund di cash_movements untuk mengembalikan saldo laci
+        const { data: movements } = await supabase.from('cash_movements').select('*').eq('transaction_id', trxId).eq('type', 'refund');
+        if (movements && movements.length > 0) {
+            for (const mov of movements) {
+                // Refund amount is negative, so we subtract it to add it back (or just -mov.amount)
+                const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', mov.session_id).single();
+                if (session) {
+                    const restoredCash = parseFloat(session.expected_cash) - mov.amount;
+                    await supabase.from('cash_sessions').update({ expected_cash: restoredCash }).eq('id', mov.session_id);
+                }
+            }
+        }
+        
         // Hapus child tables terlebih dahulu jika tidak ada CASCADE
         await supabase.from('refunds').delete().eq('transaction_id', trxId);
         await supabase.from('cash_movements').delete().eq('transaction_id', trxId);
