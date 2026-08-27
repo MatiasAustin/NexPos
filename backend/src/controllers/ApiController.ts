@@ -81,15 +81,23 @@ router.delete('/admin/transactions/:id', async (req, res) => {
     try {
         const trxId = req.params.id;
         
-        // Cek apakah ada refund di cash_movements untuk mengembalikan saldo laci
-        const { data: movements } = await supabase.from('cash_movements').select('*').eq('transaction_id', trxId).eq('type', 'refund');
+        // Hitung total perubahan saldo laci dari seluruh riwayat cash_movements transaksi ini (penjualan + refund)
+        const { data: movements } = await supabase.from('cash_movements').select('*').eq('transaction_id', trxId);
         if (movements && movements.length > 0) {
+            let netCashChange = 0;
+            let sessionId = null;
             for (const mov of movements) {
-                // Refund amount is negative, so we subtract it to add it back (or just -mov.amount)
-                const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', mov.session_id).single();
+                netCashChange += parseFloat(mov.amount); // sale is positive, refund is negative
+                sessionId = mov.session_id;
+            }
+            // Karena transaksinya DIBATALKAN (dihapus), kita harus MEMBALIK efek uang laci.
+            // Contoh: Sale +20k, Refund -20k. Net = 0. Tidak ada efek.
+            // Contoh: Sale +20k, Tidak ada refund. Net = +20k. Dihapus -> Kurangi 20k.
+            if (sessionId && netCashChange !== 0) {
+                const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
                 if (session) {
-                    const restoredCash = parseFloat(session.expected_cash) - mov.amount;
-                    await supabase.from('cash_sessions').update({ expected_cash: restoredCash }).eq('id', mov.session_id);
+                    const restoredCash = parseFloat(session.expected_cash) - netCashChange;
+                    await supabase.from('cash_sessions').update({ expected_cash: restoredCash }).eq('id', sessionId);
                 }
             }
         }
@@ -276,6 +284,9 @@ router.get('/cash-sessions/active', async (req, res) => {
 
 router.get('/fix-drawer', async (req, res) => {
     try {
+        const { amount } = req.query;
+        const fixAmount = amount ? parseFloat(String(amount)) : -40000;
+        
         // Find all open sessions
         const { data: sessions } = await supabase.from('cash_sessions').select('*').eq('status', 'open');
         
@@ -285,11 +296,11 @@ router.get('/fix-drawer', async (req, res) => {
         
         let fixed = 0;
         for (const session of sessions) {
-            const newExpected = parseFloat(session.expected_cash) + 20000;
+            const newExpected = parseFloat(session.expected_cash) + fixAmount;
             await supabase.from('cash_sessions').update({ expected_cash: newExpected }).eq('id', session.id);
             fixed++;
         }
-        res.json({ message: `BERHASIL! Uang laci telah ditambah Rp 20.000 untuk ${fixed} shift aktif. Silakan refresh halaman kasir Anda!` });
+        res.json({ message: `BERHASIL! Uang laci telah disesuaikan sebesar Rp ${fixAmount} untuk ${fixed} shift aktif. Silakan refresh halaman kasir Anda!` });
     } catch (error: any) {
         res.status(400).json({ error: error.message });
     }
