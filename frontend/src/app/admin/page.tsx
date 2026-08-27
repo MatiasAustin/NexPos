@@ -124,6 +124,43 @@ export default function AdminDashboard() {
         fetchData();
     }, [activeTab]);
 
+    useEffect(() => {
+        // Retroactive fix for refunds missing cash movements
+        const fixPastRefunds = async () => {
+            try {
+                // Find open session
+                const { data: sessions } = await supabase.from('cash_sessions').select('*').eq('status', 'open').order('opened_at', { ascending: false }).limit(1);
+                if (!sessions || sessions.length === 0) return;
+                const actSession = sessions[0];
+
+                // Fetch refunded transactions from API
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions?startDate=2020-01-01T00:00:00Z&endDate=2030-01-01T00:00:00Z`);
+                if (!res.ok) return;
+                const txs = await res.json();
+                const refundedCashTxs = txs.filter((t: any) => t.status === 'Refunded' && (t.payment_methods?.name?.toLowerCase().includes('cash') || t.payment_methods?.name?.toLowerCase().includes('tunai')));
+
+                for (const trx of refundedCashTxs) {
+                    const { data: movements } = await supabase.from('cash_movements').select('id').eq('transaction_id', trx.id).eq('type', 'refund');
+                    if (!movements || movements.length === 0) {
+                        const rAmount = -Math.abs(trx.amount_due);
+                        await supabase.from('cash_movements').insert({
+                            session_id: actSession.id,
+                            staff_id: actSession.staff_id,
+                            type: 'refund',
+                            amount: rAmount,
+                            reason: 'Retroactive fix',
+                            transaction_id: trx.id
+                        });
+                        actSession.expected_cash = parseFloat(actSession.expected_cash) + rAmount;
+                        await supabase.from('cash_sessions').update({ expected_cash: actSession.expected_cash }).eq('id', actSession.id);
+                        console.log('Retroactively fixed refund for', trx.id);
+                    }
+                }
+            } catch(e) { console.error('Auto fix error', e); }
+        };
+        fixPastRefunds();
+    }, []);
+
     const fetchData = async () => {
         setTabLoading(true);
         try {
@@ -646,12 +683,15 @@ export default function AdminDashboard() {
                     const pmName = refundTarget.payment_methods?.name || '';
                     const isCash = pmName.toLowerCase().includes('cash') || pmName.toLowerCase().includes('tunai');
                     if (isCash) {
-                        const { data: sessions } = await supabase.from('cash_sessions').select('*').eq('status', 'open').order('opened_at', { ascending: false }).limit(1);
+                        const { data: sessions, error: sessErr } = await supabase.from('cash_sessions').select('*').eq('status', 'open').order('opened_at', { ascending: false }).limit(1);
+                        if (sessErr) toast.error("Gagal cek shift aktif: " + sessErr.message);
+                        
                         if (sessions && sessions.length > 0) {
                             const actSession = sessions[0];
                             const rAmount = -Math.abs(refundTarget.amount_due);
+                            
                             // Insert movement
-                            await supabase.from('cash_movements').insert({
+                            const { error: insErr } = await supabase.from('cash_movements').insert({
                                 session_id: actSession.id,
                                 staff_id: session?.user?.id || actSession.staff_id,
                                 type: 'refund',
@@ -659,12 +699,20 @@ export default function AdminDashboard() {
                                 reason: refundReason,
                                 transaction_id: refundTarget.id
                             });
+                            if (insErr) toast.error("Gagal catat pergerakan kas: " + insErr.message);
+
                             // Update expected cash
                             const newExpected = parseFloat(actSession.expected_cash) + rAmount;
-                            await supabase.from('cash_sessions').update({ expected_cash: newExpected }).eq('id', actSession.id);
+                            const { error: updErr } = await supabase.from('cash_sessions').update({ expected_cash: newExpected }).eq('id', actSession.id);
+                            if (updErr) toast.error("Gagal update target laci: " + updErr.message);
+                        } else {
+                            toast.error("Tidak ada shift kasir yang aktif untuk memotong uang laci.");
                         }
                     }
-                } catch(e) { console.error('Failed to update cash session for refund', e); }
+                } catch(e: any) { 
+                    console.error('Failed to update cash session for refund', e); 
+                    toast.error("Error manual sync kasir: " + e.message);
+                }
 
                 toast.success("Refund berhasil diproses!");
                 fetchData();
