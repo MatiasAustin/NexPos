@@ -1067,7 +1067,10 @@ export default function PosPage() {
 
                                 <div className="flex gap-4">
                                     <button 
-                                        onClick={() => setShowPayment(false)}
+                                        onClick={() => {
+                                            setShowPayment(false);
+                                            setAmountReceived("");
+                                        }}
                                         className="flex-1 py-3 md:py-4 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-colors"
                                     >
                                         Batal
@@ -1123,6 +1126,7 @@ export default function PosPage() {
                                         onClick={() => {
                                             setPaymentResult(null);
                                             setShowPayment(false);
+                                            setAmountReceived("");
                                         }}
                                         className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 md:py-4 rounded-xl font-bold text-lg transition-colors"
                                     >

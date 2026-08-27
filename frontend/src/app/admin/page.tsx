@@ -134,10 +134,14 @@ export default function AdminDashboard() {
             }
 
             const { data: prof } = await supabase.from('staff_profiles').select('*').eq('id', session.user.id).single();
-            if (!prof || prof.role !== 'owner') {
-                toast.error("Akses ditolak. Anda bukan Admin/Owner.");
+            if (!prof) {
+                toast.error("Akses ditolak.");
                 router.push('/pos');
                 return;
+            }
+            if (prof.role !== 'owner' && activeTab !== 'reconciliation' && activeTab !== 'history') {
+                setActiveTab('reconciliation');
+                return; // fetchData will run again due to useEffect dependency
             }
             setProfile(prof);
 
@@ -1243,7 +1247,7 @@ export default function AdminDashboard() {
                         { id: "staff", label: "Manajemen Staf", icon: Users },
                         { id: "audit", label: "Security Log", icon: ShieldCheck },
                         { id: "settings", label: "Pengaturan Toko", icon: Settings },
-                    ].map((tab) => (
+                    ].filter(tab => profile?.role === 'owner' || ['reconciliation', 'history'].includes(tab.id)).map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
