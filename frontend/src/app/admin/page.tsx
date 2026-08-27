@@ -635,7 +635,7 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     transaction_id: refundTarget.id,
-                    refund_amount: refundTarget.amount_received,
+                    refund_amount: refundTarget.amount_due,
                     reason: refundReason,
                     requested_by: session?.user?.id
                 })
@@ -649,7 +649,7 @@ export default function AdminDashboard() {
                         const { data: sessions } = await supabase.from('cash_sessions').select('*').eq('status', 'open').order('opened_at', { ascending: false }).limit(1);
                         if (sessions && sessions.length > 0) {
                             const actSession = sessions[0];
-                            const rAmount = -Math.abs(refundTarget.amount_received);
+                            const rAmount = -Math.abs(refundTarget.amount_due);
                             // Insert movement
                             await supabase.from('cash_movements').insert({
                                 session_id: actSession.id,

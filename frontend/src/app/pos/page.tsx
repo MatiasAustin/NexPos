@@ -62,11 +62,14 @@ export default function PosPage() {
     const fetchSessionData = async (id: string) => {
         if (!id) return;
         try {
-            // We can just call the active session endpoint again to get full updated data including total_expense
             if (!staff?.id) return;
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staff.id}&terminalId=TERM-01`);
             if (res.ok) {
                 const sess = await res.json();
+                // Manually query movements to get total_expense and total_refund since backend on Vercel is outdated
+                const { data: movements } = await supabase.from('cash_movements').select('amount, type').eq('session_id', sess.id).in('type', ['expense', 'refund']);
+                sess.total_expense = movements ? movements.filter(m => m.type === 'expense').reduce((sum, m) => sum + Math.abs(m.amount), 0) : 0;
+                sess.total_refund = movements ? movements.filter(m => m.type === 'refund').reduce((sum, m) => sum + Math.abs(m.amount), 0) : 0;
                 setSessionData(sess);
             }
         } catch(e) {
