@@ -340,8 +340,35 @@ export default function PosPage() {
             await supabase.from('kiosk_orders').insert([draftOrder]);
         }
         
+        const draftItems = cart.map(i => ({
+            product_name: i.product.name,
+            quantity: i.qty,
+            price: i.product.price,
+            subtotal: i.qty * i.product.price
+        }));
+
+        const printTx = {
+            order_reference: orderRef,
+            customer_name: customerName,
+            total: currentSubTotal + currentTaxAmount,
+            subtotal: currentSubTotal,
+            tax_amount: currentTaxAmount,
+            discount_amount: 0,
+            amount_due: currentSubTotal + currentTaxAmount,
+            status: 'BELUM LUNAS'
+        };
+
+        setPaymentResult({
+            isDraft: true,
+            order_reference: orderRef,
+            items: draftItems,
+            payment_method_name: "BELUM LUNAS",
+            transaction: printTx
+        });
+
         toast.success("Pesanan disimpan");
         clearCart();
+        setShowPayment(true);
     };
 
     const fetchExpensesAndMaterials = async () => {
@@ -1093,7 +1120,7 @@ export default function PosPage() {
                                 <div className="w-20 h-20 bg-green-500/10 border border-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                                 </div>
-                                <h2 className="text-2xl md:text-3xl font-black mb-1 text-white">Pembayaran Sukses!</h2>
+                                <h2 className="text-2xl md:text-3xl font-black mb-1 text-white">{paymentResult?.isDraft ? "Pesanan Tersimpan!" : "Pembayaran Sukses!"}</h2>
                                 <p className="text-gray-400 mb-6 flex flex-col items-center">
                                     <span className="text-[10px] uppercase tracking-wider mb-1">Nomor Antrean / Order</span>
                                     <span className="font-bold text-2xl text-white">{paymentResult.transaction?.order_reference || paymentResult.order_reference}</span>
