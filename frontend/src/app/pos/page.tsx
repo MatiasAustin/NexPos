@@ -477,9 +477,12 @@ export default function PosPage() {
         const ok = await confirm({ title: "Hapus Pengeluaran", message: "Hapus data pengeluaran ini secara permanen?", confirmText: "Hapus", variant: "danger" });
         if (!ok) return;
         try {
-            const { error } = await supabase.from('expenses').delete().eq('id', id);
-            if (error) throw error;
-            toast.success("Pengeluaran dihapus.");
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/expenses/${id}${sessionId ? `?sessionId=${sessionId}` : ''}`, { method: 'DELETE' });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Failed to delete expense');
+            }
+            toast.success("Pengeluaran dihapus dan uang laci disesuaikan.");
             fetchExpensesAndMaterials();
             if (sessionId) fetchSessionData(sessionId);
         } catch (e: any) { toast.error(e.message); }

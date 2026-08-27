@@ -258,6 +258,47 @@ router.delete('/admin/cash-sessions/:id', async (req, res) => {
     }
 });
 
+router.delete('/expenses/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { sessionId } = req.query; // optional, to restore drawer
+
+        // Get expense first to match reason
+        const { data: expense } = await supabase.from('expenses').select('*').eq('id', id).single();
+        if (expense) {
+            // Find and delete the related cash_movement (heuristic match since no fk)
+            const reasonPattern = `%${expense.description}%`;
+            let movQuery = supabase.from('cash_movements')
+                .select('*')
+                .eq('type', 'expense')
+                .eq('amount', -Math.abs(expense.amount))
+                .ilike('reason', reasonPattern);
+            
+            if (sessionId) movQuery = movQuery.eq('session_id', sessionId);
+            
+            const { data: movements } = await movQuery;
+            
+            if (movements && movements.length > 0) {
+                for (const mov of movements) {
+                    await supabase.from('cash_movements').delete().eq('id', mov.id);
+                    // Restore expected_cash
+                    const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', mov.session_id).single();
+                    if (session) {
+                        const restored = parseFloat(session.expected_cash) - parseFloat(mov.amount); // mov.amount is negative
+                        await supabase.from('cash_sessions').update({ expected_cash: restored }).eq('id', mov.session_id);
+                    }
+                }
+            }
+            
+            // Delete expense
+            await supabase.from('expenses').delete().eq('id', id);
+        }
+        res.status(204).send();
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 router.get('/admin/cash-sessions', async (req, res) => {
     try {
         const { data, error } = await supabase.from('cash_sessions').select('*').order('opened_at', { ascending: false });
@@ -299,23 +340,33 @@ router.get('/cash-sessions/active', async (req, res) => {
 
 router.get('/fix-drawer', async (req, res) => {
     try {
-        const { amount } = req.query;
-        const fixAmount = amount ? parseFloat(String(amount)) : -40000;
-        
-        // Find all open sessions
-        const { data: sessions } = await supabase.from('cash_sessions').select('*').eq('status', 'open');
-        
-        if (!sessions || sessions.length === 0) {
-             return res.json({ message: 'Tidak ada shift kasir yang sedang buka saat ini.' });
+        // Cari cash_movements pengeluaran sebesar 45000 (minus) yang yatim piatu
+        const { data: orphanedMovements } = await supabase
+            .from('cash_movements')
+            .select('*')
+            .eq('type', 'expense')
+            .eq('amount', -45000);
+            
+        if (!orphanedMovements || orphanedMovements.length === 0) {
+            return res.json({ message: 'Tidak ditemukan pengeluaran 45k yang nyangkut.' });
         }
         
         let fixed = 0;
-        for (const session of sessions) {
-            const newExpected = parseFloat(session.expected_cash) + fixAmount;
-            await supabase.from('cash_sessions').update({ expected_cash: newExpected }).eq('id', session.id);
+        for (const mov of orphanedMovements) {
+            // Hapus cash_movements
+            await supabase.from('cash_movements').delete().eq('id', mov.id);
+            
+            // Kembalikan saldo expected_cash ke shift
+            const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', mov.session_id).single();
+            if (session) {
+                // amount bernilai -45000, jadi kalau dikurangkan akan menambah 45000
+                const restoredCash = parseFloat(session.expected_cash) - parseFloat(mov.amount);
+                await supabase.from('cash_sessions').update({ expected_cash: restoredCash }).eq('id', mov.session_id);
+            }
             fixed++;
         }
-        res.json({ message: `BERHASIL! Uang laci telah disesuaikan sebesar Rp ${fixAmount} untuk ${fixed} shift aktif. Silakan refresh halaman kasir Anda!` });
+        
+        res.json({ message: `BERHASIL! ${fixed} data pengeluaran 45k yang nyangkut berhasil dihapus dari sistem kasir dan uang laci telah dikembalikan. Silakan refresh halaman POS Anda.` });
     } catch (error: any) {
         res.status(400).json({ error: error.message });
     }

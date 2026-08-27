@@ -905,9 +905,17 @@ export default function AdminDashboard() {
         });
         if (!ok) return;
         setLoading(true);
-        const { error } = await supabase.from('expenses').delete().eq('id', id);
-        if (error) toast.error(error.message);
-        else { toast.success("Pengeluaran dihapus."); fetchData(); }
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/expenses/${id}`, { method: 'DELETE' });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Failed to delete expense');
+            }
+            toast.success("Pengeluaran dihapus dan riwayat shift disesuaikan.");
+            fetchData();
+        } catch (e: any) {
+            toast.error(e.message);
+        }
         setLoading(false);
     };
 
