@@ -185,12 +185,13 @@ export default function AdminDashboard() {
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/cash-sessions`);
                 if (res.ok) {
                     const sessions = await res.json();
-                    const { data: movements } = await supabase.from('cash_movements').select('session_id, amount').eq('type', 'expense');
+                    const { data: movements } = await supabase.from('cash_movements').select('session_id, amount, type').in('type', ['expense', 'refund']);
 
                     const merged = sessions.map((s: any) => {
                         const sm = movements?.filter(m => m.session_id === s.id) || [];
-                        const expense = sm.reduce((sum, m) => sum + Math.abs(m.amount), 0);
-                        return { ...s, total_expense: expense };
+                        const expense = sm.filter(m => m.type === 'expense').reduce((sum, m) => sum + Math.abs(m.amount), 0);
+                        const refund = sm.filter(m => m.type === 'refund').reduce((sum, m) => sum + Math.abs(m.amount), 0);
+                        return { ...s, total_expense: expense, total_refund: refund };
                     });
                     setCashSessions(merged);
                 }
@@ -1681,6 +1682,7 @@ export default function AdminDashboard() {
                                                 <div className="flex flex-col gap-1 text-sm bg-gray-900/50 p-3 rounded-xl border border-gray-800 min-w-[200px]">
                                                     <div className="flex justify-between text-gray-400"><span>Modal Awal (Buka)</span><span>Rp {Number(session.opening_cash).toLocaleString('id-ID')}</span></div>
                                                     <div className="flex justify-between text-red-400"><span>Pengeluaran (Cash)</span><span>-Rp {Number(session.total_expense || 0).toLocaleString('id-ID')}</span></div>
+                                                    <div className="flex justify-between text-yellow-400"><span>Refund</span><span>-Rp {Number(session.total_refund || 0).toLocaleString('id-ID')}</span></div>
                                                     <div className="flex justify-between text-blue-400"><span>Sisa/Target (Sistem)</span><span>Rp {Number(session.expected_cash).toLocaleString('id-ID')}</span></div>
                                                     {session.status === 'closed' && (
                                                         <>

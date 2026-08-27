@@ -37,15 +37,22 @@ export class RefundService {
         if (fetchError || !refund) throw new Error('Refund not found');
         if (refund.status !== 'pending') throw new Error('Refund is not pending');
 
-        // 2. Process Refund based on Payment Method (Simplified)
-        // If cash, decrease drawer balance via CashManagementService
         const trx = refund.transactions as any;
-        const isCash = trx.payment_method_id; // In real app, check payment method type
         
-        if (sessionId) {
+        // Fetch payment method to check if it's cash
+        const { data: pmData } = await supabase.from('payment_methods').select('name').eq('id', trx.payment_method_id).single();
+        const isCash = pmData && (pmData.name.toLowerCase().includes('cash') || pmData.name.toLowerCase().includes('tunai'));
+        
+        let activeSessionId = sessionId;
+        if (!activeSessionId) {
+            const { data: sessions } = await supabase.from('cash_sessions').select('id').eq('status', 'open').order('opened_at', { ascending: false }).limit(1);
+            if (sessions && sessions.length > 0) activeSessionId = sessions[0].id;
+        }
+
+        if (activeSessionId && isCash) {
              // Record cash movement for cash refund
              await this.cashService.recordMovement({
-                 session_id: sessionId,
+                 session_id: activeSessionId,
                  staff_id: approvedBy,
                  type: 'refund',
                  amount: -Math.abs(refund.refund_amount), // Negative for cash out

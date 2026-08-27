@@ -795,11 +795,15 @@ export default function PosPage() {
                                     <span className="text-red-400 text-xs font-bold">Rp {Number(sessionData.total_expense || 0).toLocaleString('id-ID')}</span>
                                 </div>
                                 <div className="flex flex-col border-l border-gray-800 pl-4">
+                                    <span className="text-gray-400 text-[10px] leading-tight">Refund</span>
+                                    <span className="text-yellow-400 text-xs font-bold">Rp {Number(sessionData.total_refund || 0).toLocaleString('id-ID')}</span>
+                                </div>
+                                <div className="flex flex-col border-l border-gray-800 pl-4">
                                     <span className="text-gray-400 text-[10px] leading-tight">Laci (Sistem)</span>
                                     <span className="text-green-400 text-xs font-bold">Rp {Number(sessionData.expected_cash || 0).toLocaleString('id-ID')}</span>
                                 </div>
                                 <div className="flex flex-col border-l border-gray-800 pl-4">
-                                    <span className="text-gray-400 text-[10px] leading-tight">Selisih (Penjualan)</span>
+                                    <span className="text-gray-400 text-[10px] leading-tight">Selisih (Penjualan Bersih)</span>
                                     <span className="text-purple-400 text-xs font-bold">Rp {Number((sessionData.expected_cash || 0) - (sessionData.opening_cash || 0) + (sessionData.total_expense || 0)).toLocaleString('id-ID')}</span>
                                 </div>
                             </div>

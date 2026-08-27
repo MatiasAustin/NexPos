@@ -31,8 +31,9 @@ export class CashManagementService {
             
         if (data && data.length > 0) {
             const session = data[0];
-            const { data: movements } = await supabase.from('cash_movements').select('amount').eq('session_id', session.id).eq('type', 'expense');
-            session.total_expense = movements ? movements.reduce((sum, m) => sum + Math.abs(m.amount), 0) : 0;
+            const { data: movements } = await supabase.from('cash_movements').select('amount, type').eq('session_id', session.id).in('type', ['expense', 'refund']);
+            session.total_expense = movements ? movements.filter(m => m.type === 'expense').reduce((sum, m) => sum + Math.abs(m.amount), 0) : 0;
+            session.total_refund = movements ? movements.filter(m => m.type === 'refund').reduce((sum, m) => sum + Math.abs(m.amount), 0) : 0;
             return session;
         }
         return null;
