@@ -279,6 +279,26 @@ export default function PosPage() {
 
     const [activeQueueNumber, setActiveQueueNumber] = useState<string | null>(null);
 
+    const handleDeletePendingOrder = async (id: string, queueNumber: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const ok = await confirm({ title: "Batalkan Pesanan", message: "Yakin ingin membatalkan/menghapus pesanan ini?", confirmText: "Ya, Batalkan", variant: "danger" });
+        if (!ok) return;
+
+        try {
+            const { error } = await supabase.from('kiosk_orders').delete().eq('id', id);
+            if (error) throw error;
+            toast.success("Pesanan berhasil dibatalkan.");
+            setPendingOrders(prev => prev.filter((o: any) => o.id !== id));
+            
+            // If the active queue number matches the deleted one, clear the cart.
+            if (activeQueueNumber === queueNumber) {
+                clearCart();
+            }
+        } catch (e: any) {
+            toast.error(e.message);
+        }
+    };
+
     const loadCustomerOrder = async (order: any, idx: number) => {
         if (cart.length > 0) {
             // Save current cart as draft
@@ -818,14 +838,23 @@ export default function PosPage() {
                             <h3 className="font-bold text-orange-400 mb-3 flex items-center gap-2">🛒 Pesanan Baru dari Customer</h3>
                             <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
                                 {pendingOrders.map((order: any, idx: number) => order.status === 'pending' && (
-                                    <button 
-                                        key={order.id}
-                                        onClick={() => loadCustomerOrder(order, idx)}
-                                        className="bg-[#1a1a1c] px-4 py-3 rounded-xl border border-orange-500/20 text-white font-bold hover:bg-gray-800 flex-shrink-0 shadow-sm transition-colors text-left flex flex-col min-w-[150px]"
-                                    >
-                                        <span className="text-orange-400 text-xs mb-1">{order.queue_number || order.id}</span>
-                                        <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
-                                    </button>
+                                    <div key={order.id} className="relative group flex-shrink-0 min-w-[150px]">
+                                        <button 
+                                            onClick={() => loadCustomerOrder(order, idx)}
+                                            className="w-full h-full bg-gradient-to-br from-orange-500/20 to-red-500/20 px-4 py-3 rounded-xl border border-orange-500/40 text-white font-bold hover:from-orange-500/30 hover:to-red-500/30 shadow-sm transition-all text-left flex flex-col relative overflow-hidden"
+                                        >
+                                            <div className="absolute top-0 right-0 w-2 h-full bg-orange-500 animate-pulse"></div>
+                                            <span className="text-orange-400 text-xs mb-1">{order.queue_number || order.id}</span>
+                                            <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
+                                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-lg md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10"
+                                            title="Tolak Pesanan"
+                                        >
+                                            &#10005;
+                                        </button>
+                                    </div>
                                 ))}
                             </div>
                         </div>
@@ -837,14 +866,22 @@ export default function PosPage() {
                             <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">📝 Draft Pesanan (Belum Bayar)</h3>
                             <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
                                 {pendingOrders.map((order: any, idx: number) => order.status === 'draft' && (
-                                    <button 
-                                        key={order.id}
-                                        onClick={() => loadCustomerOrder(order, idx)}
-                                        className="bg-[#1a1a1c] px-4 py-3 rounded-xl border border-blue-500/20 text-white font-bold hover:bg-gray-800 flex-shrink-0 shadow-sm transition-colors text-left flex flex-col min-w-[150px]"
-                                    >
-                                        <span className="text-blue-400 text-xs mb-1">{order.queue_number || order.id}</span>
-                                        <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
-                                    </button>
+                                    <div key={order.id} className="relative group flex-shrink-0 min-w-[150px]">
+                                        <button 
+                                            onClick={() => loadCustomerOrder(order, idx)}
+                                            className="w-full h-full bg-[#1a1a1c] px-4 py-3 rounded-xl border border-blue-500/20 text-white font-bold hover:bg-gray-800 shadow-sm transition-colors text-left flex flex-col"
+                                        >
+                                            <span className="text-blue-400 text-xs mb-1">{order.queue_number || order.id}</span>
+                                            <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
+                                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-lg md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10"
+                                            title="Hapus Draft"
+                                        >
+                                            &#10005;
+                                        </button>
+                                    </div>
                                 ))}
                             </div>
                         </div>
