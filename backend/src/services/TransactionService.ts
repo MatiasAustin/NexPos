@@ -83,19 +83,20 @@ export class TransactionService {
                         // Deduct ingredients / raw materials
                         if (prod.ingredients && Array.isArray(prod.ingredients)) {
                             for (const ing of prod.ingredients) {
-                                if (ing.raw_material_id && ing.qty > 0) {
-                                    const { data: rawMat } = await supabase.from('raw_materials').select('current_stock, name').eq('id', ing.raw_material_id).single();
+                                const matId = ing.raw_material_id || ing.id;
+                                if (matId && ing.qty > 0) {
+                                    const { data: rawMat } = await supabase.from('raw_materials').select('current_stock, name').eq('id', matId).single();
                                     if (rawMat) {
                                         const totalQtyUsed = ing.qty * item.quantity;
                                         const newStock = rawMat.current_stock - totalQtyUsed;
                                         
                                         await supabase.from('raw_materials')
                                             .update({ current_stock: newStock })
-                                            .eq('id', ing.raw_material_id);
+                                            .eq('id', matId);
                                             
                                         // Log stock reduction
                                         await supabase.from('material_stock_logs').insert([{
-                                            material_id: ing.raw_material_id,
+                                            material_id: matId,
                                             material_name: rawMat.name,
                                             delta: -totalQtyUsed,
                                             current_stock: newStock,
