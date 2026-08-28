@@ -670,7 +670,7 @@ export default function AdminDashboard() {
                 })
             });
             if(res.ok) {
-                toast.success("Produk berhasil diperbarui!");
+                toast.success("Produk berhasil diperbarui!"); await logAudit("EDIT_DATA", "products", editingProduct.id, { product_name: editingProduct.name, action: "Edit Produk" });
                 setEditingProduct(null);
                 fetchData();
             } else {
@@ -799,7 +799,7 @@ export default function AdminDashboard() {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${product.id}`, { method: 'DELETE' });
             if (res.ok) {
-                toast.success("Menu berhasil dihapus.");
+                toast.success("Menu berhasil dihapus."); await logAudit("DELETE_DATA", "products", product.id, { product_name: product.name, action: "Hapus Produk" });
                 fetchData();
             } else {
                 const err = await res.json();
@@ -1057,12 +1057,29 @@ export default function AdminDashboard() {
                 }
             }
 
-            toast.success("Pengeluaran berhasil diperbarui.");
+            toast.success("Pengeluaran berhasil diperbarui."); await logAudit("EDIT_DATA", "expenses", editingExpense.id, { description: editingExpense.description, action: "Edit Pengeluaran" });
             setEditingExpense(null);
             setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
             fetchData();
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
+    };
+
+    
+    const logAudit = async (action: string, entity_type: string, entity_id: string, details: any = {}) => {
+        try {
+            await supabase.from('audit_logs').insert([{
+                action,
+                entity_type,
+                entity_id,
+                staff_id: profile?.id || 'unknown',
+                details: {
+                    ...details,
+                    staff_name: profile?.full_name || 'Admin System'
+                }
+            }]);
+            if (activeTab === 'audit') fetchAuditLogs();
+        } catch(e) {}
     };
 
     const fetchAuditLogs = async () => {
