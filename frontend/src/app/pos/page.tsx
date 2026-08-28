@@ -1310,14 +1310,10 @@ export default function PosPage() {
                                 <div className="p-4 md:p-6 bg-[#131B2C] rounded-2xl border border-gray-800 transition-all">
                                     <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-3">
                                         <h3 className="font-bold text-lg text-white">
-                                            {materialMode === 'add' ? 'Tambah Bahan Baku Baru' : `Update Stok: ${selectedMaterial?.name}`}
+                                            Tambah Bahan Baku Baru
                                         </h3>
-                                        {materialMode === 'update' && (
-                                            <button onClick={() => { setMaterialMode('add'); setSelectedMaterial(null); }} className="text-xs text-blue-400 hover:text-blue-300">Batal Update</button>
-                                        )}
                                     </div>
                                     
-                                    {materialMode === 'add' ? (
                                         <form onSubmit={handleCreateMaterial} className="space-y-4">
                                             <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                             <div className="grid grid-cols-3 gap-4">
@@ -1327,32 +1323,6 @@ export default function PosPage() {
                                             </div>
                                             <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Bahan</button>
                                         </form>
-                                    ) : (
-                                        <form onSubmit={handleAdjustStock} className="space-y-4">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="text-xs text-gray-500 mb-1 block">Penambahan/Pengurangan Stok</label>
-                                                    <div className="flex items-center gap-3">
-                                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) - 1})} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">-</button>
-                                                        <div className="flex-1 text-center bg-gray-900 border border-gray-800 rounded-xl py-3 text-white font-bold text-lg">
-                                                            {stockAdjustment.delta >= 0 ? `+${stockAdjustment.delta}` : stockAdjustment.delta}
-                                                        </div>
-                                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) + 1})} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">+</button>
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs text-gray-500 mb-1 block">Harga Beli Baru (Opsional)</label>
-                                                    <input type="number" placeholder="Biarkan kosong jika tetap" value={stockAdjustment.price || ''} onChange={e => setStockAdjustment({...stockAdjustment, price: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="text-xs text-gray-500 mb-1 block">Keterangan (Contoh: Beli baru, Rusak, Terpakai)</label>
-                                                <input type="text" placeholder="Masukkan keterangan" required value={stockAdjustment.note || ''} onChange={e => setStockAdjustment({...stockAdjustment, note: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                            </div>
-                                            <p className="text-xs text-gray-500">Gunakan angka minus (-) jika bahan terpakai/dibuang.</p>
-                                            <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Update Stok</button>
-                                        </form>
-                                    )}
                                 </div>
 
                                 <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden">
@@ -1372,7 +1342,7 @@ export default function PosPage() {
                                                             <td className="p-4 text-center"><span className="px-3 py-1 bg-gray-800 rounded-lg text-sm font-bold">{mat.current_stock} {mat.unit}</span></td>
                                                             <td className="p-4 text-right">
                                                                 <div className="flex gap-1 justify-end">
-                                                                    <button onClick={() => { setMaterialMode('update'); setSelectedMaterial(mat); setStockAdjustment({ delta: 0, note: '', price: mat.last_price_per_unit }); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
+                                                                    <button onClick={() => { setSelectedMaterial(mat); setStockAdjustment({ delta: 0, note: '', price: mat.last_price_per_unit }); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
                                                                     {canEditRecord(mat.updated_by_name) && (
                                                                         <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
                                                                     )}
@@ -1529,6 +1499,47 @@ export default function PosPage() {
                     </div>
                 </div>
             )}
+
+            {/* Adjust Material Stock Modal */}
+            {selectedMaterial && (
+                <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-[200] p-4 overflow-y-auto backdrop-blur-md">
+                    <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl my-auto flex-shrink-0">
+                        <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
+                            <div>
+                                <h3 className="font-bold text-xl text-white">Update Stok Bahan</h3>
+                                <p className="text-gray-400 font-bold mt-1">{selectedMaterial.name}</p>
+                            </div>
+                            <span className="text-sm bg-gray-800 px-3 py-1.5 rounded-lg text-gray-300 font-bold">Stok: {selectedMaterial.current_stock} {selectedMaterial.unit}</span>
+                        </div>
+                        <form onSubmit={handleAdjustStock} className="space-y-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div>
+                                    <label className="text-sm font-bold text-gray-400 block mb-2">Penambahan / Pengurangan</label>
+                                    <div className="flex items-center gap-3">
+                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) - 1})} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">-</button>
+                                        <input type="number" className="flex-1 text-center bg-gray-900 border border-gray-800 rounded-xl py-3 text-white font-bold text-lg outline-none focus:border-blue-500" value={stockAdjustment.delta || ''} onChange={e => setStockAdjustment({...stockAdjustment, delta: Number(e.target.value) || 0})} />
+                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) + 1})} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">+</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-bold text-gray-400 block mb-2">Harga Beli (Opsional)</label>
+                                    <input type="number" placeholder="Bila kosong = tetap" value={stockAdjustment.price || ''} onChange={e => setStockAdjustment({...stockAdjustment, price: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white h-12" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-sm font-bold text-gray-400 block mb-2">Keterangan Aktivitas</label>
+                                <input type="text" placeholder="Contoh: Beli bahan baru, terpakai tester..." required value={stockAdjustment.note || ''} onChange={e => setStockAdjustment({...stockAdjustment, note: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                            </div>
+                            <p className="text-xs text-gray-500">?? <b>Tip:</b> Anda bisa langsung mengetik jumlah di kotak angka. Gunakan angka minus (-) jika bahan terpakai/dibuang.</p>
+                            <div className="flex gap-4 mt-6 pt-4 border-t border-gray-800">
+                                <button type="button" onClick={() => setSelectedMaterial(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-colors">Batal</button>
+                                <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors">Simpan Stok</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }
