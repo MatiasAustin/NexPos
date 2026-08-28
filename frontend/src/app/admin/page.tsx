@@ -2056,11 +2056,10 @@ export default function AdminDashboard() {
                                         <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                             <div className="flex items-center gap-2 mb-6 border-b border-gray-800 pb-3">
                                                 <button onClick={() => setMaterialMode('add')} className={`pb-2 px-2 text-lg font-bold border-b-2 transition-colors ${materialMode === 'add' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-400 hover:text-white'}`}>Tambah Bahan</button>
-                                                <button onClick={() => setMaterialMode('update')} className={`pb-2 px-2 text-lg font-bold border-b-2 transition-colors ${materialMode === 'update' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-400 hover:text-white'}`}>+/- Stok</button>
+                                                
                                             </div>
                                             
-                                            {materialMode === 'add' ? (
-                                                <form onSubmit={handleCreateMaterial} className="space-y-4">
+                                            <form onSubmit={handleCreateMaterial} className="space-y-4">
                                                     <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                                     <div className="grid grid-cols-3 gap-4">
                                                         <input type="text" placeholder="Unit (kg/lt)" required value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
@@ -2069,49 +2068,6 @@ export default function AdminDashboard() {
                                                     </div>
                                                     <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Bahan</button>
                                                 </form>
-                                            ) : (
-                                                <div className="space-y-4">
-                                                    {!selectedMaterial ? (
-                                                        <div className="text-gray-400 text-sm text-center py-3 md:py-4 border border-dashed border-gray-700 rounded-xl">
-                                                            Pilih bahan baku dari tabel di bawah untuk mengatur stok.
-                                                        </div>
-                                                    ) : (
-                                                        <div className="bg-gray-800/30 p-4 rounded-xl border border-gray-800">
-                                                            <div className="flex justify-between items-center mb-4">
-                                                                <h4 className="font-bold text-white">{selectedMaterial.name}</h4>
-                                                                <span className="text-xs bg-gray-800 px-2 py-1 rounded-md text-gray-300">Stok saat ini: {selectedMaterial.current_stock} {selectedMaterial.unit}</span>
-                                                            </div>
-                                                            <form onSubmit={handleAdjustStock} className="space-y-4">
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                    <div>
-                                                                        <label className="text-xs text-gray-500 mb-1 block">Penambahan/Pengurangan Stok</label>
-                                                                        <div className="flex items-center gap-3">
-                                                                            <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) - 1})} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">-</button>
-                                                                            <div className="flex-1 text-center bg-gray-900 border border-gray-800 rounded-xl py-3 text-white font-bold text-lg">
-                                                                                {stockAdjustment.delta >= 0 ? `+${stockAdjustment.delta}` : stockAdjustment.delta}
-                                                                            </div>
-                                                                            <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) + 1})} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">+</button>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="text-xs text-gray-500 mb-1 block">Harga Beli Baru (Opsional)</label>
-                                                                        <input type="number" placeholder="Biarkan kosong jika tetap" value={stockAdjustment.price || ''} onChange={e => setStockAdjustment({...stockAdjustment, price: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                                    </div>
-                                                                </div>
-                                                                <div>
-                                                                    <label className="text-xs text-gray-500 mb-1 block">Keterangan (Contoh: Beli baru, Rusak, Terpakai)</label>
-                                                                    <input type="text" placeholder="Masukkan keterangan" required value={stockAdjustment.note || ''} onChange={e => setStockAdjustment({...stockAdjustment, note: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                                </div>
-                                                                <p className="text-xs text-gray-500">Gunakan angka minus (-) jika bahan terpakai/dibuang.</p>
-                                                                <div className="flex gap-2 mt-2">
-                                                                    <button type="button" onClick={() => setSelectedMaterial(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
-                                                                    <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Update Stok</button>
-                                                                </div>
-                                                            </form>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
                                         </div>
 
                                         {/* Pengeluaran */}
