@@ -1692,6 +1692,7 @@ export default function AdminDashboard() {
 </div>
                                                 <div className="flex flex-col gap-1 text-sm bg-gray-900/50 p-3 rounded-xl border border-gray-800 min-w-[200px]">
                                                     <div className="flex justify-between text-gray-400"><span>Modal Awal (Buka)</span><span>Rp {Number(session.opening_cash).toLocaleString('id-ID')}</span></div>
+                                                    <div className="flex justify-between text-green-400"><span>Pendapatan (Cash)</span><span>+Rp {Number(session.expected_cash - session.opening_cash + (session.total_expense || 0) + (session.total_refund || 0)).toLocaleString('id-ID')}</span></div>
                                                     <div className="flex justify-between text-red-400"><span>Pengeluaran (Cash)</span><span>-Rp {Number(session.total_expense || 0).toLocaleString('id-ID')}</span></div>
                                                     <div className="flex justify-between text-yellow-400"><span>Refund</span><span>-Rp {Number(session.total_refund || 0).toLocaleString('id-ID')}</span></div>
                                                     <div className="flex justify-between text-blue-400"><span>Sisa/Target (Sistem)</span><span>Rp {Number(session.expected_cash).toLocaleString('id-ID')}</span></div>
