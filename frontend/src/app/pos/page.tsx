@@ -777,14 +777,14 @@ export default function PosPage() {
                             <span className="text-gray-500 text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date().toLocaleTimeString()}</span>
                         </div>
                         <button onClick={toggleFullscreen} className="ml-2 p-2 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors text-gray-300" title="Toggle Fullscreen">
-                            <Maximize className="w-4 h-4" />
+                            <Maximize className="w-5 h-5" />
                         </button>
                     </div>
                     
                     {/* Staff Profile in POS Header */}
                     <div className="bg-[#121214] border border-gray-800 p-2 pr-4 rounded-full font-semibold flex items-center gap-3 text-sm shadow-sm overflow-x-auto whitespace-nowrap hide-scrollbar max-w-full">
                         <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-blue-400 shrink-0">
-                            <Banknote className="w-4 h-4" />
+                            <Banknote className="w-5 h-5" />
                         </div>
                         <div className="flex flex-col shrink-0">
                             <span className="text-gray-400 text-[10px] leading-tight">Kasir</span>
@@ -988,8 +988,8 @@ export default function PosPage() {
                                             <p className="font-bold text-sm md:text-base whitespace-nowrap text-white mb-2">
                                                 Rp {(item.product.price * item.qty).toLocaleString("id-ID")}
                                             </p>
-                                            <button onClick={() => removeFromCart(item.product.id)} className="text-red-400 hover:text-red-300 p-1.5 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors inline-flex">
-                                                <Trash2 className="w-4 h-4" />
+                                            <button onClick={() => removeFromCart(item.product.id)} className="text-red-400 hover:text-red-300 p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors inline-flex">
+                                                <Trash2 className="w-5 h-5" />
                                             </button>
                                         </div>
                                     </div>
@@ -997,21 +997,21 @@ export default function PosPage() {
                                         <button 
                                             onClick={() => updateCartQty(item.product.id, item.qty - 1)}
                                             disabled={item.qty <= 1}
-                                            className="w-8 h-8 flex items-center justify-center bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white rounded-lg transition-colors border border-gray-700"
+                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white rounded-lg transition-colors border border-gray-700"
                                         >
-                                            <Minus className="w-4 h-4" />
+                                            <Minus className="w-5 h-5" />
                                         </button>
                                         <input 
                                             type="number" 
                                             value={item.qty}
                                             onChange={(e) => updateCartQty(item.product.id, parseInt(e.target.value) || 1)}
-                                            className="w-12 h-8 bg-[#121214] text-center font-bold text-sm text-white border border-gray-800 rounded-lg outline-none focus:border-blue-500"
+                                            className="w-14 h-10 bg-[#121214] text-center font-bold text-sm text-white border border-gray-800 rounded-lg outline-none focus:border-blue-500"
                                         />
                                         <button 
                                             onClick={() => updateCartQty(item.product.id, item.qty + 1)}
-                                            className="w-8 h-8 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors border border-gray-700"
+                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors border border-gray-700"
                                         >
-                                            <Plus className="w-4 h-4" />
+                                            <Plus className="w-5 h-5" />
                                         </button>
                                     </div>
                                 </div>
@@ -1153,30 +1153,14 @@ export default function PosPage() {
                                     <span className="font-bold text-2xl text-white">{paymentResult.transaction?.order_reference || paymentResult.order_reference}</span>
                                 </p>
                                 <div className="flex flex-col md:flex-row gap-4">
-                                    <button 
-                                        onClick={async () => {
-                                            const { generateReceiptText, printWithRawBT } = await import('@/lib/printUtils');
-                                            const text = generateReceiptText(
-                                                storeSettings,
-                                                paymentResult.transaction || paymentResult,
-                                                paymentResult.transaction?.items || paymentResult.items || [],
-                                                staff?.full_name || 'Admin',
-                                                paymentResult.payment_method_name || 'TUNAI'
-                                            );
-                                            printWithRawBT(text);
-                                        }}
-                                        className="w-full bg-orange-600 hover:bg-orange-500 text-white py-3 md:py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                                        Teks Cepat (RawBT)
-                                    </button>
+
                                     <button 
                                         onClick={() => {
                                             setTimeout(() => window.print(), 100);
                                         }}
                                         className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 md:py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
                                     >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                         Cetak Desain (Web)
                                     </button>
 

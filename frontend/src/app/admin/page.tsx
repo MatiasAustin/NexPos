@@ -141,7 +141,7 @@ export default function AdminDashboard() {
                 router.push('/pos');
                 return;
             }
-            if (prof.role !== 'owner' && activeTab !== 'reconciliation' && activeTab !== 'history') {
+            if (prof.role !== 'owner' && activeTab !== 'reconciliation' && activeTab !== 'history' && activeTab !== 'cash_sessions') {
                 setActiveTab('reconciliation');
                 return; // fetchData will run again due to useEffect dependency
             }
@@ -1271,7 +1271,7 @@ export default function AdminDashboard() {
                         { id: "staff", label: "Manajemen Staf", icon: Users },
                         { id: "audit", label: "Security Log", icon: ShieldCheck },
                         { id: "settings", label: "Pengaturan Toko", icon: Settings },
-                    ].filter(tab => profile?.role === 'owner' || ['reconciliation', 'history'].includes(tab.id)).map((tab) => (
+                    ].filter(tab => profile?.role === 'owner' || ['reconciliation', 'history', 'cash_sessions'].includes(tab.id)).map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
@@ -1633,29 +1633,15 @@ export default function AdminDashboard() {
                                                                         >
                                                                             Refund
                                                                         </button>
-                                                                        <button 
-                                                                            onClick={async () => {
-                                                                                const { generateReceiptText, printWithRawBT } = await import('@/lib/printUtils');
-                                                                                const text = generateReceiptText(
-                                                                                    storeSettings,
-                                                                                    trx,
-                                                                                    trx.order_items || [],
-                                                                                    'Admin',
-                                                                                    trx.payment_methods?.name || 'TUNAI'
-                                                                                );
-                                                                                printWithRawBT(text);
-                                                                            }}
-                                                                            className="w-full px-4 py-2 bg-orange-600 text-white border border-orange-500 rounded-xl text-sm font-bold hover:bg-orange-500 transition-colors"
-                                                                        >
-                                                                            Teks Cepat (RawBT)
-                                                                        </button>
+
                                                                         <button 
                                                                             onClick={() => {
                                                                                 setPrintTransaction(trx);
                                                                                 setTimeout(() => window.print(), 100);
                                                                             }}
-                                                                            className="w-full px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl text-sm font-bold hover:bg-blue-500/20 transition-colors"
+                                                                            className="w-full px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl text-sm font-bold hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-2"
                                                                         >
+                                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                                                             Cetak Desain (Web)
                                                                         </button>
                                                                     </>
@@ -1700,7 +1686,9 @@ export default function AdminDashboard() {
                                                         Buka: {new Date(session.opened_at).toLocaleString('id-ID')}
                                                         {session.closed_at && ` | Tutup: ${new Date(session.closed_at).toLocaleString('id-ID')}`}
                                                     </p>
-                                                    <button onClick={() => handleDeleteSession(session.id)} disabled={loading} className="mt-2 text-[10px] uppercase font-bold tracking-wider px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full hover:bg-red-500/20 w-fit transition-colors">Hapus Shift</button>
+                                                    {profile?.role === 'owner' && (
+                                                        <button onClick={() => handleDeleteSession(session.id)} disabled={loading} className="mt-2 text-[10px] uppercase font-bold tracking-wider px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full hover:bg-red-500/20 w-fit transition-colors">Hapus Shift</button>
+                                                    )}
 </div>
                                                 <div className="flex flex-col gap-1 text-sm bg-gray-900/50 p-3 rounded-xl border border-gray-800 min-w-[200px]">
                                                     <div className="flex justify-between text-gray-400"><span>Modal Awal (Buka)</span><span>Rp {Number(session.opening_cash).toLocaleString('id-ID')}</span></div>
@@ -2651,34 +2639,12 @@ export default function AdminDashboard() {
                                         </div>
 
                                         <div className="flex flex-col md:flex-row gap-4 mt-8">
-                                            <button 
-                                                onClick={async () => {
-                                                    const { generateReceiptText, printWithRawBT } = await import('@/lib/printUtils');
-                                                    // Dummy transaction for testing
-                                                    const dummyTx = {
-                                                        order_reference: 'TEST-123',
-                                                        created_at: new Date().toISOString(),
-                                                        customer_name: 'Mr. Tester',
-                                                        tax_amount: 5000,
-                                                        amount_due: 55000,
-                                                        amount_received: 100000,
-                                                        change_given: 45000
-                                                    };
-                                                    const dummyItems = [
-                                                        { product_name: 'Test Item 1', quantity: 1, price_at_time: 20000 },
-                                                        { product_name: 'Test Item 2', quantity: 1, price_at_time: 30000 }
-                                                    ];
-                                                    const text = generateReceiptText(storeSettings, dummyTx, dummyItems, 'Admin Test', 'QRIS');
-                                                    printWithRawBT(text);
-                                                }}
-                                                className="px-6 py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-500 transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                Test Teks Cepat (RawBT)
-                                            </button>
+
                                             <button 
                                                 onClick={handleTestPrint}
                                                 className="px-6 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
                                             >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                                 Test Cetak Desain (Web/PDF)
                                             </button>
                                         </div>
