@@ -424,10 +424,10 @@ export default function PosPage() {
             if (error) throw error;
             
             // Handle Material Stock Update if selected
-            if (newExpense.material_id && newExpense.quantity > 0) {
+            if (newExpense.material_id && Number(newExpense.quantity) > 0) {
                 const material = rawMaterials.find(m => m.id === newExpense.material_id);
                 if (material) {
-                    const newStock = material.current_stock + Number(newExpense.quantity);
+                    const newStock = Number(material.current_stock) + Number(newExpense.quantity);
                     const unitPrice = Number(newExpense.amount) / Number(newExpense.quantity);
                     // Update material
                     const { error: matError } = await supabase.from('raw_materials')
@@ -648,6 +648,44 @@ export default function PosPage() {
             };
             
             const result = await processPayment(payload);
+            
+            // --- HACK FOR OUTDATED VERCEL BACKEND: DEDUCT STOCK MANUALLY ---
+            for (const item of payload.items) {
+                const prod = products.find(p => p.id === item.product_id);
+                if (prod) {
+                    // 1. Deduct Product Stock (if any)
+                    if (prod.stock !== undefined) {
+                        const newProdStock = Number(prod.stock) - item.quantity;
+                        await supabase.from('products').update({ stock: newProdStock }).eq('id', prod.id);
+                    }
+                    // 2. Deduct Ingredients/Raw Materials
+                    if (prod.ingredients && Array.isArray(prod.ingredients)) {
+                        for (const ing of prod.ingredients) {
+                            const matId = ing.raw_material_id || ing.id;
+                            if (matId && ing.qty > 0) {
+                                // fetch latest stock directly to avoid race conditions
+                                const { data: matData } = await supabase.from('raw_materials').select('current_stock, name').eq('id', matId).single();
+                                if (matData) {
+                                    const totalQtyUsed = ing.qty * item.quantity;
+                                    const newStock = Number(matData.current_stock) - totalQtyUsed;
+                                    
+                                    await supabase.from('raw_materials').update({ current_stock: newStock }).eq('id', matId);
+                                    await supabase.from('material_stock_logs').insert([{
+                                        material_id: matId,
+                                        material_name: matData.name,
+                                        delta: -totalQtyUsed,
+                                        current_stock: newStock,
+                                        note: `Terjual: ${item.product_name} (Ref: ${orderRef})`,
+                                        staff_name: staff?.full_name || 'System'
+                                    }]);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // ----------------------------------------------------------------
+
             setPaymentResult({
                 ...result,
                 payment_method_name: selectedMethod.name,

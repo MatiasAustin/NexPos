@@ -999,10 +999,10 @@ export default function AdminDashboard() {
             if (error) throw error;
             
             // Handle Material Stock Update if selected
-            if (newExpense.material_id && newExpense.quantity > 0) {
+            if (newExpense.material_id && Number(newExpense.quantity) > 0) {
                 const material = rawMaterials.find(m => m.id === newExpense.material_id);
                 if (material) {
-                    const newStock = material.current_stock + Number(newExpense.quantity);
+                    const newStock = Number(material.current_stock) + Number(newExpense.quantity);
                     const unitPrice = Number(newExpense.amount) / Number(newExpense.quantity);
                     const { error: matError } = await supabase.from('raw_materials')
                         .update({ current_stock: newStock, updated_by_name: profile?.full_name, last_price_per_unit: unitPrice })
@@ -1041,10 +1041,10 @@ export default function AdminDashboard() {
                 .eq('id', editingExpense.id);
             if (error) throw error;
 
-            if (newExpense.material_id && newExpense.quantity !== 0) {
+            if (newExpense.material_id && Number(newExpense.quantity) !== 0) {
                 const material = rawMaterials.find(m => m.id === newExpense.material_id);
                 if (material) {
-                    const newStock = material.current_stock + Number(newExpense.quantity);
+                    const newStock = Number(material.current_stock) + Number(newExpense.quantity);
                     const { error: matError } = await supabase.from('raw_materials')
                         .update({ current_stock: newStock, updated_by_name: profile?.full_name })
                         .eq('id', newExpense.material_id);
