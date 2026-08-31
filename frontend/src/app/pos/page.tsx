@@ -63,7 +63,7 @@ export default function PosPage() {
         if (!id) return;
         try {
             if (!staff?.id) return;
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staff.id}&terminalId=TERM-01`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staff.id}&terminalId=TERM-01&_t=${Date.now()}`, { cache: 'no-store' });
             if (res.ok) {
                 const sess = await res.json();
                 // Manually query movements to get total_expense and total_refund since backend on Vercel is outdated
@@ -121,7 +121,7 @@ export default function PosPage() {
 
     const checkActiveSession = async (staffId: string) => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staffId}&terminalId=TERM-01`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staffId}&terminalId=TERM-01&_t=${Date.now()}`, { cache: 'no-store' });
             if (res.ok) {
                 const sess = await res.json();
                 if (sess && sess.id) {

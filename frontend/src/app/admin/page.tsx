@@ -188,7 +188,7 @@ export default function AdminDashboard() {
                     console.error("Store settings table might not exist yet", e);
                 }
             } else if (activeTab === "cash_sessions") {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/cash-sessions`);
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/cash-sessions?_t=${Date.now()}`, { cache: 'no-store' });
                 if (res.ok) {
                     const sessions = await res.json();
                     setCashSessions(sessions);
