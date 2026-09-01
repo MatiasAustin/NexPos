@@ -1374,40 +1374,40 @@ export default function AdminDashboard() {
                                                 <p className="text-xs text-gray-500">Pilih periode untuk semua metrik di bawah</p>
                                             </div>
                                             {reconciliationPeriod !== 'custom' && (
-                                                <div className="flex bg-gray-900 rounded-lg overflow-hidden border border-gray-800">
-                                                    <button onClick={() => shiftReconciliationDate(-1)} className="px-3 py-1 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors">&lt;</button>
-                                                    <div className="px-3 py-1 text-sm font-bold text-white border-l border-r border-gray-800 bg-gray-800/30">
+                                                <div className="flex bg-gray-900 rounded-lg overflow-hidden border border-gray-800 h-10">
+                                                    <button onClick={() => shiftReconciliationDate(-1)} className="px-4 py-2 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors flex items-center justify-center w-12">&lt;</button>
+                                                    <div className="px-4 py-2 text-sm font-bold text-white border-l border-r border-gray-800 bg-gray-800/30 flex items-center justify-center">
                                                         {reconciliationPeriod === 'daily' ? reconciliationDate.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) :
                                                          reconciliationPeriod === 'weekly' ? 'Minggu ' + Math.ceil(reconciliationDate.getDate()/7) :
                                                          reconciliationPeriod === 'monthly' ? reconciliationDate.toLocaleDateString('id-ID', {month:'long', year:'numeric'}) :
                                                          reconciliationDate.getFullYear()}
                                                     </div>
-                                                    <button onClick={() => shiftReconciliationDate(1)} className="px-3 py-1 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors">&gt;</button>
+                                                    <button onClick={() => shiftReconciliationDate(1)} className="px-4 py-2 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors flex items-center justify-center w-12">&gt;</button>
                                                 </div>
                                             )}
                                         </div>
                                         <div className="flex flex-col sm:flex-row items-center gap-3">
                                             {reconciliationPeriod === 'custom' && (
-                                                <div className="flex items-center gap-2 bg-gray-900 p-1.5 rounded-xl border border-gray-800">
+                                                <div className="flex flex-col sm:flex-row items-center gap-2 bg-gray-900 p-1.5 rounded-xl border border-gray-800">
                                                     <input 
                                                         type="date" 
                                                         value={customDateStart}
-                                                        onChange={(e) => {
-                                                            setCustomDateStart(e.target.value);
-                                                            if (e.target.value && customDateEnd) fetchReconciliation('custom', e.target.value, customDateEnd);
-                                                        }}
-                                                        className="bg-[#121214] text-white text-sm rounded-lg px-2 py-1 border border-gray-700 outline-none focus:border-blue-500" 
+                                                        onChange={(e) => setCustomDateStart(e.target.value)}
+                                                        className="bg-[#121214] text-white text-sm rounded-lg px-3 py-2 border border-gray-700 outline-none w-full sm:w-auto min-h-[40px]" 
                                                     />
-                                                    <span className="text-gray-500">-</span>
+                                                    <span className="text-gray-500 hidden sm:block">-</span>
                                                     <input 
                                                         type="date" 
                                                         value={customDateEnd}
-                                                        onChange={(e) => {
-                                                            setCustomDateEnd(e.target.value);
-                                                            if (customDateStart && e.target.value) fetchReconciliation('custom', customDateStart, e.target.value);
-                                                        }}
-                                                        className="bg-[#121214] text-white text-sm rounded-lg px-2 py-1 border border-gray-700 outline-none focus:border-blue-500" 
+                                                        onChange={(e) => setCustomDateEnd(e.target.value)}
+                                                        className="bg-[#121214] text-white text-sm rounded-lg px-3 py-2 border border-gray-700 outline-none w-full sm:w-auto min-h-[40px]" 
                                                     />
+                                                    <button 
+                                                        onClick={() => { if (customDateStart && customDateEnd) fetchReconciliation('custom', customDateStart, customDateEnd); }}
+                                                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm w-full sm:w-auto min-h-[40px]"
+                                                    >
+                                                        Terapkan
+                                                    </button>
                                                 </div>
                                             )}
                                             <div className="flex flex-wrap bg-gray-900 rounded-xl p-1 border border-gray-800 w-full md:w-fit">
@@ -1468,6 +1468,37 @@ export default function AdminDashboard() {
                                         )}
                                     </div>
 
+                                    {/* QRIS & Cash Summary */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
+                                            <div>
+                                                <p className="text-gray-400 text-sm font-medium">Total Tunai (Cash)</p>
+                                                <h4 className="text-2xl font-bold text-green-400 mt-1">Rp {reconciliation.filter(r => r.method_name.toLowerCase().includes('cash') || r.method_name.toLowerCase().includes('tunai')).reduce((s, r) => s + r.pos_total, 0).toLocaleString('id-ID')}</h4>
+                                            </div>
+                                            <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center text-green-400">
+                                                <Wallet size={24} />
+                                            </div>
+                                        </div>
+                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
+                                            <div>
+                                                <p className="text-gray-400 text-sm font-medium">Total QRIS</p>
+                                                <h4 className="text-2xl font-bold text-blue-400 mt-1">Rp {reconciliation.filter(r => r.method_name.toLowerCase().includes('qris')).reduce((s, r) => s + r.pos_total, 0).toLocaleString('id-ID')}</h4>
+                                            </div>
+                                            <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-400">
+                                                <Maximize size={24} />
+                                            </div>
+                                        </div>
+                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
+                                            <div>
+                                                <p className="text-gray-400 text-sm font-medium">Total Keseluruhan</p>
+                                                <h4 className="text-2xl font-bold text-white mt-1">Rp {reconciliation.reduce((s, r) => s + r.pos_total, 0).toLocaleString('id-ID')}</h4>
+                                            </div>
+                                            <div className="w-12 h-12 bg-gray-500/10 rounded-full flex items-center justify-center text-white">
+                                                <FileText size={24} />
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {/* Rekonsiliasi Pembayaran */}
                                     <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                         <div className="p-2 md:p-4 md:p-6 border-b border-gray-800">
@@ -1516,20 +1547,38 @@ export default function AdminDashboard() {
                                                 <h3 className="font-bold text-white mb-2">Filter Periode Transaksi</h3>
                                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                                                     {historyFilterType === 'custom' && (
-                                                        <div className="flex items-center gap-2 bg-gray-900 p-1.5 rounded-xl border border-gray-800">
+                                                        <div className="flex flex-col sm:flex-row items-center gap-2 bg-gray-900 p-1.5 rounded-xl border border-gray-800">
                                                             <input 
                                                                 type="date" 
                                                                 value={customDateStart}
                                                                 onChange={(e) => setCustomDateStart(e.target.value)}
-                                                                className="bg-[#121214] text-white text-sm rounded-lg px-2 py-1 border border-gray-700 outline-none" 
+                                                                className="bg-[#121214] text-white text-sm rounded-lg px-3 py-2 border border-gray-700 outline-none w-full sm:w-auto min-h-[40px]" 
                                                             />
-                                                            <span className="text-gray-500">-</span>
+                                                            <span className="text-gray-500 hidden sm:block">-</span>
                                                             <input 
                                                                 type="date" 
                                                                 value={customDateEnd}
                                                                 onChange={(e) => setCustomDateEnd(e.target.value)}
-                                                                className="bg-[#121214] text-white text-sm rounded-lg px-2 py-1 border border-gray-700 outline-none" 
+                                                                className="bg-[#121214] text-white text-sm rounded-lg px-3 py-2 border border-gray-700 outline-none w-full sm:w-auto min-h-[40px]" 
                                                             />
+                                                            <button 
+                                                                onClick={() => { if (customDateStart && customDateEnd) fetchTransactions('custom'); }}
+                                                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm w-full sm:w-auto min-h-[40px]"
+                                                            >
+                                                                Terapkan
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    {historyFilterType !== 'custom' && (
+                                                        <div className="flex bg-gray-900 rounded-lg overflow-hidden border border-gray-800 mr-2 h-10 w-full sm:w-auto">
+                                                            <button onClick={() => shiftHistoryDate(-1)} className="px-4 py-2 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors flex items-center justify-center w-12">&lt;</button>
+                                                            <div className="px-4 py-2 text-sm font-bold text-white border-l border-r border-gray-800 bg-gray-800/30 flex items-center justify-center flex-1 sm:flex-none">
+                                                                {historyFilterType === 'daily' ? historyDate.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) :
+                                                                 historyFilterType === 'weekly' ? 'Minggu ' + Math.ceil(historyDate.getDate()/7) :
+                                                                 historyFilterType === 'monthly' ? historyDate.toLocaleDateString('id-ID', {month:'long', year:'numeric'}) :
+                                                                 historyDate.getFullYear()}
+                                                            </div>
+                                                            <button onClick={() => shiftHistoryDate(1)} className="px-4 py-2 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors flex items-center justify-center w-12">&gt;</button>
                                                         </div>
                                                     )}
                                                     <div className="flex flex-wrap bg-gray-900 rounded-xl p-1 border border-gray-800 w-full md:w-fit">
