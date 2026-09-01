@@ -63,20 +63,29 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
         let label = '';
         if (period === 'daily') {
             start.setHours(0, 0, 0, 0);
+            end = new Date(start);
+            end.setHours(23, 59, 59, 999);
             label = `Hari Ini (${start.toLocaleDateString('id-ID')})`;
         } else if (period === 'weekly') {
             const day = start.getDay();
             const diff = start.getDate() - day + (day === 0 ? -6 : 1);
             start = new Date(start.setDate(diff));
             start.setHours(0, 0, 0, 0);
+            end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            end.setHours(23, 59, 59, 999);
             label = `Minggu Ini (${start.toLocaleDateString('id-ID')} - ${end.toLocaleDateString('id-ID')})`;
         } else if (period === 'monthly') {
             start.setDate(1);
             start.setHours(0, 0, 0, 0);
+            end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+            end.setHours(23, 59, 59, 999);
             label = `Bulan Ini (${start.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })})`;
         } else if (period === 'yearly') {
             start.setMonth(0, 1);
             start.setHours(0, 0, 0, 0);
+            end = new Date(start.getFullYear(), 11, 31);
+            end.setHours(23, 59, 59, 999);
             label = `Tahun Ini (${start.toLocaleDateString('id-ID', { year: 'numeric' })})`;
         } else if (period === 'custom' && customStartDate && customEndDate) {
             start = new Date(customStartDate);

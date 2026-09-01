@@ -299,17 +299,26 @@ export default function AdminDashboard() {
             
             if (period === 'daily') {
                 start.setHours(0, 0, 0, 0);
+                end = new Date(start);
+                end.setHours(23, 59, 59, 999);
             } else if (period === 'weekly') {
                 const day = start.getDay();
                 const diff = start.getDate() - day + (day === 0 ? -6 : 1);
                 start = new Date(start.setDate(diff));
                 start.setHours(0, 0, 0, 0);
+                end = new Date(start);
+                end.setDate(start.getDate() + 6);
+                end.setHours(23, 59, 59, 999);
             } else if (period === 'monthly') {
                 start.setDate(1);
                 start.setHours(0, 0, 0, 0);
+                end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+                end.setHours(23, 59, 59, 999);
             } else if (period === 'yearly') {
                 start.setMonth(0, 1);
                 start.setHours(0, 0, 0, 0);
+                end = new Date(start.getFullYear(), 11, 31);
+                end.setHours(23, 59, 59, 999);
             } else if (period === 'custom' && customStart && customEnd) {
                 start = new Date(customStart);
                 start.setHours(0, 0, 0, 0);
@@ -333,10 +342,17 @@ export default function AdminDashboard() {
     const shiftReconciliationDate = (dir: number) => {
         setReconciliationDate(prev => {
             const d = new Date(prev);
-            if (reconciliationPeriod === 'daily') d.setDate(d.getDate() + dir);
-            else if (reconciliationPeriod === 'weekly') d.setDate(d.getDate() + (dir * 7));
-            else if (reconciliationPeriod === 'monthly') d.setMonth(d.getMonth() + dir);
-            else if (reconciliationPeriod === 'yearly') d.setFullYear(d.getFullYear() + dir);
+            if (reconciliationPeriod === 'daily') {
+                d.setDate(d.getDate() + dir);
+            } else if (reconciliationPeriod === 'weekly') {
+                d.setDate(d.getDate() + (dir * 7));
+            } else if (reconciliationPeriod === 'monthly') {
+                d.setDate(1); // prevent overflow
+                d.setMonth(d.getMonth() + dir);
+            } else if (reconciliationPeriod === 'yearly') {
+                d.setDate(1); d.setMonth(0);
+                d.setFullYear(d.getFullYear() + dir);
+            }
             return d;
         });
     };
@@ -348,10 +364,17 @@ export default function AdminDashboard() {
     const shiftHistoryDate = (dir: number) => {
         setHistoryDate(prev => {
             const d = new Date(prev);
-            if (historyFilterType === 'daily') d.setDate(d.getDate() + dir);
-            else if (historyFilterType === 'weekly') d.setDate(d.getDate() + (dir * 7));
-            else if (historyFilterType === 'monthly') d.setMonth(d.getMonth() + dir);
-            else if (historyFilterType === 'yearly') d.setFullYear(d.getFullYear() + dir);
+            if (historyFilterType === 'daily') {
+                d.setDate(d.getDate() + dir);
+            } else if (historyFilterType === 'weekly') {
+                d.setDate(d.getDate() + (dir * 7));
+            } else if (historyFilterType === 'monthly') {
+                d.setDate(1); // prevent overflow
+                d.setMonth(d.getMonth() + dir);
+            } else if (historyFilterType === 'yearly') {
+                d.setDate(1); d.setMonth(0);
+                d.setFullYear(d.getFullYear() + dir);
+            }
             return d;
         });
     };
@@ -370,17 +393,26 @@ export default function AdminDashboard() {
             
             if (period === 'daily') {
                 start.setHours(0, 0, 0, 0);
+                end = new Date(start);
+                end.setHours(23, 59, 59, 999);
             } else if (period === 'weekly') {
                 const day = start.getDay();
                 const diff = start.getDate() - day + (day === 0 ? -6 : 1);
                 start = new Date(start.setDate(diff));
                 start.setHours(0, 0, 0, 0);
+                end = new Date(start);
+                end.setDate(start.getDate() + 6);
+                end.setHours(23, 59, 59, 999);
             } else if (period === 'monthly') {
                 start.setDate(1);
                 start.setHours(0, 0, 0, 0);
+                end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+                end.setHours(23, 59, 59, 999);
             } else if (period === 'yearly') {
                 start.setMonth(0, 1);
                 start.setHours(0, 0, 0, 0);
+                end = new Date(start.getFullYear(), 11, 31);
+                end.setHours(23, 59, 59, 999);
             } else if (period === 'custom' && customStart && customEnd) {
                 start = new Date(customStart);
                 start.setHours(0, 0, 0, 0);
@@ -445,29 +477,7 @@ export default function AdminDashboard() {
     };
 
     const getFilteredTransactions = () => {
-        let filtered = transactions.filter(trx => {
-            const trxDate = new Date(trx.created_at);
-            const now = historyDate;
-            
-            if (historyFilterType === 'daily') {
-                return trxDate.toDateString() === now.toDateString();
-            } else if (historyFilterType === 'weekly') {
-                const diffTime = Math.abs(now.getTime() - trxDate.getTime());
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-                return diffDays <= 7;
-            } else if (historyFilterType === 'monthly') {
-                return trxDate.getMonth() === now.getMonth() && trxDate.getFullYear() === now.getFullYear();
-            } else if (historyFilterType === 'yearly') {
-                return trxDate.getFullYear() === now.getFullYear();
-            } else if (historyFilterType === 'custom' && customDateStart && customDateEnd) {
-                const s = new Date(customDateStart);
-                s.setHours(0,0,0,0);
-                const e = new Date(customDateEnd);
-                e.setHours(23,59,59,999);
-                return trxDate >= s && trxDate <= e;
-            }
-            return false;
-        });
+        let filtered = [...transactions];
 
         // Apply sort
         filtered.sort((a, b) => {
@@ -1444,7 +1454,7 @@ export default function AdminDashboard() {
                                                             <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-center">Terjual</th>
                                                             <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Penghasilan Kotor</th>
                                                             <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Total HPP</th>
-                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Laba Bersih</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Laba Kotor</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -1661,7 +1671,7 @@ export default function AdminDashboard() {
                                                                 </div>
                                                                 <div className="w-px bg-gray-800"></div>
                                                                 <div>
-                                                                    <p className="text-gray-500 mb-1">Laba Bersih</p>
+                                                                    <p className="text-gray-500 mb-1">Laba Kotor</p>
                                                                     <p className="text-green-400">Rp {netProfit.toLocaleString('id-ID')}</p>
                                                                 </div>
                                                             </div>
