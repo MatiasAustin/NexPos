@@ -102,7 +102,7 @@ export default function AdminDashboard() {
     const [products, setProducts] = useState<any[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
     const [newProduct, setNewProduct] = useState<{name: string, category: string, price: number, cogs: number, stock: number, image_icon: string, image_url: string, discount_percentage?: number, options_config?: any[], ingredients: {raw_material_id: string, name: string, qty: number, cost: number}[]}>({ 
-        name: '', category: 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '≡ƒôª', image_url: '', ingredients: [] 
+        name: '', category: 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '📦', image_url: '', discount_percentage: 0, options_config: [], ingredients: [] 
     });
     
     const [loading, setLoading] = useState(false);
@@ -590,12 +590,14 @@ export default function AdminDashboard() {
                     cogs: computedCogs,
                     stock: Number(newProduct.stock),
                     ingredients: newProduct.ingredients,
+                    discount_percentage: Number(newProduct.discount_percentage || 0),
+                    options_config: newProduct.options_config || [],
                     image_url: newProduct.image_url
                 })
             });
             if(res.ok) {
                 toast.success("Produk berhasil ditambahkan!");
-                setNewProduct({ name: '', category: storeSettings.categories?.[0] || 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '≡ƒôª', image_url: '', ingredients: [] });
+                setNewProduct({ name: '', category: storeSettings.categories?.[0] || 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '📦', image_url: '', discount_percentage: 0, options_config: [], ingredients: [] });
                 fetchData();
             } else {
                 const err = await res.json();
@@ -674,7 +676,9 @@ export default function AdminDashboard() {
                     stock: Number(editingProduct.stock),
                     image_icon: editingProduct.image_icon,
                     image_url: editingProduct.image_url || null,
-                    ingredients: editingProduct.ingredients
+                    ingredients: editingProduct.ingredients,
+                    discount_percentage: Number(editingProduct.discount_percentage || 0),
+                    options_config: editingProduct.options_config || []
                 })
             });
             if(res.ok) {
@@ -1836,6 +1840,30 @@ export default function AdminDashboard() {
                                             ))}
                                             {newProduct.ingredients.length > 0 && <div className="mt-4 pt-4 border-t border-gray-800 text-right font-bold text-blue-400">Total HPP Otomatis: Rp {newProduct.ingredients.reduce((sum, item) => sum + item.cost, 0).toLocaleString('id-ID')}</div>}
                                         </div>
+                                        <div className="mt-4 p-4 bg-[#0B1526] border border-blue-900/40 rounded-xl">
+                                            <h4 className="font-bold text-blue-300 mb-3 text-sm">🏷️ Diskon Produk</h4>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-1">
+                                                    <label className="text-xs text-gray-500 mb-1 block">Diskon (%)</label>
+                                                    <input
+                                                        type="number"
+                                                        placeholder="0"
+                                                        min="0"
+                                                        max="100"
+                                                        value={newProduct.discount_percentage || ''}
+                                                        onChange={e => setNewProduct({...newProduct, discount_percentage: Number(e.target.value)})}
+                                                        className="w-full p-3 bg-[#0B0F19] border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white"
+                                                    />
+                                                </div>
+                                                {(newProduct.discount_percentage || 0) > 0 && (
+                                                    <div className="flex-1 text-right">
+                                                        <div className="text-xs text-gray-500">Harga setelah diskon</div>
+                                                        <div className="font-bold text-green-400 text-lg">Rp {(newProduct.price * (1 - (newProduct.discount_percentage || 0) / 100)).toLocaleString('id-ID')}</div>
+                                                        <span className="text-[11px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold">{newProduct.discount_percentage}% OFF</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                         <button type="submit" disabled={loading} className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors">
                                             {loading ? 'Menyimpan...' : 'Simpan Produk'}
                                         </button>
@@ -1978,6 +2006,31 @@ export default function AdminDashboard() {
                                                         ))}
                                                     </div>
 
+                                                    <div className="mt-4 p-4 bg-[#0B1526] border border-blue-900/40 rounded-xl">
+                                                        <h4 className="font-bold text-blue-300 mb-3 text-sm">🏷️ Diskon Produk</h4>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="flex-1">
+                                                                <label className="text-xs text-gray-500 mb-1 block">Diskon (%)</label>
+                                                                <input
+                                                                    type="number"
+                                                                    placeholder="0"
+                                                                    min="0"
+                                                                    max="100"
+                                                                    value={editingProduct.discount_percentage || ''}
+                                                                    onChange={e => setEditingProduct({...editingProduct, discount_percentage: Number(e.target.value)})}
+                                                                    className="w-full p-3 bg-[#0B0F19] border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white"
+                                                                />
+                                                            </div>
+                                                            {(editingProduct.discount_percentage || 0) > 0 && (
+                                                                <div className="flex-1 text-right">
+                                                                    <div className="text-xs text-gray-500">Harga setelah diskon</div>
+                                                                    <div className="font-bold text-green-400 text-lg">Rp {(editingProduct.price * (1 - (editingProduct.discount_percentage || 0) / 100)).toLocaleString('id-ID')}</div>
+                                                                    <span className="text-[11px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold">{editingProduct.discount_percentage}% OFF</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
                                                     <div className="flex gap-4 mt-6">
                                                         <button type="button" onClick={() => setEditingProduct(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
                                                         <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Perubahan</button>
@@ -2054,25 +2107,7 @@ export default function AdminDashboard() {
                             {activeTab === "expenses" && (
                                 <div className="space-y-8">
                                     {/* INPUTS ROW */}
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                        {/* Bahan Baku */}
-                                        <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
-                                            <div className="flex items-center gap-2 mb-6 border-b border-gray-800 pb-3">
-                                                <button onClick={() => setMaterialMode('add')} className={`pb-2 px-2 text-lg font-bold border-b-2 transition-colors ${materialMode === 'add' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-400 hover:text-white'}`}>Tambah Bahan</button>
-                                                
-                                            </div>
-                                            
-                                            <form onSubmit={handleCreateMaterial} className="space-y-4">
-                                                    <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                    <div className="grid grid-cols-3 gap-4">
-                                                        <input type="text" placeholder="Unit (kg/lt)" required value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                        <input type="number" placeholder="Stok" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                        <input type="number" placeholder="Harga/Unit" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                    </div>
-                                                    <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Bahan</button>
-                                                </form>
-                                        </div>
-
+                                    <div className="grid grid-cols-1 gap-8">
                                         {/* Pengeluaran */}
                                         <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                             <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Catat Pengeluaran</h3>
@@ -2124,34 +2159,7 @@ export default function AdminDashboard() {
                                     </div>
 
                                     {/* TABLES ROW */}
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                            <h3 className="p-2 md:p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Daftar Bahan Baku</h3>
-                                            {rawMaterials.length === 0 ? (
-                                                <p className="p-2 md:p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada bahan baku.</p>
-                                            ) : (
-                                                <table className="w-full text-left text-xs md:text-sm">
-                                                    <tbody>
-                                                        {rawMaterials.map((mat: any) => (
-                                                            <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
-                                                                <td className="p-2 md:p-4">
-                                                                    <div className="font-bold text-white">{mat.name}</div>
-                                                                    {mat.updated_by_name && <div className="text-[10px] text-blue-400 mt-1">Oleh: {mat.updated_by_name}</div>}
-                                                                </td>
-                                                                <td className="p-2 md:p-4 text-center"><span className="px-3 py-1 bg-gray-800 rounded-lg text-sm">{mat.current_stock} {mat.unit}</span></td>
-                                                                <td className="p-2 md:p-4 text-right text-gray-400 text-sm">Rp {mat.last_price_per_unit.toLocaleString('id-ID')}/{mat.unit}</td>
-                                                                <td className="p-3 text-right">
-                                                                    <div className="flex gap-1 justify-end">
-                                                                        <button onClick={() => { setSelectedMaterial({...mat}); setMaterialMode('update'); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
-                                                                        <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            )}
-                                        </div>
+                                    <div className="grid grid-cols-1 gap-8">
                                         {/* Pengeluaran */}
                                         <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                             <div className="p-2 md:p-4 bg-gray-800/30 border-b border-gray-800 flex flex-col md:flex-row gap-3 justify-between md:items-center">
