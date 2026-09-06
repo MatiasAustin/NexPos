@@ -10,7 +10,7 @@ import ReportChart from "@/components/ReportChart";
 import ProductOptionsEditor from "@/components/ProductOptionsEditor";
 
 export default function AdminDashboard() {
-    const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses">("reconciliation");
+    const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses" | "raw_materials">("reconciliation");
     const [reconciliation, setReconciliation] = useState<any[]>([]);
     const [reconciliationMode, setReconciliationMode] = useState<"daily" | "weekly" | "monthly" | "yearly">("daily");
     const [reconciliationDate, setReconciliationDate] = useState(new Date().toISOString().split('T')[0]);
@@ -585,7 +585,8 @@ export default function AdminDashboard() {
                         { id: "reconciliation", label: "Laporan Rekonsiliasi", icon: AlertTriangle },
                         { id: "history", label: "Riwayat Transaksi", icon: FileText },
                         { id: "inventory", label: "Produk & Stok", icon: Package },
-                        { id: "expenses", label: "Bahan & Pengeluaran", icon: FileText },
+                        { id: "raw_materials", label: "Bahan Baku", icon: Package },
+                        { id: "expenses", label: "Pengeluaran", icon: FileText },
                         { id: "staff", label: "Manajemen Staf", icon: Users },
                         { id: "audit", label: "Security Log", icon: ShieldCheck },
                         { id: "settings", label: "Pengaturan Toko", icon: Settings },
@@ -922,9 +923,50 @@ export default function AdminDashboard() {
                             )}
 
                             {/* EXPENSES & RAW MATERIALS TAB */}
-                            {activeTab === "expenses" && (
+                            
+                            {/* RAW MATERIALS TAB */}
+                            {activeTab === "raw_materials" && (
                                 <div className="space-y-8">
-                                    {/* INPUTS ROW */}
+
+                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl p-6">
+                                        <h3 className="font-bold text-lg mb-4 text-white border-b border-gray-800 pb-3">Konversi Nilai Stok Bahan Baku</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div>
+                                                <div className="text-sm text-gray-400 mb-2">Total Nilai Aset Bahan Baku:</div>
+                                                <div className="text-3xl font-bold text-blue-400">
+                                                    Rp {rawMaterials.reduce((sum, item) => sum + (item.current_stock * item.last_price_per_unit), 0).toLocaleString('id-ID')}
+                                                </div>
+                                                <div className="mt-4 space-y-2 max-h-48 overflow-y-auto pr-2">
+                                                    {rawMaterials.map(item => (
+                                                        <div key={item.id} className="flex justify-between items-center text-sm border-b border-gray-800 pb-2">
+                                                            <span className="text-gray-300">{item.name}</span>
+                                                            <div className="text-right">
+                                                                <div className="font-bold text-white">Rp {(item.current_stock * item.last_price_per_unit).toLocaleString('id-ID')}</div>
+                                                                <div className="text-xs text-gray-500">{item.current_stock} {item.unit} @ Rp {item.last_price_per_unit.toLocaleString('id-ID')}</div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="h-64 flex items-end gap-2 pb-4 pt-4 border-l border-gray-800 pl-4 overflow-x-auto">
+                                                {rawMaterials.length > 0 && rawMaterials.map(item => {
+                                                    const totalVal = item.current_stock * item.last_price_per_unit;
+                                                    const maxVal = Math.max(...rawMaterials.map(m => m.current_stock * m.last_price_per_unit));
+                                                    const heightPct = maxVal > 0 ? (totalVal / maxVal) * 100 : 0;
+                                                    return (
+                                                        <div key={item.id} className="flex flex-col justify-end items-center h-full w-12 group flex-shrink-0">
+                                                            <div className="text-xs text-gray-400 mb-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-gray-900 p-1 rounded z-10 absolute -translate-y-full">
+                                                                Rp {totalVal.toLocaleString('id-ID')}
+                                                            </div>
+                                                            <div className="w-8 bg-blue-500/80 rounded-t-sm hover:bg-blue-400 transition-colors" style={{ height: `${heightPct}%` }}></div>
+                                                            <div className="text-[10px] text-gray-500 mt-2 truncate w-full text-center" title={item.name}>{item.name.substring(0, 5)}</div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                         {/* Bahan Baku */}
                                         <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
@@ -939,19 +981,7 @@ export default function AdminDashboard() {
                                                 <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Bahan</button>
                                             </form>
                                         </div>
-
-                                        {/* Pengeluaran */}
-                                        <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
-                                            <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Catat Pengeluaran</h3>
-                                            <form onSubmit={handleCreateExpense} className="space-y-4">
-                                                <input type="text" placeholder="Deskripsi Pengeluaran" required value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                <input type="number" placeholder="Nominal (Rp)" required value={newExpense.amount || ''} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                <button type="submit" disabled={loading} className="w-full py-3 bg-red-600/20 text-red-400 border border-red-500/30 rounded-xl font-bold hover:bg-red-500/30 mt-2">Catat Pengeluaran</button>
-                                            </form>
-                                        </div>
                                     </div>
-
-                                    {/* TABLES ROW */}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                         <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                             <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Daftar Bahan Baku</h3>
@@ -977,6 +1007,45 @@ export default function AdminDashboard() {
                                                 </table>
                                             )}
                                         </div>
+                                    </div>
+                                    {/* Edit Material Modal */}
+                                    {editingMaterial && (
+                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-md shadow-2xl">
+                                                <h3 className="font-bold text-xl text-white mb-5">Edit Bahan Baku</h3>
+                                                <form onSubmit={handleUpdateMaterial} className="space-y-4">
+                                                    <input type="text" placeholder="Nama Bahan" value={editingMaterial.name} onChange={e => setEditingMaterial({...editingMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                    <div className="grid grid-cols-3 gap-3">
+                                                        <input type="text" placeholder="Unit" value={editingMaterial.unit} onChange={e => setEditingMaterial({...editingMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                        <input type="number" placeholder="Stok" value={editingMaterial.current_stock} onChange={e => setEditingMaterial({...editingMaterial, current_stock: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                        <input type="number" placeholder="Harga/Unit" value={editingMaterial.last_price_per_unit} onChange={e => setEditingMaterial({...editingMaterial, last_price_per_unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                    </div>
+                                                    <div className="flex gap-3 mt-4">
+                                                        <button type="button" onClick={() => setEditingMaterial(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
+                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+\n
+                            {/* EXPENSES TAB */}
+                            {activeTab === "expenses" && (
+                                <div className="space-y-8">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        {/* Pengeluaran */}
+                                        <div className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
+                                            <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Catat Pengeluaran</h3>
+                                            <form onSubmit={handleCreateExpense} className="space-y-4">
+                                                <input type="text" placeholder="Deskripsi Pengeluaran" required value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                <input type="number" placeholder="Nominal (Rp)" required value={newExpense.amount || ''} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                <button type="submit" disabled={loading} className="w-full py-3 bg-red-600/20 text-red-400 border border-red-500/30 rounded-xl font-bold hover:bg-red-500/30 mt-2">Catat Pengeluaran</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                         <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                                             <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Riwayat Pengeluaran</h3>
                                             {expenses.length === 0 ? (
@@ -1004,28 +1073,6 @@ export default function AdminDashboard() {
                                             )}
                                         </div>
                                     </div>
-
-                                    {/* Edit Material Modal */}
-                                    {editingMaterial && (
-                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-md shadow-2xl">
-                                                <h3 className="font-bold text-xl text-white mb-5">Edit Bahan Baku</h3>
-                                                <form onSubmit={handleUpdateMaterial} className="space-y-4">
-                                                    <input type="text" placeholder="Nama Bahan" value={editingMaterial.name} onChange={e => setEditingMaterial({...editingMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
-                                                    <div className="grid grid-cols-3 gap-3">
-                                                        <input type="text" placeholder="Unit" value={editingMaterial.unit} onChange={e => setEditingMaterial({...editingMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
-                                                        <input type="number" placeholder="Stok" value={editingMaterial.current_stock} onChange={e => setEditingMaterial({...editingMaterial, current_stock: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
-                                                        <input type="number" placeholder="Harga/Unit" value={editingMaterial.last_price_per_unit} onChange={e => setEditingMaterial({...editingMaterial, last_price_per_unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
-                                                    </div>
-                                                    <div className="flex gap-3 mt-4">
-                                                        <button type="button" onClick={() => setEditingMaterial(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
-                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    )}
-
                                     {/* Edit Expense Modal */}
                                     {editingExpense && (
                                         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
@@ -1044,8 +1091,7 @@ export default function AdminDashboard() {
                                     )}
                                 </div>
                             )}
-
-                            {/* STAFF TAB */}
+\n                            {/* STAFF TAB */}
                             {activeTab === "staff" && (
                                 <div className="space-y-6">
                                     <form onSubmit={handleCreateStaff} className="p-6 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
