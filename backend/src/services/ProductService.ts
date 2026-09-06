@@ -25,7 +25,9 @@ export class ProductService {
                 image_icon: payload.image_icon || '📦',
                 image_url: payload.image_url || null,
                 is_active: payload.is_active !== undefined ? payload.is_active : true,
-                ingredients: payload.ingredients || []
+                ingredients: payload.ingredients || [],
+                discount_percentage: payload.discount_percentage || 0,
+                options_config: payload.options_config || []
             })
             .select('*')
             .single();
@@ -44,6 +46,8 @@ export class ProductService {
             image_icon: payload.image_icon,
             is_active: payload.is_active,
             ingredients: payload.ingredients,
+            discount_percentage: payload.discount_percentage,
+            options_config: payload.options_config,
             updated_at: new Date().toISOString()
         };
         if (payload.image_url !== undefined) {

@@ -66,7 +66,8 @@ export class TransactionService {
                 product_name: item.name || item.product_name,
                 quantity: item.quantity,
                 price_at_time: item.price,
-                cogs_at_time: item.cogs || 0
+                cogs_at_time: item.cogs || 0,
+                modifiers: item.modifiers || []
             }));
             
             await supabase.from('order_items').insert(orderItems);
