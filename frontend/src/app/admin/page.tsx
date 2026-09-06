@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { getReconciliationReport, getAuditLogs } from "@/lib/api";
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
 
     const [products, setProducts] = useState<any[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
-    const [newProduct, setNewProduct] = useState<{name: string, category: string, price: number, cogs: number, stock: number, image_icon: string, image_url: string, ingredients: {raw_material_id: string, name: string, qty: number, cost: number}[]}>({ 
+    const [newProduct, setNewProduct] = useState<{name: string, category: string, price: number, cogs: number, stock: number, image_icon: string, image_url: string, discount_percentage?: number, options_config?: any[], ingredients: {raw_material_id: string, name: string, qty: number, cost: number}[]}>({ 
         name: '', category: 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '≡ƒôª', image_url: '', ingredients: [] 
     });
     
