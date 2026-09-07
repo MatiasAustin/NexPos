@@ -1651,27 +1651,29 @@ export default function PosPage() {
                                         {rawMaterials.length === 0 ? (
                                             <p className="p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada bahan baku.</p>
                                         ) : (
-                                            <table className="w-full text-left text-xs md:text-sm">
-                                                <tbody>
-                                                    {rawMaterials.map((mat: any) => (
-                                                        <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
-                                                            <td className="p-3 sm:p-4">
-                                                                <div className="font-bold text-white">{mat.name}</div>
-                                                                {mat.updated_by_name && <div className="text-[10px] text-blue-400 mt-1">Oleh: {mat.updated_by_name}</div>}
-                                                            </td>
-                                                            <td className="p-3 sm:p-4 text-center"><span className="px-2.5 py-1 bg-gray-800 rounded-lg text-xs sm:text-sm font-bold">{mat.current_stock} {mat.unit}</span></td>
-                                                            <td className="p-3 sm:p-4 text-right">
-                                                                <div className="flex gap-1 justify-end">
-                                                                    <button onClick={() => { setSelectedMaterial(mat); setStockAdjustment({ delta: 0, note: '', price: mat.last_price_per_unit }); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
-                                                                    {canEditRecord(mat.updated_by_name) && (
-                                                                        <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                            <div className="overflow-x-auto w-full">
+                                                <table className="w-full text-left text-xs md:text-sm whitespace-nowrap min-w-max md:min-w-0 md:whitespace-normal">
+                                                    <tbody>
+                                                        {rawMaterials.map((mat: any) => (
+                                                            <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
+                                                                <td className="p-3 sm:p-4">
+                                                                    <div className="font-bold text-white">{mat.name}</div>
+                                                                    {mat.updated_by_name && <div className="text-[10px] text-blue-400 mt-1">Oleh: {mat.updated_by_name}</div>}
+                                                                </td>
+                                                                <td className="p-3 sm:p-4 text-center"><span className="px-2.5 py-1 bg-gray-800 rounded-lg text-xs sm:text-sm font-bold">{mat.current_stock} {mat.unit}</span></td>
+                                                                <td className="p-3 sm:p-4 text-right">
+                                                                    <div className="flex gap-1 justify-end">
+                                                                        <button onClick={() => { setSelectedMaterial(mat); setStockAdjustment({ delta: 0, note: '', price: mat.last_price_per_unit }); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
+                                                                        {canEditRecord(mat.updated_by_name) && (
+                                                                            <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -1878,63 +1880,65 @@ export default function PosPage() {
                                             return filteredPosExpenses.length === 0 ? (
                                                 <p className="p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran dicatat.</p>
                                             ) : (
-                                                <table className="w-full text-left text-xs md:text-sm">
-                                                    <tbody>
-                                                        {filteredPosExpenses.map((exp: any) => {
-                                                            const isBahan = getPosCategory(exp) === 'bahan_baku';
-                                                            return (
-                                                                <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
-                                                                    <td className="p-4">
-                                                                        <div className="font-bold text-white">{exp.description}</div>
-                                                                        <div className="text-[10px] text-gray-500 mt-1">{new Date(exp.expense_date || exp.created_at).toLocaleDateString('id-ID')} {new Date(exp.expense_date || exp.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</div>
-                                                                    </td>
-                                                                    <td className="p-4 text-center">
-                                                                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold border ${
-                                                                            isBahan
-                                                                                ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                                                                                : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
-                                                                        }`}>
-                                                                            {isBahan ? '🧪 Bahan' : '⚙️ Ops'}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td className="p-4 text-center">
-                                                                        {exp.staff_name ? (
-                                                                            <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{exp.staff_name}</span>
-                                                                        ) : (
-                                                                            <span className="px-2 py-1 bg-gray-800 text-gray-400 rounded-md text-[10px] border border-gray-700">Owner</span>
-                                                                        )}
-                                                                    </td>
-                                                                    <td className="p-4 text-right text-orange-400 font-bold">
-                                                                        <div className="mb-2">Rp {Number(exp.amount).toLocaleString('id-ID')}</div>
-                                                                        {canEditRecord(exp.staff_name) && (
-                                                                            <div className="flex gap-1 justify-end">
-                                                                                <button 
-                                                                                    onClick={() => {
-                                                                                        const matId = exp.raw_material_id || exp.material_id || '';
-                                                                                        const mat = rawMaterials.find(m => m.id === matId);
-                                                                                        const parsed = parseExpenseQtyAndUnit(exp, mat, materialStockLogs);
-                                                                                        setEditingExpense({
-                                                                                            ...exp, 
-                                                                                            category: isBahan ? 'bahan_baku' : 'operasional', 
-                                                                                            material_id: matId,
-                                                                                            quantity: parsed.qty,
-                                                                                            buy_unit: parsed.unit,
-                                                                                            description: cleanExpenseDescription(exp.description)
-                                                                                        });
-                                                                                    }} 
-                                                                                    className="px-2 py-1 text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md hover:bg-blue-600 hover:text-white font-bold transition-colors"
-                                                                                >
-                                                                                    Edit
-                                                                                </button>
-                                                                                <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 rounded-md hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
-                                                                            </div>
-                                                                        )}
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
+                                                <div className="overflow-x-auto w-full">
+                                                    <table className="w-full text-left text-xs md:text-sm whitespace-nowrap min-w-max md:min-w-0 md:whitespace-normal">
+                                                        <tbody>
+                                                            {filteredPosExpenses.map((exp: any) => {
+                                                                const isBahan = getPosCategory(exp) === 'bahan_baku';
+                                                                return (
+                                                                    <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
+                                                                        <td className="p-4">
+                                                                            <div className="font-bold text-white">{exp.description}</div>
+                                                                            <div className="text-[10px] text-gray-500 mt-1">{new Date(exp.expense_date || exp.created_at).toLocaleDateString('id-ID')} {new Date(exp.expense_date || exp.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</div>
+                                                                        </td>
+                                                                        <td className="p-4 text-center">
+                                                                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold border ${
+                                                                                isBahan
+                                                                                    ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                                                                    : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                                                            }`}>
+                                                                                {isBahan ? '🧪 Bahan' : '⚙️ Ops'}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td className="p-4 text-center">
+                                                                            {exp.staff_name ? (
+                                                                                <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{exp.staff_name}</span>
+                                                                            ) : (
+                                                                                <span className="px-2 py-1 bg-gray-800 text-gray-400 rounded-md text-[10px] border border-gray-700">Owner</span>
+                                                                            )}
+                                                                        </td>
+                                                                        <td className="p-4 text-right text-orange-400 font-bold">
+                                                                            <div className="mb-2">Rp {Number(exp.amount).toLocaleString('id-ID')}</div>
+                                                                            {canEditRecord(exp.staff_name) && (
+                                                                                <div className="flex gap-1 justify-end">
+                                                                                    <button 
+                                                                                        onClick={() => {
+                                                                                            const matId = exp.raw_material_id || exp.material_id || '';
+                                                                                            const mat = rawMaterials.find(m => m.id === matId);
+                                                                                            const parsed = parseExpenseQtyAndUnit(exp, mat, materialStockLogs);
+                                                                                            setEditingExpense({
+                                                                                                ...exp, 
+                                                                                                category: isBahan ? 'bahan_baku' : 'operasional', 
+                                                                                                material_id: matId,
+                                                                                                quantity: parsed.qty,
+                                                                                                buy_unit: parsed.unit,
+                                                                                                description: cleanExpenseDescription(exp.description)
+                                                                                            });
+                                                                                        }} 
+                                                                                        className="px-2 py-1 text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md hover:bg-blue-600 hover:text-white font-bold transition-colors"
+                                                                                    >
+                                                                                        Edit
+                                                                                    </button>
+                                                                                    <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 rounded-md hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                                </div>
+                                                                            )}
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             );
                                         })()}
                                     </div>

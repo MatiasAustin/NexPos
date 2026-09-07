@@ -3266,9 +3266,10 @@ export default function AdminDashboard() {
                                                         {sortedMaterials.length === 0 ? (
                                                             <p className="p-6 text-gray-500 text-center text-sm">Tidak ada bahan baku yang cocok.</p>
                                                         ) : (
-                                                            <table className="w-full text-left text-xs md:text-sm">
-                                                                <tbody>
-                                                                    {sortedMaterials.map((mat: any) => {
+                                                            <div className="overflow-x-auto w-full">
+                                                                <table className="w-full text-left text-xs md:text-sm whitespace-nowrap min-w-max md:min-w-0 md:whitespace-normal">
+                                                                    <tbody>
+                                                                        {sortedMaterials.map((mat: any) => {
                                                                         const isLow = (Number(mat.min_stock || 0) > 0 && Number(mat.current_stock || 0) <= Number(mat.min_stock || 0)) || Number(mat.current_stock || 0) <= 0;
                                                                         return (
                                                                             <tr key={mat.id} className={`border-b border-gray-800 hover:bg-gray-800/20 transition-colors ${isLow ? 'bg-red-500/[0.03]' : ''}`}>
@@ -3312,6 +3313,7 @@ export default function AdminDashboard() {
                                                                     })}
                                                                 </tbody>
                                                             </table>
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>
@@ -3382,29 +3384,31 @@ export default function AdminDashboard() {
                                     </form>
 
                                     <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                        <table className="w-full text-left border-collapse text-xs md:text-sm">
-                                            <thead>
-                                                <tr className="bg-gray-800/50 border-b border-gray-800">
-                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400">Nama</th>
-                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400">Role</th>
-                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400">Status</th>
-                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400 text-right">Aksi</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {staffList.map((st: any) => (
-                                                    <tr key={st.id} className="border-b border-gray-800 hover:bg-gray-800/30">
-                                                        <td className="p-2 md:p-4 font-bold text-white">{st.full_name}<p className="text-xs text-gray-500 font-normal">{st.email}</p></td>
-                                                        <td className="p-2 md:p-4"><span className={`px-3 py-1 text-xs font-bold rounded-lg ${st.role === 'owner' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-gray-800 text-gray-300'}`}>{st.role.toUpperCase()}</span></td>
-                                                        <td className="p-2 md:p-4"><span className="text-green-400 font-bold text-sm">Aktif</span></td>
-                                                        <td className="p-2 md:p-4 text-right flex justify-end gap-2">
-                                                            <button onClick={() => setEditingStaff(st)} className="px-3 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
-                                                            <button onClick={() => handleDeleteStaff(st.id)} className="px-3 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Hapus</button>
-                                                        </td>
+                                        <div className="overflow-x-auto w-full">
+                                            <table className="w-full text-left border-collapse text-xs md:text-sm whitespace-nowrap min-w-max md:min-w-0 md:whitespace-normal">
+                                                <thead>
+                                                    <tr className="bg-gray-800/50 border-b border-gray-800">
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400">Nama</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400">Role</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400">Status</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400 text-right">Aksi</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody>
+                                                    {staffList.map((st: any) => (
+                                                        <tr key={st.id} className="border-b border-gray-800 hover:bg-gray-800/30">
+                                                            <td className="p-2 md:p-4 font-bold text-white">{st.full_name}<p className="text-xs text-gray-500 font-normal">{st.email}</p></td>
+                                                            <td className="p-2 md:p-4"><span className={`px-3 py-1 text-xs font-bold rounded-lg ${st.role === 'owner' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-gray-800 text-gray-300'}`}>{st.role.toUpperCase()}</span></td>
+                                                            <td className="p-2 md:p-4"><span className="text-green-400 font-bold text-sm">Aktif</span></td>
+                                                            <td className="p-2 md:p-4 text-right flex justify-end gap-2">
+                                                                <button onClick={() => setEditingStaff(st)} className="px-3 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
+                                                                <button onClick={() => handleDeleteStaff(st.id)} className="px-3 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Hapus</button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
 
                                     {/* Edit Staff Modal */}
