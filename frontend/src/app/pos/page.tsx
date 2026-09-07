@@ -1539,33 +1539,42 @@ export default function PosPage() {
             )}
 
             {showExpensesModal && (
-                <div className="fixed inset-0 bg-black/90 flex items-start justify-center z-[100] p-4 backdrop-blur-sm overflow-y-auto print:hidden">
-                    <div className="bg-[#1a1a1c] border border-gray-800 rounded-3xl w-full max-w-6xl shadow-2xl p-4 md:p-6 md:p-4 md:p-8 my-auto flex-shrink-0 relative">
+                <div className="fixed inset-0 bg-black/90 flex items-start justify-center z-[100] p-2 sm:p-4 backdrop-blur-sm overflow-y-auto print:hidden">
+                    <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl sm:rounded-3xl w-full max-w-6xl shadow-2xl p-4 sm:p-6 lg:p-8 my-4 sm:my-8 flex-shrink-0 relative">
                         <button 
                             onClick={() => setShowExpensesModal(false)}
-                            className="absolute top-4 md:p-6 right-6 w-10 h-10 bg-gray-800 hover:bg-red-500 hover:text-white rounded-full flex items-center justify-center text-gray-400 transition-colors"
+                            className="absolute top-4 right-4 sm:right-6 w-9 h-9 sm:w-10 sm:h-10 bg-gray-800 hover:bg-red-500 hover:text-white rounded-full flex items-center justify-center text-gray-400 transition-colors z-10"
                         >
                             ✕
                         </button>
                         
-                        <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
-                            <Banknote className="text-orange-500" /> Kelola Bahan Baku & Pengeluaran 
-                            <span className="text-sm font-normal text-gray-500 px-3 py-1 bg-gray-800 rounded-full ml-auto mr-12">Staff: {staff?.full_name}</span>
-                        </h2>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8 pr-12">
+                            <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 sm:gap-3">
+                                <Banknote className="text-orange-500 w-6 h-6 shrink-0" /> Kelola Bahan Baku & Pengeluaran 
+                            </h2>
+                            <span className="text-xs sm:text-sm font-normal text-gray-400 px-3 py-1 bg-gray-800/80 border border-gray-700 rounded-full w-fit">
+                                Staff: {staff?.full_name || 'Kasir'}
+                            </span>
+                        </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:p-8">
-                            <div className="space-y-8">
-                                <div className="p-4 md:p-6 bg-[#131B2C] rounded-2xl border border-gray-800 transition-all">
-                                    <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-3">
-                                        <h3 className="font-bold text-lg text-white">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="space-y-6 sm:space-y-8">
+                                <div className="p-4 sm:p-6 bg-[#131B2C] rounded-2xl border border-gray-800 transition-all">
+                                    <div className="flex justify-between items-center mb-5 border-b border-gray-800 pb-3">
+                                        <h3 className="font-bold text-base sm:text-lg text-white">
                                             Tambah Bahan Baku Baru
                                         </h3>
                                     </div>
                                     
-                                        <form onSubmit={handleCreateMaterial} className="space-y-4">
-                                            <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                            <div className="grid grid-cols-3 gap-4">
-                                                <select value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm font-semibold">
+                                    <form onSubmit={handleCreateMaterial} className="space-y-4">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-400 block mb-1">Nama Bahan</label>
+                                            <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm" />
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-400 block mb-1">Satuan</label>
+                                                <select value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-xs sm:text-sm font-semibold">
                                                     <option value="g">Gram (g)</option>
                                                     <option value="ml">Mililiter (ml)</option>
                                                     <option value="pcs">Pieces (pcs)</option>
@@ -1576,11 +1585,18 @@ export default function PosPage() {
                                                     <option value="botol">Botol</option>
                                                     <option value="kaleng">Kaleng</option>
                                                 </select>
-                                                <input type="number" placeholder="Stok" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                <input type="number" placeholder="Harga/Unit Dasar" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                             </div>
-                                            <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Bahan</button>
-                                        </form>
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-400 block mb-1">Stok Awal</label>
+                                                <input type="number" step="any" placeholder="0" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm" />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-400 block mb-1">Harga / Satuan</label>
+                                                <input type="number" step="any" placeholder="Rp" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm" />
+                                            </div>
+                                        </div>
+                                        <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors text-sm sm:text-base">Simpan Bahan</button>
+                                    </form>
                                 </div>
 
                                 <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden">
@@ -1593,12 +1609,12 @@ export default function PosPage() {
                                                 <tbody>
                                                     {rawMaterials.map((mat: any) => (
                                                         <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
-                                                            <td className="p-4">
+                                                            <td className="p-3 sm:p-4">
                                                                 <div className="font-bold text-white">{mat.name}</div>
                                                                 {mat.updated_by_name && <div className="text-[10px] text-blue-400 mt-1">Oleh: {mat.updated_by_name}</div>}
                                                             </td>
-                                                            <td className="p-4 text-center"><span className="px-3 py-1 bg-gray-800 rounded-lg text-sm font-bold">{mat.current_stock} {mat.unit}</span></td>
-                                                            <td className="p-4 text-right">
+                                                            <td className="p-3 sm:p-4 text-center"><span className="px-2.5 py-1 bg-gray-800 rounded-lg text-xs sm:text-sm font-bold">{mat.current_stock} {mat.unit}</span></td>
+                                                            <td className="p-3 sm:p-4 text-right">
                                                                 <div className="flex gap-1 justify-end">
                                                                     <button onClick={() => { setSelectedMaterial(mat); setStockAdjustment({ delta: 0, note: '', price: mat.last_price_per_unit }); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
                                                                     {canEditRecord(mat.updated_by_name) && (
@@ -1615,10 +1631,10 @@ export default function PosPage() {
                                 </div>
                             </div>
 
-                            <div className="space-y-8">
-                                <div className="p-4 md:p-6 bg-[#131B2C] rounded-2xl border border-gray-800 transition-all">
-                                    <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-3">
-                                        <h3 className="font-bold text-lg text-white">
+                            <div className="space-y-6 sm:space-y-8">
+                                <div className="p-4 sm:p-6 bg-[#131B2C] rounded-2xl border border-gray-800 transition-all">
+                                    <div className="flex justify-between items-center mb-5 border-b border-gray-800 pb-3">
+                                        <h3 className="font-bold text-base sm:text-lg text-white">
                                             {editingExpense ? 'Edit Pengeluaran' : 'Catat Pengeluaran Operasional'}
                                         </h3>
                                         {editingExpense && (
@@ -1626,12 +1642,12 @@ export default function PosPage() {
                                         )}
                                     </div>
                                     <form onSubmit={editingExpense ? handleUpdateExpense : handleCreateExpense} className="space-y-4">
-                                        <div className="flex gap-4 mb-4">
-                                            <label className="flex items-center gap-2 text-white cursor-pointer">
+                                        <div className="flex flex-wrap gap-4 mb-2">
+                                            <label className="flex items-center gap-2 text-white cursor-pointer text-xs sm:text-sm">
                                                 <input type="radio" name="payment_method_pos" value="CASH" checked={newExpense.payment_method === 'CASH'} onChange={e => setNewExpense({...newExpense, payment_method: e.target.value})} className="w-4 h-4 text-blue-500" />
                                                 <span>Uang Kasir (Cash)</span>
                                             </label>
-                                            <label className="flex items-center gap-2 text-white cursor-pointer">
+                                            <label className="flex items-center gap-2 text-white cursor-pointer text-xs sm:text-sm">
                                                 <input type="radio" name="payment_method_pos" value="QRIS" checked={newExpense.payment_method === 'QRIS'} onChange={e => setNewExpense({...newExpense, payment_method: e.target.value})} className="w-4 h-4 text-blue-500" />
                                                 <span>Saldo Rekening (QRIS/Trf)</span>
                                             </label>
@@ -1650,34 +1666,41 @@ export default function PosPage() {
 
                                             return (
                                                 <>
-                                                    <div className="flex gap-4 mb-2 p-2 bg-gray-900 border border-gray-800 rounded-xl">
-                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-sm font-bold transition-all ${currentCat === 'operasional' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'text-gray-400 hover:bg-gray-800'}`}>
+                                                    <div className="flex gap-3 mb-2 p-1.5 sm:p-2 bg-gray-900 border border-gray-800 rounded-xl">
+                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'operasional' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'text-gray-400 hover:bg-gray-800'}`}>
                                                             <input type="radio" name="exp_category_pos" value="operasional" checked={currentCat === 'operasional'} onChange={() => setCat('operasional')} className="hidden" />
                                                             ⚙️ Operasional
                                                         </label>
-                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-sm font-bold transition-all ${currentCat === 'bahan_baku' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'text-gray-400 hover:bg-gray-800'}`}>
+                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'bahan_baku' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'text-gray-400 hover:bg-gray-800'}`}>
                                                             <input type="radio" name="exp_category_pos" value="bahan_baku" checked={currentCat === 'bahan_baku'} onChange={() => setCat('bahan_baku')} className="hidden" />
                                                             🧪 Bahan Baku
                                                         </label>
                                                     </div>
 
-                                                    <input type="text" placeholder="Deskripsi Pengeluaran (contoh: Beli Es Batu)" required value={editingExpense ? editingExpense.description : newExpense.description} onChange={e => editingExpense ? setEditingExpense({...editingExpense, description: e.target.value}) : setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                    <input type="number" placeholder="Nominal (Rp)" required value={editingExpense ? editingExpense.amount || '' : newExpense.amount || ''} onChange={e => editingExpense ? setEditingExpense({...editingExpense, amount: Number(e.target.value)}) : setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                    <div>
+                                                        <label className="text-xs font-bold text-gray-400 block mb-1">Deskripsi Pengeluaran</label>
+                                                        <input type="text" placeholder="Contoh: Beli Es Batu, Plastik..." required value={editingExpense ? editingExpense.description : newExpense.description} onChange={e => editingExpense ? setEditingExpense({...editingExpense, description: e.target.value}) : setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="text-xs font-bold text-gray-400 block mb-1">Nominal (Rp)</label>
+                                                        <input type="number" placeholder="Rp" required value={editingExpense ? editingExpense.amount || '' : newExpense.amount || ''} onChange={e => editingExpense ? setEditingExpense({...editingExpense, amount: Number(e.target.value)}) : setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm" />
+                                                    </div>
                                                     
                                                     {currentCat === 'bahan_baku' && (
-                                                        <div className="p-3 bg-green-500/5 border border-green-500/20 rounded-xl space-y-3">
+                                                        <div className="p-3.5 bg-green-500/5 border border-green-500/20 rounded-xl space-y-3">
                                                             <div className="flex justify-between items-center">
                                                                 <label className="text-xs font-bold text-green-400 block">Bahan Baku (Wajib)</label>
                                                                 {!editingExpense && !showInlineAddMaterial && (
-                                                                    <button type="button" onClick={() => setShowInlineAddMaterial(true)} className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded hover:bg-blue-500/20">+ Tambah Jenis Baru</button>
+                                                                    <button type="button" onClick={() => setShowInlineAddMaterial(true)} className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded hover:bg-blue-500/20 transition-colors">+ Tambah Jenis Baru</button>
                                                                 )}
                                                             </div>
                                                             
                                                             {!editingExpense && showInlineAddMaterial && (
                                                                 <div className="p-3 bg-blue-900/10 border border-blue-500/20 rounded-xl mb-3 space-y-2">
-                                                                    <input type="text" placeholder="Nama Bahan Baru (Cth: Susu Oat)" value={inlineNewMaterial.name} onChange={e => setInlineNewMaterial({...inlineNewMaterial, name: e.target.value})} className="w-full p-2 text-sm bg-[#0B0F19] border border-gray-700 rounded-lg text-white outline-none" />
-                                                                    <div className="flex gap-2">
-                                                                        <select value={inlineNewMaterial.unit} onChange={e => setInlineNewMaterial({...inlineNewMaterial, unit: e.target.value})} className="flex-1 p-2 text-sm bg-[#0B0F19] border border-gray-700 rounded-lg text-white outline-none font-semibold">
+                                                                    <input type="text" placeholder="Nama Bahan Baru (Cth: Susu Oat)" value={inlineNewMaterial.name} onChange={e => setInlineNewMaterial({...inlineNewMaterial, name: e.target.value})} className="w-full p-2.5 text-sm bg-[#0B0F19] border border-gray-700 rounded-lg text-white outline-none" />
+                                                                    <div className="flex flex-col sm:flex-row gap-2">
+                                                                        <select value={inlineNewMaterial.unit} onChange={e => setInlineNewMaterial({...inlineNewMaterial, unit: e.target.value})} className="flex-1 p-2.5 text-sm bg-[#0B0F19] border border-gray-700 rounded-lg text-white outline-none font-semibold">
                                                                             <option value="g">Gram (g)</option>
                                                                             <option value="ml">Mililiter (ml)</option>
                                                                             <option value="pcs">Pieces (pcs)</option>
@@ -1688,14 +1711,17 @@ export default function PosPage() {
                                                                             <option value="botol">Botol</option>
                                                                             <option value="kaleng">Kaleng</option>
                                                                         </select>
-                                                                        <button type="button" onClick={handleInlineAddMaterial} className="px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-500">Simpan Bahan</button>
-                                                                        <button type="button" onClick={() => setShowInlineAddMaterial(false)} className="px-3 py-2 bg-gray-800 text-gray-400 text-xs font-bold rounded-lg hover:bg-gray-700">Batal</button>
+                                                                        <div className="flex gap-2 shrink-0">
+                                                                            <button type="button" onClick={handleInlineAddMaterial} className="flex-1 sm:flex-none px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-500">Simpan Bahan</button>
+                                                                            <button type="button" onClick={() => setShowInlineAddMaterial(false)} className="flex-1 sm:flex-none px-3 py-2 bg-gray-800 text-gray-400 text-xs font-bold rounded-lg hover:bg-gray-700">Batal</button>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             )}
 
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                            <div className="space-y-3">
                                                                 <div>
+                                                                    <label className="text-xs font-bold text-gray-400 block mb-1">Pilih Bahan Baku</label>
                                                                     <select 
                                                                         value={activeMaterialId} 
                                                                         onChange={e => {
@@ -1716,20 +1742,25 @@ export default function PosPage() {
                                                                         ))}
                                                                     </select>
                                                                 </div>
-                                                                <div>
-                                                                    <div className="flex gap-2">
+                                                                
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                                    <div>
+                                                                        <label className="text-xs font-bold text-gray-400 block mb-1">Kuantitas Dibeli</label>
                                                                         <input 
                                                                             type="number" 
                                                                             step="any"
-                                                                            placeholder="Kuantitas" 
+                                                                            placeholder="Contoh: 1 atau 500" 
                                                                             value={activeQuantity} 
                                                                             onChange={e => {
                                                                                 const val = Number(e.target.value);
                                                                                 if (editingExpense) setEditingExpense({...editingExpense, quantity: val});
                                                                                 else setNewExpense({...newExpense, quantity: val});
                                                                             }}
-                                                                            className="flex-1 p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm"
+                                                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm"
                                                                         />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-xs font-bold text-gray-400 block mb-1">Satuan Beli</label>
                                                                         <select 
                                                                             value={activeBuyUnit} 
                                                                             onChange={e => {
@@ -1737,12 +1768,12 @@ export default function PosPage() {
                                                                                 if (editingExpense) setEditingExpense({...editingExpense, buy_unit: val});
                                                                                 else setNewExpense({...newExpense, buy_unit: val});
                                                                             }}
-                                                                            className="w-24 p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-xs font-bold"
+                                                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm font-bold"
                                                                         >
-                                                                            <option value="kg">kg</option>
+                                                                            <option value="kg">kg (kilogram)</option>
                                                                             <option value="g">gram (g)</option>
                                                                             <option value="liter">liter (l)</option>
-                                                                            <option value="ml">ml</option>
+                                                                            <option value="ml">ml (mililiter)</option>
                                                                             <option value="pcs">pcs</option>
                                                                             <option value="pack">pack</option>
                                                                             <option value="dus">dus</option>
