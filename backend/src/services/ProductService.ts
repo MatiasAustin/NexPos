@@ -48,6 +48,7 @@ export class ProductService {
             ingredients: payload.ingredients,
             discount_percentage: payload.discount_percentage,
             options_config: payload.options_config,
+            operational_cost: payload.operational_cost,
             updated_at: new Date().toISOString()
         };
         if (payload.image_url !== undefined) {

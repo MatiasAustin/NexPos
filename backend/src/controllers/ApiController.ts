@@ -253,9 +253,16 @@ router.put('/admin/cash-sessions/:id/opening-cash', async (req, res) => {
         if (opening_cash === undefined || opening_cash === null) {
             return res.status(400).json({ error: 'opening_cash is required' });
         }
+        const { data: oldSession } = await supabase.from('cash_sessions').select('opening_cash, expected_cash').eq('id', req.params.id).single();
+        let newExpectedCash = 0;
+        if (oldSession) {
+            const diff = Number(opening_cash) - Number(oldSession.opening_cash || 0);
+            newExpectedCash = Number(oldSession.expected_cash || 0) + diff;
+        }
+
         const { data, error } = await supabase
             .from('cash_sessions')
-            .update({ opening_cash: Number(opening_cash) })
+            .update({ opening_cash: Number(opening_cash), ...(oldSession ? { expected_cash: newExpectedCash } : {}) })
             .eq('id', req.params.id)
             .select('*')
             .single();
@@ -343,6 +350,7 @@ router.get('/admin/cash-sessions', async (req, res) => {
     }
 });
 
+router.get('/health2', (req, res) => res.json({ status: 'v3' }));
 router.get('/cash-sessions/active', async (req, res) => {
     try {
         const { staffId, terminalId } = req.query;

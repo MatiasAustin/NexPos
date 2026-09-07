@@ -47,10 +47,12 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
     const [loading, setLoading] = useState(true);
     const [totals, setTotals] = useState({ omset: 0, pengeluaranOp: 0, hpp: 0, laba: 0 });
     const [periodLabel, setPeriodLabel] = useState('');
+    const [expenseCategoryFilter, setExpenseCategoryFilter] = useState<'all'|'operasional'|'bahan_baku'>('all');
+    const [expenseCategoryFilter, setExpenseCategoryFilter] = useState<'all'|'operasional'|'bahan_baku'>('all');
 
     useEffect(() => {
         fetchChartData();
-    }, [period, customStartDate, customEndDate, referenceDate]);
+    }, [period, customStartDate, customEndDate, referenceDate, expenseCategoryFilter]);
 
     const fetchChartData = async () => {
         setLoading(true);
@@ -113,7 +115,7 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
 
         const { data: expenses } = await supabase
             .from('expenses')
-            .select('amount, expense_date, created_at')
+            .select('amount, expense_date, created_at, category')
             .gte('created_at', start.toISOString())
             .lte('created_at', end.toISOString());
 
@@ -132,6 +134,10 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
         }
 
         for (const exp of expenses || []) {
+            if (expenseCategoryFilter !== 'all') {
+                const expCat = exp.category || 'operasional';
+                if (expCat !== expenseCategoryFilter) continue;
+            }
             const dateStr = exp.expense_date || exp.created_at;
             const lbl = getPeriodLabel(dateStr, period);
             if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0 };
@@ -250,7 +256,7 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
                         <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px' }} />
                         <Bar dataKey="omset" name="Omset" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={50} />
                         <Bar dataKey="hpp" name="Total HPP" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                        <Bar dataKey="pengeluaranOp" name="Pengeluaran (Operasional)" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                        <Bar dataKey="pengeluaranOp" name={expenseCategoryFilter === 'bahan_baku' ? 'Pengeluaran (Bahan Baku)' : expenseCategoryFilter === 'operasional' ? 'Pengeluaran (Operasional)' : 'Semua Pengeluaran'}" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={50} />
                         <Line type="monotone" dataKey="laba" name="Laba Bersih" stroke="#22c55e" strokeWidth={2} dot={false} />
                     </ComposedChart>
                 </ResponsiveContainer>

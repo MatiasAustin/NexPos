@@ -16,6 +16,9 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS operational_cost INTEGER DEFAULT 3
 -- 3. UPSERT Bahan Baku dari OP 30 Agustus 2026
 -- ============================================================
 
+-- Sesuai request: Buat stok bahan baku menjadi 0 jika tidak ada di dalam daftar update di bawah ini
+UPDATE raw_materials SET current_stock = 0;
+
 INSERT INTO raw_materials (name, unit, current_stock, last_price_per_unit, updated_by_name)
 VALUES
   ('Robusta Espresso', 'gr', 0, 150, 'Admin Import'),

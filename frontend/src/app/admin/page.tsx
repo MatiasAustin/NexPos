@@ -767,7 +767,7 @@ export default function AdminDashboard() {
                     quantity,
                     price_at_time,
                     created_at,
-                    transaction:transactions (order_reference, staff_name)
+                    transaction:transactions (order_reference)
                 `)
                 .eq('product_id', product.id)
                 .order('created_at', { ascending: false })
