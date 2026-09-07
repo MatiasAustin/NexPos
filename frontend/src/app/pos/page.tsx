@@ -70,6 +70,11 @@ export default function PosPage() {
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [sessionData, setSessionData] = useState<any>(null);
 
+    const [collapseAddMat, setCollapseAddMat] = useState(false);
+    const [collapseListMat, setCollapseListMat] = useState(false);
+    const [collapseAddExp, setCollapseAddExp] = useState(false);
+    const [collapseListExp, setCollapseListExp] = useState(false);
+
     const fetchSessionData = async (id: string) => {
         if (!id) return;
         try {
@@ -1010,7 +1015,7 @@ export default function PosPage() {
     const filteredProducts = activeCategory === "Semua" ? products : products.filter(p => (p.category || "Uncategorized") === activeCategory);
 
     return (
-        <div className="flex flex-col sm:flex-row h-screen bg-[#121214] text-gray-100 overflow-hidden print:block print:h-auto print:overflow-visible print:bg-white text-sm md:text-base">
+        <div className="flex flex-col sm:flex-row h-screen w-full max-w-full bg-[#121214] text-gray-100 overflow-hidden print:block print:h-auto print:overflow-visible print:bg-white text-sm md:text-base">
             <div className="print:hidden"><ConfirmDialog /></div>
             {/* LEFT: PRODUCTS LIST */}
             <div className="flex-1 flex flex-col overflow-y-auto print:hidden">
@@ -1553,8 +1558,8 @@ export default function PosPage() {
 
             {/* EXPENSES & RAW MATERIALS MODAL */}
                         {showCloseShiftModal && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
-                    <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-md shadow-2xl">
+                <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
+                    <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-md shadow-2xl my-auto flex-shrink-0">
                         <h3 className="font-bold text-xl text-white mb-2">Tutup Shift</h3>
                         <p className="text-gray-400 text-sm mb-6">Hitung seluruh uang fisik (kertas & koin) yang ada di dalam laci kasir saat ini, lalu masukkan totalnya di bawah ini.</p>
                         <input 
@@ -1603,15 +1608,17 @@ export default function PosPage() {
                             </span>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                        <div className="flex flex-col gap-6">
                             <div className="space-y-6 sm:space-y-8">
                                 <div className="p-4 sm:p-6 bg-[#131B2C] rounded-2xl border border-gray-800 transition-all">
-                                    <div className="flex justify-between items-center mb-5 border-b border-gray-800 pb-3">
+                                    <div className="flex justify-between items-center mb-5 border-b border-gray-800 pb-3 cursor-pointer" onClick={() => setCollapseAddMat(!collapseAddMat)}>
                                         <h3 className="font-bold text-base sm:text-lg text-white">
                                             Tambah Bahan Baku Baru
                                         </h3>
+                                        <button type="button" className="text-gray-400 hover:text-white transition-colors">{collapseAddMat ? '+' : '−'}</button>
                                     </div>
                                     
+                                    {!collapseAddMat && (
                                     <form onSubmit={handleCreateMaterial} className="space-y-4">
                                         <div>
                                             <label className="text-xs font-bold text-gray-400 block mb-1">Nama Bahan</label>
@@ -1643,10 +1650,15 @@ export default function PosPage() {
                                         </div>
                                         <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors text-sm sm:text-base">Simpan Bahan</button>
                                     </form>
+                                    )}
                                 </div>
 
                                 <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden">
-                                    <h3 className="p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Daftar Bahan Baku</h3>
+                                    <div className="p-4 bg-gray-800/30 border-b border-gray-800 flex justify-between items-center cursor-pointer" onClick={() => setCollapseListMat(!collapseListMat)}>
+                                        <h3 className="font-bold text-gray-300">Daftar Bahan Baku</h3>
+                                        <button type="button" className="text-gray-400 hover:text-white transition-colors">{collapseListMat ? '+' : '−'}</button>
+                                    </div>
+                                    {!collapseListMat && (
                                     <div className="max-h-[300px] overflow-y-auto">
                                         {rawMaterials.length === 0 ? (
                                             <p className="p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada bahan baku.</p>
@@ -1676,19 +1688,24 @@ export default function PosPage() {
                                             </div>
                                         )}
                                     </div>
+                                    )}
                                 </div>
                             </div>
 
                             <div className="space-y-6 sm:space-y-8">
                                 <div className="p-4 sm:p-6 bg-[#131B2C] rounded-2xl border border-gray-800 transition-all">
-                                    <div className="flex justify-between items-center mb-5 border-b border-gray-800 pb-3">
-                                        <h3 className="font-bold text-base sm:text-lg text-white">
-                                            {editingExpense ? 'Edit Pengeluaran' : 'Catat Pengeluaran Operasional'}
-                                        </h3>
-                                        {editingExpense && (
-                                            <button onClick={() => { setEditingExpense(null); setNewExpense({description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional'}); }} className="text-xs text-blue-400 hover:text-blue-300">Batal Edit</button>
-                                        )}
+                                    <div className="flex justify-between items-center mb-5 border-b border-gray-800 pb-3 cursor-pointer" onClick={() => setCollapseAddExp(!collapseAddExp)}>
+                                        <div className="flex items-center gap-3">
+                                            <h3 className="font-bold text-base sm:text-lg text-white">
+                                                {editingExpense ? 'Edit Pengeluaran' : 'Catat Pengeluaran Operasional'}
+                                            </h3>
+                                            {editingExpense && (
+                                                <button onClick={(e) => { e.stopPropagation(); setEditingExpense(null); setNewExpense({description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional'}); }} className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 bg-blue-500/10 rounded-md">Batal Edit</button>
+                                            )}
+                                        </div>
+                                        <button type="button" className="text-gray-400 hover:text-white transition-colors">{collapseAddExp ? '+' : '−'}</button>
                                     </div>
+                                    {!collapseAddExp && (
                                     <form onSubmit={editingExpense ? handleUpdateExpense : handleCreateExpense} className="space-y-4">
                                         <div className="flex flex-wrap gap-4 mb-2">
                                             <label className="flex items-center gap-2 text-white cursor-pointer text-xs sm:text-sm">
@@ -1942,6 +1959,7 @@ export default function PosPage() {
                                             );
                                         })()}
                                     </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -2054,8 +2072,8 @@ export default function PosPage() {
 
             {/* PRODUCT OPTIONS & ADD-ON MODAL */}
             {showOptionsModal && selectedProductForOptions && (
-                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-[#1a1a1c] p-6 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-800 relative max-h-[90vh] flex flex-col">
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 backdrop-blur-sm overflow-y-auto">
+                    <div className="bg-[#1a1a1c] p-6 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-800 relative max-h-[90vh] flex flex-col my-auto flex-shrink-0">
                         <div className="flex justify-between items-start mb-4 pb-3 border-b border-gray-800">
                             <div>
                                 <h2 className="text-xl font-bold text-white flex items-center gap-2">

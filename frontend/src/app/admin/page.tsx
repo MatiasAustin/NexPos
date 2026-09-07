@@ -1625,7 +1625,7 @@ export default function AdminDashboard() {
                 .print-receipt { position: absolute; left: 0; top: 0; width: 100%; max-width: 80mm; padding: 10px; font-family: monospace; color: #000; background: #fff; }
             }
         `}} />
-        <div className="min-h-screen bg-[#0B0F19] text-gray-100 flex flex-col sm:flex-row font-sans selection:bg-blue-500/30 print:hidden text-sm md:text-base">
+        <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#0B0F19] text-gray-100 flex flex-col sm:flex-row font-sans selection:bg-blue-500/30 print:hidden text-sm md:text-base">
             {/* Sidebar */}
             <div className="w-full sm:w-[240px] md:w-[280px] bg-[#131B2C] border-b sm:border-b-0 sm:border-r border-gray-800/60 flex flex-col shrink-0 z-20">
                 <div className="p-2 md:p-4 md:p-6 border-b border-gray-800/60 flex items-center justify-between">
@@ -2151,8 +2151,8 @@ export default function AdminDashboard() {
 
                                     {/* Edit Opening Cash Modal */}
                                     {editingSessionId && (
-                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
+                                        <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-sm shadow-2xl my-auto flex-shrink-0">
                                                 <h3 className="font-bold text-xl text-white mb-2">Edit Modal Awal Shift</h3>
                                                 <p className="text-gray-400 text-sm mb-5">Ubah jumlah uang modal pembuka shift ini.</p>
                                                 <div className="mb-5">
@@ -3133,7 +3133,7 @@ export default function AdminDashboard() {
                                     </div>
 
                                     {/* Input & List Bahan Baku */}
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                                         {/* Tambah Bahan Baku */}
                                         <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                             <div className="flex items-center gap-2 mb-6 border-b border-gray-800 pb-3">
@@ -3479,7 +3479,7 @@ export default function AdminDashboard() {
                             )}
                             {/* SETTINGS TAB */}
                             {activeTab === "settings" && (
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:p-6">
+                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:p-6">
                                     <div className="space-y-6">
                                         {/* Brand Settings */}
                                         <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
@@ -3787,8 +3787,8 @@ export default function AdminDashboard() {
           
                                     {/* Edit Raw Material Modal */}
                                     {editingMaterial && (
-                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-lg shadow-2xl my-auto">
+                                        <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-lg shadow-2xl my-auto flex-shrink-0">
                                                 <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-3">
                                                     <h3 className="font-bold text-xl text-white">Edit Bahan Baku</h3>
                                                     <button onClick={() => setEditingMaterial(null)} className="w-8 h-8 rounded-full bg-gray-800 text-gray-400 flex items-center justify-center hover:bg-gray-700 hover:text-white">✕</button>
