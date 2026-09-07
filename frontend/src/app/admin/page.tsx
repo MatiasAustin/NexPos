@@ -167,6 +167,17 @@ const MaterialConverterHelper = ({ targetUnit, onApply }: { targetUnit: string, 
 
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses" | "cash_sessions" | "raw_materials">("reconciliation");
+
+    // Read ?tab= query param on initial load for direct cashier navigation
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const tab = params.get('tab');
+            if (tab && ['reconciliation', 'raw_materials', 'inventory', 'expenses', 'history', 'cash_sessions'].includes(tab)) {
+                setActiveTab(tab as any);
+            }
+        }
+    }, []);
     const [reconciliation, setReconciliation] = useState<any[]>([]);
     const [reconciliationDate, setReconciliationDate] = useState<Date>(new Date());
     const [historyDate, setHistoryDate] = useState<Date>(new Date());
@@ -196,7 +207,9 @@ export default function AdminDashboard() {
     const [rawMaterials, setRawMaterials] = useState<any[]>([]);
     const [materialStockLogs, setMaterialStockLogs] = useState<any[]>([]);
     const [newExpense, setNewExpense] = useState({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional' });
-    const [newMaterial, setNewMaterial] = useState({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
+    const [newMaterial, setNewMaterial] = useState({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0, min_stock: 0 });
+    const [materialSortBy, setMaterialSortBy] = useState<'updated' | 'price_desc' | 'price_asc' | 'low_stock' | 'name_asc'>('updated');
+    const [materialSearchQuery, setMaterialSearchQuery] = useState('');
     const [newStaff, setNewStaff] = useState({ full_name: '', email: '', password: '', role: 'staff' });
     
     // UI states for new features
@@ -275,7 +288,8 @@ export default function AdminDashboard() {
                 router.push('/pos');
                 return;
             }
-            if (prof.role !== 'owner' && activeTab !== 'reconciliation' && activeTab !== 'history' && activeTab !== 'cash_sessions') {
+            const allowedStaffTabs = ['reconciliation', 'history', 'cash_sessions', 'raw_materials', 'inventory', 'expenses'];
+            if (prof.role !== 'owner' && !allowedStaffTabs.includes(activeTab)) {
                 setActiveTab('reconciliation');
                 return; // fetchData will run again due to useEffect dependency
             }
@@ -1137,16 +1151,28 @@ export default function AdminDashboard() {
         if (!editingMaterial) return;
         setLoading(true);
         try {
-            const { error } = await supabase.from('raw_materials')
-                .update({
-                    name: editingMaterial.name,
-                    unit: editingMaterial.unit,
-                    current_stock: Number(editingMaterial.current_stock),
-                    last_price_per_unit: Number(editingMaterial.last_price_per_unit),
-                    updated_by_name: profile?.full_name,
-                    updated_at: new Date().toISOString()
-                })
+            const payload: any = {
+                name: editingMaterial.name,
+                unit: editingMaterial.unit,
+                current_stock: Number(editingMaterial.current_stock),
+                last_price_per_unit: Number(editingMaterial.last_price_per_unit),
+                updated_by_name: profile?.full_name,
+                updated_at: new Date().toISOString()
+            };
+            if (editingMaterial.min_stock !== undefined) {
+                payload.min_stock = Number(editingMaterial.min_stock);
+            }
+
+            let { error } = await supabase.from('raw_materials')
+                .update(payload)
                 .eq('id', editingMaterial.id);
+
+            if (error && error.message?.includes('min_stock')) {
+                delete payload.min_stock;
+                const retry = await supabase.from('raw_materials').update(payload).eq('id', editingMaterial.id);
+                error = retry.error;
+            }
+
             if (error) throw error;
             toast.success("Bahan Baku berhasil diperbarui.");
             setEditingMaterial(null);
@@ -1161,16 +1187,27 @@ export default function AdminDashboard() {
         e.preventDefault();
         setLoading(true);
         try {
-            const { error } = await supabase.from('raw_materials').insert([{
+            const payload: any = {
                 name: newMaterial.name,
                 unit: newMaterial.unit,
                 current_stock: Number(newMaterial.current_stock),
                 last_price_per_unit: Number(newMaterial.last_price_per_unit),
                 updated_by_name: profile?.full_name
-            }]);
+            };
+            if (newMaterial.min_stock !== undefined) {
+                payload.min_stock = Number(newMaterial.min_stock);
+            }
+
+            let { error } = await supabase.from('raw_materials').insert([payload]);
+            if (error && error.message?.includes('min_stock')) {
+                // Retry without min_stock if column not yet migrated
+                delete payload.min_stock;
+                const retry = await supabase.from('raw_materials').insert([payload]);
+                error = retry.error;
+            }
             if (error) throw error;
             toast.success("Bahan Baku berhasil ditambahkan.");
-            setNewMaterial({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
+            setNewMaterial({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0, min_stock: 0 });
             fetchData();
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
@@ -1542,7 +1579,7 @@ export default function AdminDashboard() {
                         { id: "staff", label: "Manajemen Staf", icon: Users },
                         { id: "audit", label: "Security Log", icon: ShieldCheck },
                         { id: "settings", label: "Pengaturan Toko", icon: Settings },
-                    ].filter(tab => profile?.role === 'owner' || ['reconciliation', 'history', 'cash_sessions'].includes(tab.id)).map((tab) => (
+                    ].filter(tab => profile?.role === 'owner' || ['reconciliation', 'history', 'cash_sessions', 'raw_materials', 'inventory', 'expenses'].includes(tab.id)).map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
@@ -2877,34 +2914,162 @@ export default function AdminDashboard() {
                                         </div>
 
                                         {/* Daftar Bahan Baku */}
-                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                            <h3 className="p-2 md:p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Daftar Bahan Baku</h3>
-                                            {rawMaterials.length === 0 ? (
-                                                <p className="p-2 md:p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada bahan baku.</p>
-                                            ) : (
-                                                <table className="w-full text-left text-xs md:text-sm">
-                                                    <tbody>
-                                                        {rawMaterials.map((mat: any) => (
-                                                            <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
-                                                                <td className="p-2 md:p-4">
-                                                                    <div className="font-bold text-white">{mat.name}</div>
-                                                                    {mat.updated_by_name && <div className="text-[10px] text-blue-400 mt-1">Oleh: {mat.updated_by_name}</div>}
-                                                                </td>
-                                                                <td className="p-2 md:p-4 text-center"><span className="px-3 py-1 bg-gray-800 rounded-lg text-sm">{mat.current_stock} {mat.unit}</span></td>
-                                                                <td className="p-2 md:p-4 text-right text-gray-400 text-sm">Rp {Number(mat.last_price_per_unit).toLocaleString('id-ID')}/{mat.unit}</td>
-                                                                <td className="p-3 text-right">
-                                                                    <div className="flex gap-1 justify-end">
-                                                                        <button onClick={() => setEditingMaterial({...mat})} className="px-2 py-1 text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-600 hover:text-white font-bold transition-colors">Edit</button>
-                                                                        <button onClick={() => { setSelectedMaterial({...mat}); setMaterialMode('update'); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
-                                                                        <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                        {(() => {
+                                            const lowStockItems = rawMaterials.filter(m => {
+                                                const minS = Number(m.min_stock || 0);
+                                                const stock = Number(m.current_stock || 0);
+                                                return minS > 0 ? stock <= minS : stock <= 0;
+                                            });
+
+                                            const sortedMaterials = [...rawMaterials]
+                                                .filter(m => !materialSearchQuery || m.name.toLowerCase().includes(materialSearchQuery.toLowerCase()))
+                                                .sort((a, b) => {
+                                                    if (materialSortBy === 'updated') {
+                                                        const timeA = new Date(a.updated_at || a.created_at || 0).getTime();
+                                                        const timeB = new Date(b.updated_at || b.created_at || 0).getTime();
+                                                        return timeB - timeA;
+                                                    } else if (materialSortBy === 'price_desc') {
+                                                        return Number(b.last_price_per_unit || 0) - Number(a.last_price_per_unit || 0);
+                                                    } else if (materialSortBy === 'price_asc') {
+                                                        return Number(a.last_price_per_unit || 0) - Number(b.last_price_per_unit || 0);
+                                                    } else if (materialSortBy === 'low_stock') {
+                                                        const isLowA = (Number(a.current_stock || 0) <= Number(a.min_stock || 0) && Number(a.min_stock || 0) > 0) || Number(a.current_stock || 0) <= 0 ? 1 : 0;
+                                                        const isLowB = (Number(b.current_stock || 0) <= Number(b.min_stock || 0) && Number(b.min_stock || 0) > 0) || Number(b.current_stock || 0) <= 0 ? 1 : 0;
+                                                        if (isLowA !== isLowB) return isLowB - isLowA;
+                                                        return (Number(a.current_stock || 0) - Number(a.min_stock || 0)) - (Number(b.current_stock || 0) - Number(b.min_stock || 0));
+                                                    } else if (materialSortBy === 'name_asc') {
+                                                        return a.name.localeCompare(b.name);
+                                                    }
+                                                    return 0;
+                                                });
+
+                                            return (
+                                                <div className="space-y-4">
+                                                    {/* Low Stock Alert Banner */}
+                                                    {lowStockItems.length > 0 && (
+                                                        <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg shadow-red-950/20">
+                                                            <div className="flex items-start gap-3">
+                                                                <span className="text-2xl flex-shrink-0">⚠️</span>
+                                                                <div>
+                                                                    <div className="font-bold text-white text-sm">
+                                                                        Peringatan: {lowStockItems.length} Bahan Baku Mencapai Limit Stok!
                                                                     </div>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            )}
-                                        </div>
+                                                                    <p className="text-xs text-red-300/80 mt-0.5">
+                                                                        Stok bahan menipis atau habis di bawah batas minimum. Saatnya dibeli/restock.
+                                                                    </p>
+                                                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                                                        {lowStockItems.slice(0, 6).map(m => (
+                                                                            <span key={m.id} className="text-[10px] font-bold px-2 py-0.5 bg-red-500/20 text-red-300 rounded border border-red-500/30">
+                                                                                {m.name}: {m.current_stock} {m.unit} (Limit: {m.min_stock || 0})
+                                                                            </span>
+                                                                        ))}
+                                                                        {lowStockItems.length > 6 && (
+                                                                            <span className="text-[10px] text-gray-400 self-center">+{lowStockItems.length - 6} lainnya</span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setMaterialSortBy('low_stock')}
+                                                                className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold whitespace-nowrap transition-colors flex-shrink-0"
+                                                            >
+                                                                Filter Mau Habis
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                                        {/* Header with Search and Sort Controls */}
+                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 md:p-4 bg-gray-800/30 border-b border-gray-800">
+                                                            <div className="flex items-center gap-2">
+                                                                <h3 className="font-bold text-gray-300 text-sm md:text-base">Daftar Bahan Baku ({sortedMaterials.length})</h3>
+                                                                {lowStockItems.length > 0 && (
+                                                                    <span className="px-2 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-[10px] font-bold">
+                                                                        {lowStockItems.length} Limit
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Cari bahan baku..."
+                                                                    value={materialSearchQuery}
+                                                                    onChange={e => setMaterialSearchQuery(e.target.value)}
+                                                                    className="p-2 bg-gray-900 border border-gray-700 rounded-xl text-white text-xs outline-none focus:border-blue-500 w-36 sm:w-44"
+                                                                />
+
+                                                                <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-700 rounded-xl px-2.5 py-1 text-xs">
+                                                                    <span className="text-gray-400 text-[11px]">Urutkan:</span>
+                                                                    <select
+                                                                        value={materialSortBy}
+                                                                        onChange={e => setMaterialSortBy(e.target.value as any)}
+                                                                        className="bg-transparent text-white font-bold outline-none cursor-pointer text-xs"
+                                                                    >
+                                                                        <option value="updated" className="bg-gray-900 text-white">Terbaru Diupdate</option>
+                                                                        <option value="low_stock" className="bg-gray-900 text-white">⚠️ Limit Stock (Mau Habis)</option>
+                                                                        <option value="price_desc" className="bg-gray-900 text-white">Harga Termahal</option>
+                                                                        <option value="price_asc" className="bg-gray-900 text-white">Harga Termurah</option>
+                                                                        <option value="name_asc" className="bg-gray-900 text-white">Nama (A-Z)</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {sortedMaterials.length === 0 ? (
+                                                            <p className="p-6 text-gray-500 text-center text-sm">Tidak ada bahan baku yang cocok.</p>
+                                                        ) : (
+                                                            <table className="w-full text-left text-xs md:text-sm">
+                                                                <tbody>
+                                                                    {sortedMaterials.map((mat: any) => {
+                                                                        const isLow = (Number(mat.min_stock || 0) > 0 && Number(mat.current_stock || 0) <= Number(mat.min_stock || 0)) || Number(mat.current_stock || 0) <= 0;
+                                                                        return (
+                                                                            <tr key={mat.id} className={`border-b border-gray-800 hover:bg-gray-800/20 transition-colors ${isLow ? 'bg-red-500/[0.03]' : ''}`}>
+                                                                                <td className="p-2 md:p-4">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <span className="font-bold text-white">{mat.name}</span>
+                                                                                        {isLow && (
+                                                                                            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded">
+                                                                                                Saatnya Beli
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-2 mt-1">
+                                                                                        {mat.updated_by_name && <span className="text-[10px] text-blue-400">Oleh: {mat.updated_by_name}</span>}
+                                                                                        {mat.min_stock > 0 && <span className="text-[10px] text-amber-400">Min: {mat.min_stock} {mat.unit}</span>}
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td className="p-2 md:p-4 text-center">
+                                                                                    {isLow ? (
+                                                                                        <span className="px-3 py-1 bg-red-500/15 text-red-400 border border-red-500/30 rounded-lg text-xs font-bold inline-flex items-center gap-1">
+                                                                                            ⚠️ {mat.current_stock} {mat.unit}
+                                                                                        </span>
+                                                                                    ) : (
+                                                                                        <span className="px-3 py-1 bg-gray-800 text-gray-300 rounded-lg text-sm font-semibold">
+                                                                                            {mat.current_stock} {mat.unit}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </td>
+                                                                                <td className="p-2 md:p-4 text-right text-gray-400 text-sm">
+                                                                                    Rp {Number(mat.last_price_per_unit).toLocaleString('id-ID')}/{mat.unit}
+                                                                                </td>
+                                                                                <td className="p-3 text-right">
+                                                                                    <div className="flex gap-1 justify-end">
+                                                                                        <button onClick={() => setEditingMaterial({...mat})} className="px-2 py-1 text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-600 hover:text-white font-bold transition-colors">Edit</button>
+                                                                                        <button onClick={() => { setSelectedMaterial({...mat}); setMaterialMode('update'); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
+                                                                                        <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    })}
+                                                                </tbody>
+                                                            </table>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
 
                                     {/* Riwayat Update Stok */}
@@ -3430,6 +3595,24 @@ export default function AdminDashboard() {
                                                             onChange={e => setEditingMaterial({...editingMaterial, last_price_per_unit: Number(e.target.value)})}
                                                             className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500 text-base font-bold text-blue-400"
                                                         />
+                                                    </div>
+
+                                                    <div>
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <label className="text-xs font-bold text-gray-400">Batas Minimum Stok (Limit Stock)</label>
+                                                            <span className="text-[10px] text-amber-400 font-semibold">Peringatan Saatnya Beli Lagi</span>
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            step="any"
+                                                            value={editingMaterial.min_stock !== undefined ? editingMaterial.min_stock : 0}
+                                                            onChange={e => setEditingMaterial({...editingMaterial, min_stock: Number(e.target.value)})}
+                                                            placeholder="Contoh: 100"
+                                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500 text-sm font-bold text-amber-300"
+                                                        />
+                                                        <p className="text-[10px] text-gray-500 mt-1">
+                                                            Jika stok di bawah angka ini, kasir & admin akan mendapat notifikasi bahan mau habis.
+                                                        </p>
                                                     </div>
 
                                                     {/* Smart Converter Helper */}

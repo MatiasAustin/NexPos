@@ -986,6 +986,12 @@ export default function PosPage() {
                             <button onClick={() => setShowExpensesModal(true)} className="px-3 py-1 bg-orange-500/10 text-orange-400 rounded-full hover:bg-orange-500/20 font-bold text-[10px] uppercase tracking-wider border border-orange-500/20 transition-colors">
                                 Catat Pengeluaran
                             </button>
+                            <Link href="/admin?tab=raw_materials" className="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-full hover:bg-purple-500/20 font-bold text-[10px] uppercase tracking-wider border border-purple-500/20 transition-colors flex items-center gap-1">
+                                📦 Bahan Baku
+                            </Link>
+                            <Link href="/admin?tab=inventory" className="px-3 py-1 bg-green-500/10 text-green-400 rounded-full hover:bg-green-500/20 font-bold text-[10px] uppercase tracking-wider border border-green-500/20 transition-colors flex items-center gap-1">
+                                📋 Produk & Stok
+                            </Link>
                             <Link href="/admin" className="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full hover:bg-blue-500/20 font-bold text-[10px] uppercase tracking-wider border border-blue-500/20 transition-colors flex items-center justify-center">
                                 Dashboard
                             </Link>
