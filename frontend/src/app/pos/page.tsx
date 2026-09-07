@@ -1539,8 +1539,8 @@ export default function PosPage() {
             )}
 
             {showExpensesModal && (
-                <div className="fixed inset-0 bg-black/90 flex items-start justify-center z-[100] p-2 sm:p-4 backdrop-blur-sm overflow-y-auto print:hidden">
-                    <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl sm:rounded-3xl w-full max-w-6xl shadow-2xl p-4 sm:p-6 lg:p-8 my-4 sm:my-8 flex-shrink-0 relative">
+                <div className="fixed inset-0 bg-black/90 flex items-start justify-center z-[100] p-2 sm:p-4 md:p-6 backdrop-blur-sm overflow-y-auto print:hidden">
+                    <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl sm:rounded-3xl w-full max-w-[98vw] shadow-2xl p-4 sm:p-6 lg:p-8 my-2 sm:my-4 flex-shrink-0 relative">
                         <button 
                             onClick={() => setShowExpensesModal(false)}
                             className="absolute top-4 right-4 sm:right-6 w-9 h-9 sm:w-10 sm:h-10 bg-gray-800 hover:bg-red-500 hover:text-white rounded-full flex items-center justify-center text-gray-400 transition-colors z-10"
@@ -1557,7 +1557,7 @@ export default function PosPage() {
                             </span>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                             <div className="space-y-6 sm:space-y-8">
                                 <div className="p-4 sm:p-6 bg-[#131B2C] rounded-2xl border border-gray-800 transition-all">
                                     <div className="flex justify-between items-center mb-5 border-b border-gray-800 pb-3">
