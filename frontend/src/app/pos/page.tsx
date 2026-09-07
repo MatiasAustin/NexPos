@@ -976,7 +976,7 @@ export default function PosPage() {
                             <button 
                                 onClick={handleUsePreviousCash}
                                 type="button"
-                                className="text-[10px] bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded border border-gray-700"
+                                className="text-[10px] bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 whitespace-nowrap rounded border border-gray-700"
                             >
                                 Gunakan Saldo Kasir Terakhir
                             </button>
@@ -1072,10 +1072,10 @@ export default function PosPage() {
                             <Link href="/admin" className="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full hover:bg-blue-500/20 font-bold text-[10px] uppercase tracking-wider border border-blue-500/20 transition-colors flex items-center justify-center">
                                 Dashboard
                             </Link>
-                            <button onClick={handleCloseSession} className="px-3 py-1 bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20 font-bold text-[10px] uppercase tracking-wider border border-red-500/20 transition-colors">
+                            <button onClick={handleCloseSession} className="px-4 py-2 whitespace-nowrap bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20 font-bold text-[10px] uppercase tracking-wider border border-red-500/20 transition-colors">
                                 Tutup Shift
                             </button>
-                            <button onClick={handleLogout} className="px-3 py-1 bg-gray-800 text-gray-300 rounded-full hover:bg-gray-700 font-bold text-[10px] uppercase tracking-wider transition-colors">
+                            <button onClick={handleLogout} className="px-4 py-2 whitespace-nowrap bg-gray-800 text-gray-300 rounded-full hover:bg-gray-700 font-bold text-[10px] uppercase tracking-wider transition-colors">
                                 Logout
                             </button>
                         </div>

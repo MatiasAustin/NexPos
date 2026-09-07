@@ -1691,7 +1691,7 @@ export default function AdminDashboard() {
                         </h2>
                         <button 
                             onClick={fetchData}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-800/40 text-gray-300 rounded-full text-sm font-semibold hover:bg-gray-700/50 transition-colors border border-gray-800"
+                            className="whitespace-nowrap flex items-center gap-2 px-4 py-2 bg-gray-800/40 text-gray-300 rounded-full text-sm font-semibold hover:bg-gray-700/50 transition-colors border border-gray-800"
                         >
                             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-blue-400" : ""}`} /> 
                             <span className="hidden md:inline">Refresh</span>
@@ -2221,7 +2221,7 @@ export default function AdminDashboard() {
                                         <div className="mb-6 p-4 md:p-5 bg-gray-900 border border-gray-800 rounded-xl">
                                             <div className="flex justify-between items-center mb-4">
                                                 <h4 className="font-bold text-gray-300">Bahan Baku (Opsional)</h4>
-                                                <button type="button" onClick={addIngredient} className="text-sm px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold rounded-lg hover:bg-blue-500/20">+ Tambah</button>
+                                                <button type="button" onClick={addIngredient} className="text-sm px-4 py-2 whitespace-nowrap.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold rounded-lg hover:bg-blue-500/20">+ Tambah</button>
                                             </div>
                                             {newProduct.ingredients.map((ing, i) => (
                                                 <div key={i} className="flex gap-2 items-center mb-3 flex-wrap">
@@ -2483,7 +2483,7 @@ export default function AdminDashboard() {
                                                     <div className="mb-6 p-4 md:p-5 bg-gray-900 border border-gray-800 rounded-xl">
                                                         <div className="flex justify-between items-center mb-4">
                                                             <h4 className="font-bold text-gray-300">Bahan Baku (Opsional)</h4>
-                                                            <button type="button" onClick={addIngredientEdit} className="text-sm px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold rounded-lg hover:bg-blue-500/20">+ Tambah</button>
+                                                            <button type="button" onClick={addIngredientEdit} className="text-sm px-4 py-2 whitespace-nowrap.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold rounded-lg hover:bg-blue-500/20">+ Tambah</button>
                                                         </div>
                                                         {(editingProduct.ingredients || []).map((ing: any, i: number) => (
                                                             <div key={i} className="flex gap-2 items-center mb-3 flex-wrap">
@@ -3634,7 +3634,7 @@ export default function AdminDashboard() {
                                                         />
                                                         <button 
                                                             type="button" 
-                                                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500"
+                                                            className="whitespace-nowrap px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500"
                                                             onClick={() => {
                                                                 const input = document.getElementById('new-payment-input') as HTMLInputElement;
                                                                 if (input) { handleAddPaymentMethod(input.value); input.value = ''; }
@@ -3669,7 +3669,7 @@ export default function AdminDashboard() {
                                                         />
                                                         <button 
                                                             type="button" 
-                                                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500"
+                                                            className="whitespace-nowrap px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500"
                                                             onClick={() => {
                                                                 const input = document.getElementById('new-category-input') as HTMLInputElement;
                                                                 if (input) { handleAddCategory(input.value); input.value = ''; }
