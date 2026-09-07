@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }
         `}} />
       </head>
-      <body className="min-h-full flex flex-col bg-[#121214] text-gray-100 font-sans print:block print:min-h-0 print:bg-white print:w-[58mm] print:mx-auto">
+      <body className="min-h-full w-full max-w-full overflow-x-hidden flex flex-col bg-[#121214] text-gray-100 font-sans print:block print:min-h-0 print:bg-white print:w-[58mm] print:mx-auto print:overflow-visible">
         <ToastProvider>
           {children}
         </ToastProvider>
