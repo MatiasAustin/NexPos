@@ -460,7 +460,7 @@ export default function PosPage() {
                 recorded_by: staff?.id,
                 staff_name: staff?.full_name,
                 category: newExpense.category,
-                material_id: newExpense.material_id || null
+                raw_material_id: newExpense.material_id || null
             }]).select();
             if (error) throw error;
             
@@ -468,11 +468,19 @@ export default function PosPage() {
             if (newExpense.material_id && Number(newExpense.quantity) > 0) {
                 const material = rawMaterials.find(m => m.id === newExpense.material_id);
                 if (material) {
-                    const newStock = Number(material.current_stock) + Number(newExpense.quantity);
-                    const unitPrice = Number(newExpense.amount) / Number(newExpense.quantity);
+                    // Auto convert unit if purchasing in kg or liter
+                    let mult = 1;
+                    const bUnit = (newExpense as any).buy_unit || material.unit;
+                    if ((material.unit === 'g' || material.unit === 'gr') && bUnit === 'kg') mult = 1000;
+                    else if (material.unit === 'ml' && (bUnit === 'liter' || bUnit === 'l')) mult = 1000;
+
+                    const addedStock = Number(newExpense.quantity) * mult;
+                    const newStock = Number(material.current_stock) + addedStock;
+                    const unitPrice = addedStock > 0 ? (Number(newExpense.amount) / addedStock) : Number(material.last_price_per_unit || 0);
+
                     // Update material
                     const { error: matError } = await supabase.from('raw_materials')
-                        .update({ current_stock: newStock, updated_by_name: staff?.full_name, last_price_per_unit: unitPrice })
+                        .update({ current_stock: newStock, updated_by_name: staff?.full_name, last_price_per_unit: Number(unitPrice.toFixed(2)) })
                         .eq('id', newExpense.material_id);
                     if (matError) throw matError;
                     
@@ -521,7 +529,12 @@ export default function PosPage() {
         setLoading(true);
         try {
             const { error } = await supabase.from('expenses')
-                .update({ description: editingExpense.description, amount: Number(editingExpense.amount) })
+                .update({ 
+                    description: editingExpense.description, 
+                    amount: Number(editingExpense.amount),
+                    category: editingExpense.category || 'operasional',
+                    raw_material_id: editingExpense.material_id || null
+                })
                 .eq('id', editingExpense.id);
             if (error) throw error;
 
@@ -1644,7 +1657,7 @@ export default function PosPage() {
                                                                 <div className="mb-2">Rp {exp.amount.toLocaleString('id-ID')}</div>
                                                                 {canEditRecord(exp.staff_name) && (
                                                                     <div className="flex gap-1 justify-end">
-                                                                        <button onClick={() => setEditingExpense({...exp})} className="px-2 py-1 text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
+                                                                        <button onClick={() => setEditingExpense({...exp, category: exp.category || 'operasional', material_id: exp.raw_material_id || exp.material_id || ''})} className="px-2 py-1 text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
                                                                         <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 rounded-md hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
                                                                     </div>
                                                                 )}

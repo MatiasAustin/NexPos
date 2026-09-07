@@ -45,6 +45,126 @@ const CategoryDropdown = ({ value, onChange, categories, onAdd, onRemove }: { va
     );
 };
 
+
+const MaterialConverterHelper = ({ targetUnit, onApply }: { targetUnit: string, onApply: (price: number) => void }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [buyQty, setBuyQty] = useState<string>('1');
+    const [buyUnit, setBuyUnit] = useState<string>(targetUnit === 'g' || targetUnit === 'gr' ? 'kg' : targetUnit === 'ml' ? 'liter' : targetUnit || 'kg');
+    const [buyPrice, setBuyPrice] = useState<string>('');
+    const [packContent, setPackContent] = useState<string>('100');
+
+    const qty = parseFloat(buyQty) || 0;
+    const price = parseFloat(buyPrice) || 0;
+    let unitMultiplier = 1;
+
+    if (targetUnit === 'g' || targetUnit === 'gr') {
+        if (buyUnit === 'kg') unitMultiplier = 1000;
+        else if (buyUnit === 'g' || buyUnit === 'gr') unitMultiplier = 1;
+        else if (buyUnit === 'pack' || buyUnit === 'dus') unitMultiplier = parseFloat(packContent) || 1;
+    } else if (targetUnit === 'ml') {
+        if (buyUnit === 'liter' || buyUnit === 'l') unitMultiplier = 1000;
+        else if (buyUnit === 'ml') unitMultiplier = 1;
+        else if (buyUnit === 'pack' || buyUnit === 'dus') unitMultiplier = parseFloat(packContent) || 1;
+    } else {
+        if (buyUnit === 'pack' || buyUnit === 'dus') unitMultiplier = parseFloat(packContent) || 1;
+    }
+
+    const totalTargetUnits = qty * unitMultiplier;
+    const pricePerTargetUnit = totalTargetUnits > 0 && price > 0 ? (price / totalTargetUnits) : 0;
+
+    return (
+        <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-3.5 space-y-2.5">
+            <div className="flex justify-between items-center cursor-pointer select-none" onClick={() => setIsOpen(!isOpen)}>
+                <span className="text-xs font-bold text-blue-400 flex items-center gap-1.5">
+                    💡 Kalkulator Konversi Beli (kg / liter / pack / dus)
+                </span>
+                <span className="text-xs text-blue-400 underline font-semibold">{isOpen ? 'Tutup' : 'Buka Kalkulator'}</span>
+            </div>
+
+            {isOpen && (
+                <div className="space-y-2.5 pt-1">
+                    <p className="text-[11px] text-gray-400">
+                        Beli dalam partai/kemasan besar? Masukkan data pembelian untuk mengonversi harga ke per <strong>{targetUnit || 'satuan'}</strong>:
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div>
+                            <label className="text-[10px] text-gray-500 block mb-1">Jumlah Pembelian</label>
+                            <input
+                                type="number"
+                                step="any"
+                                value={buyQty}
+                                onChange={e => setBuyQty(e.target.value)}
+                                placeholder="Contoh: 1"
+                                className="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-white text-xs outline-none focus:border-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] text-gray-500 block mb-1">Satuan Pembelian</label>
+                            <select
+                                value={buyUnit}
+                                onChange={e => setBuyUnit(e.target.value)}
+                                className="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-white text-xs outline-none focus:border-blue-500 font-bold"
+                            >
+                                <option value="kg">kg (Kilogram = 1.000 g)</option>
+                                <option value="g">g (Gram)</option>
+                                <option value="liter">liter (Liter = 1.000 ml)</option>
+                                <option value="ml">ml (Mililiter)</option>
+                                <option value="pcs">pcs (Satuan)</option>
+                                <option value="pack">pack (Isi pack)</option>
+                                <option value="dus">dus (Isi dus/box)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {(buyUnit === 'pack' || buyUnit === 'dus') && (
+                        <div>
+                            <label className="text-[10px] text-gray-500 block mb-1">Isi per {buyUnit} (dalam {targetUnit || 'satuan'})</label>
+                            <input
+                                type="number"
+                                step="any"
+                                value={packContent}
+                                onChange={e => setPackContent(e.target.value)}
+                                placeholder={`Contoh: 100 (${targetUnit || 'satuan'})`}
+                                className="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-white text-xs outline-none focus:border-blue-500"
+                            />
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="text-[10px] text-gray-500 block mb-1">Total Harga Beli (Rp)</label>
+                        <input
+                            type="number"
+                            step="any"
+                            value={buyPrice}
+                            onChange={e => setBuyPrice(e.target.value)}
+                            placeholder="Contoh: 230000"
+                            className="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-white text-xs outline-none focus:border-blue-500"
+                        />
+                    </div>
+
+                    {pricePerTargetUnit > 0 && (
+                        <div className="bg-gray-900/90 border border-blue-500/30 p-2.5 rounded-lg flex items-center justify-between">
+                            <div>
+                                <span className="text-[10px] text-gray-400 block">Hasil Konversi:</span>
+                                <span className="text-sm font-bold text-green-400">
+                                    Rp {Number(pricePerTargetUnit.toFixed(2)).toLocaleString('id-ID')} / {targetUnit}
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => onApply(Number(pricePerTargetUnit.toFixed(2)))}
+                                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-colors"
+                            >
+                                Gunakan Harga Ini
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<"reconciliation" | "audit" | "staff" | "inventory" | "history" | "settings" | "expenses" | "cash_sessions" | "raw_materials">("reconciliation");
     const [reconciliation, setReconciliation] = useState<any[]>([]);
@@ -66,6 +186,8 @@ export default function AdminDashboard() {
     const [adjustingProductStock, setAdjustingProductStock] = useState<any>(null);
     const [viewingProductHistory, setViewingProductHistory] = useState<any>(null);
     const [productHistoryData, setProductHistoryData] = useState<any[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [inventorySalesData, setInventorySalesData] = useState<any[]>([]);
     const [productStockDelta, setProductStockDelta] = useState<number>(0);
     const [editingStaff, setEditingStaff] = useState<any>(null);
     const [editingMaterial, setEditingMaterial] = useState<any>(null);
@@ -167,12 +289,33 @@ export default function AdminDashboard() {
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff`);
                 if(res.ok) setStaffList(await res.json());
             } else if (activeTab === "inventory") {
-                const [prodRes, matRes] = await Promise.all([
+                const [prodRes, matRes, orderItemsRes] = await Promise.all([
                     fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products`),
-                    supabase.from('raw_materials').select('*').order('name', { ascending: true })
+                    supabase.from('raw_materials').select('*').order('name', { ascending: true }),
+                    supabase.from('order_items').select('product_id, product_name, quantity, price_at_time, created_at').order('created_at', { ascending: false }).limit(500)
                 ]);
                 if (prodRes.ok) setProducts(await prodRes.json());
                 setRawMaterials(matRes.data || []);
+
+                if (orderItemsRes.data) {
+                    const salesMap: Record<string, any> = {};
+                    orderItemsRes.data.forEach((item: any) => {
+                        const key = item.product_id || item.product_name;
+                        if (!key) return;
+                        if (!salesMap[key]) {
+                            salesMap[key] = {
+                                product_id: item.product_id,
+                                product_name: item.product_name,
+                                total_sold: 0,
+                                total_revenue: 0,
+                                last_sold: item.created_at
+                            };
+                        }
+                        salesMap[key].total_sold += Number(item.quantity || 0);
+                        salesMap[key].total_revenue += Number(item.quantity || 0) * Number(item.price_at_time || 0);
+                    });
+                    setInventorySalesData(Object.values(salesMap).sort((a: any, b: any) => b.total_sold - a.total_sold));
+                }
             } else if (activeTab === "history") {
                 await fetchTransactions(historyFilterType);
             } else if (activeTab === "settings") {
@@ -759,9 +902,10 @@ export default function AdminDashboard() {
     const handleViewProductHistory = async (product: any) => {
         setViewingProductHistory(product);
         setProductHistoryData([]);
+        setHistoryLoading(true);
         try {
-            // Fetch order items matching this product ID, joined with transactions
-            const { data, error } = await supabase
+            // Fetch order items matching this product ID OR name, joined with transactions
+            const query = supabase
                 .from('order_items')
                 .select(`
                     quantity,
@@ -769,16 +913,29 @@ export default function AdminDashboard() {
                     created_at,
                     transaction:transactions (order_reference)
                 `)
-                .eq('product_id', product.id)
                 .order('created_at', { ascending: false })
-                .limit(50);
-                
-            if (!error && data) {
+                .limit(100);
+
+            if (product.id && product.name) {
+                query.or(`product_id.eq.${product.id},product_name.eq."${product.name}"`);
+            } else if (product.id) {
+                query.eq('product_id', product.id);
+            } else if (product.name) {
+                query.eq('product_name', product.name);
+            }
+
+            const { data, error } = await query;
+            if (error) {
+                console.error("Gagal load history:", error);
+                toast.error("Gagal memuat riwayat produk: " + error.message);
+            } else if (data) {
                 setProductHistoryData(data);
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
+            toast.error("Terjadi kesalahan jaringan.");
         }
+        setHistoryLoading(false);
     };
 
     const toggleProductStatus = async (product: any) => {
@@ -975,6 +1132,31 @@ export default function AdminDashboard() {
         setLoading(false);
     };
 
+    const handleUpdateMaterial = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingMaterial) return;
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('raw_materials')
+                .update({
+                    name: editingMaterial.name,
+                    unit: editingMaterial.unit,
+                    current_stock: Number(editingMaterial.current_stock),
+                    last_price_per_unit: Number(editingMaterial.last_price_per_unit),
+                    updated_by_name: profile?.full_name,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', editingMaterial.id);
+            if (error) throw error;
+            toast.success("Bahan Baku berhasil diperbarui.");
+            setEditingMaterial(null);
+            fetchData();
+        } catch (e: any) {
+            toast.error(e.message);
+        }
+        setLoading(false);
+    };
+
     const handleCreateMaterial = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -1088,7 +1270,7 @@ export default function AdminDashboard() {
                 recorded_by: profile?.id,
                 staff_name: profile?.full_name,
                 category: newExpense.category,
-                material_id: newExpense.material_id || null
+                raw_material_id: newExpense.material_id || null
             }]);
             if (error) throw error;
             
@@ -1096,19 +1278,26 @@ export default function AdminDashboard() {
             if (newExpense.material_id && Number(newExpense.quantity) > 0) {
                 const material = rawMaterials.find(m => m.id === newExpense.material_id);
                 if (material) {
-                    const newStock = Number(material.current_stock) + Number(newExpense.quantity);
-                    const unitPrice = Number(newExpense.amount) / Number(newExpense.quantity);
+                    let mult = 1;
+                    const bUnit = (newExpense as any).buy_unit || material.unit;
+                    if ((material.unit === 'g' || material.unit === 'gr') && bUnit === 'kg') mult = 1000;
+                    else if (material.unit === 'ml' && (bUnit === 'liter' || bUnit === 'l')) mult = 1000;
+
+                    const addedStock = Number(newExpense.quantity) * mult;
+                    const newStock = Number(material.current_stock) + addedStock;
+                    const unitPrice = addedStock > 0 ? (Number(newExpense.amount) / addedStock) : Number(material.last_price_per_unit || 0);
+
                     const { error: matError } = await supabase.from('raw_materials')
-                        .update({ current_stock: newStock, updated_by_name: profile?.full_name, last_price_per_unit: unitPrice })
+                        .update({ current_stock: newStock, updated_by_name: profile?.full_name, last_price_per_unit: Number(unitPrice.toFixed(2)) })
                         .eq('id', newExpense.material_id);
                     if (matError) throw matError;
                     
                     await supabase.from('material_stock_logs').insert([{
                         material_id: material.id,
                         material_name: material.name,
-                        delta: Number(newExpense.quantity),
+                        delta: addedStock,
                         current_stock: newStock,
-                        price: Number(newExpense.amount) / Number(newExpense.quantity),
+                        price: Number(unitPrice.toFixed(2)),
                         staff_name: profile?.full_name,
                         note: `Dari Pengeluaran: ${newExpense.description}`
                     }]);
@@ -1137,7 +1326,7 @@ export default function AdminDashboard() {
                     amount: Number(editingExpense.amount),
                     staff_name: profile?.full_name,
                     category: editingExpense.category || 'operasional',
-                    material_id: editingExpense.material_id || null
+                    raw_material_id: editingExpense.material_id || null
                 })
                 .eq('id', editingExpense.id);
             if (error) throw error;
@@ -2046,6 +2235,66 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
                                     
+
+                                    {/* Riwayat Penjualan Produk di Tab Inventory */}
+                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl mt-8">
+                                        <div className="p-4 md:p-6 border-b border-gray-800 flex justify-between items-center">
+                                            <div>
+                                                <h3 className="font-bold text-lg md:text-xl text-white">📊 Riwayat & Ringkasan Penjualan Produk</h3>
+                                                <p className="text-gray-400 text-xs md:text-sm mt-0.5">Total porsi terjual dan riwayat omset per produk.</p>
+                                            </div>
+                                        </div>
+                                        {inventorySalesData.length === 0 ? (
+                                            <p className="p-8 text-gray-500 text-center text-sm">Belum ada data riwayat penjualan tercatat.</p>
+                                        ) : (
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left border-collapse text-xs md:text-sm">
+                                                    <thead>
+                                                        <tr className="bg-gray-800/50 border-b border-gray-800">
+                                                            <th className="p-3 md:p-4 text-gray-400 font-semibold">Produk</th>
+                                                            <th className="p-3 md:p-4 text-gray-400 font-semibold text-center">Total Terjual</th>
+                                                            <th className="p-3 md:p-4 text-gray-400 font-semibold text-right">Total Omset</th>
+                                                            <th className="p-3 md:p-4 text-gray-400 font-semibold text-center">Penjualan Terakhir</th>
+                                                            <th className="p-3 md:p-4 text-gray-400 font-semibold text-center">Aksi</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {inventorySalesData.map((item: any, idx: number) => {
+                                                            const matchedProd = products.find((p: any) => p.id === item.product_id || p.name === item.product_name);
+                                                            return (
+                                                                <tr key={idx} className="border-b border-gray-800 hover:bg-gray-800/30 transition-colors">
+                                                                    <td className="p-3 md:p-4">
+                                                                        <div className="font-bold text-white text-sm">{item.product_name || matchedProd?.name || 'Produk'}</div>
+                                                                        <div className="text-[11px] text-gray-500">{matchedProd?.category || '-'}</div>
+                                                                    </td>
+                                                                    <td className="p-3 md:p-4 text-center">
+                                                                        <span className="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full font-bold text-xs">
+                                                                            {item.total_sold} porsi
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="p-3 md:p-4 text-right font-bold text-green-400">
+                                                                        Rp {Number(item.total_revenue).toLocaleString('id-ID')}
+                                                                    </td>
+                                                                    <td className="p-3 md:p-4 text-center text-gray-400 text-xs">
+                                                                        {item.last_sold ? new Date(item.last_sold).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                                                                    </td>
+                                                                    <td className="p-3 md:p-4 text-center">
+                                                                        <button
+                                                                            onClick={() => handleViewProductHistory(matchedProd || { id: item.product_id, name: item.product_name })}
+                                                                            className="px-2.5 py-1 text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-600 hover:text-white transition-colors"
+                                                                        >
+                                                                            Riwayat Detail
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {/* Edit Product Modal */}
                                     {editingProduct && (
                                         <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md overflow-y-auto">
@@ -2199,7 +2448,12 @@ export default function AdminDashboard() {
                                                 </div>
                                                 
                                                 <div className="max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
-                                                    {productHistoryData.length === 0 ? (
+                                                    {historyLoading ? (
+                                                        <div className="flex flex-col items-center justify-center py-12 gap-3">
+                                                            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                                                            <p className="text-gray-400 text-sm">Memuat data riwayat penjualan...</p>
+                                                        </div>
+                                                    ) : productHistoryData.length === 0 ? (
                                                         <div className="text-center py-8 text-gray-500">Belum ada data penjualan untuk produk ini.</div>
                                                     ) : (
                                                         <div className="space-y-3">
@@ -2425,7 +2679,7 @@ export default function AdminDashboard() {
                                                                         <td className="p-2 md:p-4 text-right font-bold text-red-400 whitespace-nowrap">- Rp {Number(exp.amount).toLocaleString('id-ID')}</td>
                                                                         <td className="p-3 text-right">
                                                                             <div className="flex gap-1 justify-end">
-                                                                                <button onClick={() => setEditingExpense({...exp, category: exp.category || 'operasional'})} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
+                                                                                <button onClick={() => setEditingExpense({...exp, category: exp.category || 'operasional', material_id: exp.raw_material_id || exp.material_id || ''})} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
                                                                                 <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
                                                                             </div>
                                                                         </td>
@@ -2640,6 +2894,7 @@ export default function AdminDashboard() {
                                                                 <td className="p-2 md:p-4 text-right text-gray-400 text-sm">Rp {Number(mat.last_price_per_unit).toLocaleString('id-ID')}/{mat.unit}</td>
                                                                 <td className="p-3 text-right">
                                                                     <div className="flex gap-1 justify-end">
+                                                                        <button onClick={() => setEditingMaterial({...mat})} className="px-2 py-1 text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-600 hover:text-white font-bold transition-colors">Edit</button>
                                                                         <button onClick={() => { setSelectedMaterial({...mat}); setMaterialMode('update'); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
                                                                         <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
                                                                     </div>
@@ -3113,7 +3368,89 @@ export default function AdminDashboard() {
         </div>
 
         {/* PRINT ONLY RECEIPT BLOCK */}
-                                              {/* Adjust Material Stock Modal */}
+          
+                                    {/* Edit Raw Material Modal */}
+                                    {editingMaterial && (
+                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-lg shadow-2xl my-auto">
+                                                <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-3">
+                                                    <h3 className="font-bold text-xl text-white">Edit Bahan Baku</h3>
+                                                    <button onClick={() => setEditingMaterial(null)} className="w-8 h-8 rounded-full bg-gray-800 text-gray-400 flex items-center justify-center hover:bg-gray-700 hover:text-white">✕</button>
+                                                </div>
+                                                <form onSubmit={handleUpdateMaterial} className="space-y-4">
+                                                    <div>
+                                                        <label className="text-xs font-bold text-gray-400 block mb-1">Nama Bahan Baku</label>
+                                                        <input
+                                                            type="text"
+                                                            required
+                                                            value={editingMaterial.name}
+                                                            onChange={e => setEditingMaterial({...editingMaterial, name: e.target.value})}
+                                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500 text-sm font-semibold"
+                                                        />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="text-xs font-bold text-gray-400 block mb-1">Satuan Dasar</label>
+                                                            <select
+                                                                value={editingMaterial.unit}
+                                                                onChange={e => setEditingMaterial({...editingMaterial, unit: e.target.value})}
+                                                                className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500 text-sm font-bold"
+                                                            >
+                                                                <option value="g">Gram (g)</option>
+                                                                <option value="ml">Mililiter (ml)</option>
+                                                                <option value="pcs">Pieces / Butir (pcs)</option>
+                                                                <option value="kg">Kilogram (kg)</option>
+                                                                <option value="liter">Liter</option>
+                                                                <option value="pack">Pack</option>
+                                                                <option value="dus">Dus / Box</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-xs font-bold text-gray-400 block mb-1">Stok Saat Ini ({editingMaterial.unit})</label>
+                                                            <input
+                                                                type="number"
+                                                                step="any"
+                                                                value={editingMaterial.current_stock}
+                                                                onChange={e => setEditingMaterial({...editingMaterial, current_stock: Number(e.target.value)})}
+                                                                className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500 text-sm"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <label className="text-xs font-bold text-gray-400">Harga Satuan Dasar (Rp / {editingMaterial.unit})</label>
+                                                            <span className="text-[10px] text-blue-400 font-semibold">Harga per 1 {editingMaterial.unit}</span>
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            step="any"
+                                                            required
+                                                            value={editingMaterial.last_price_per_unit}
+                                                            onChange={e => setEditingMaterial({...editingMaterial, last_price_per_unit: Number(e.target.value)})}
+                                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500 text-base font-bold text-blue-400"
+                                                        />
+                                                    </div>
+
+                                                    {/* Smart Converter Helper */}
+                                                    <MaterialConverterHelper
+                                                        targetUnit={editingMaterial.unit}
+                                                        onApply={(calculatedPrice) => {
+                                                            setEditingMaterial({...editingMaterial, last_price_per_unit: calculatedPrice});
+                                                            toast.success(`Harga satuan diterapkan: Rp ${calculatedPrice.toLocaleString('id-ID')} / ${editingMaterial.unit}`);
+                                                        }}
+                                                    />
+
+                                                    <div className="flex gap-3 pt-2">
+                                                        <button type="button" onClick={() => setEditingMaterial(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700 text-sm">Batal</button>
+                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 text-sm">{loading ? 'Menyimpan...' : 'Simpan Perubahan'}</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Adjust Material Stock Modal */}
                                       {selectedMaterial && (
                                           <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-[200] p-4 overflow-y-auto backdrop-blur-md">
                                               <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl my-auto flex-shrink-0">

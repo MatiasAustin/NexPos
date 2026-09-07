@@ -48,7 +48,6 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
     const [totals, setTotals] = useState({ omset: 0, pengeluaranOp: 0, hpp: 0, laba: 0 });
     const [periodLabel, setPeriodLabel] = useState('');
     const [expenseCategoryFilter, setExpenseCategoryFilter] = useState<'all'|'operasional'|'bahan_baku'>('all');
-    const [expenseCategoryFilter, setExpenseCategoryFilter] = useState<'all'|'operasional'|'bahan_baku'>('all');
 
     useEffect(() => {
         fetchChartData();
@@ -256,7 +255,7 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
                         <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px' }} />
                         <Bar dataKey="omset" name="Omset" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={50} />
                         <Bar dataKey="hpp" name="Total HPP" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                        <Bar dataKey="pengeluaranOp" name={expenseCategoryFilter === 'bahan_baku' ? 'Pengeluaran (Bahan Baku)' : expenseCategoryFilter === 'operasional' ? 'Pengeluaran (Operasional)' : 'Semua Pengeluaran'}" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                        <Bar dataKey="pengeluaranOp" name={expenseCategoryFilter === 'bahan_baku' ? 'Pengeluaran (Bahan Baku)' : expenseCategoryFilter === 'operasional' ? 'Pengeluaran (Operasional)' : 'Semua Pengeluaran'} fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={50} />
                         <Line type="monotone" dataKey="laba" name="Laba Bersih" stroke="#22c55e" strokeWidth={2} dot={false} />
                     </ComposedChart>
                 </ResponsiveContainer>
