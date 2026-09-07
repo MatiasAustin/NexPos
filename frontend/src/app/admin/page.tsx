@@ -2286,6 +2286,14 @@ export default function AdminDashboard() {
                                                 )}
                                             </div>
                                         </div>
+
+                                        <div className="my-6">
+                                            <ProductOptionsEditor
+                                                options={newProduct.options_config || []}
+                                                onChange={(opts) => setNewProduct(p => ({ ...p, options_config: opts }))}
+                                            />
+                                        </div>
+
                                         <button type="submit" disabled={loading} className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors">
                                             {loading ? 'Menyimpan...' : 'Simpan Produk'}
                                         </button>
@@ -2318,6 +2326,15 @@ export default function AdminDashboard() {
                                                                 <div>
                                                                     <p className="font-bold text-white text-base">{p.name}</p>
                                                                     <p className="text-xs text-gray-500">{p.category}</p>
+                                                                    {p.options_config && p.options_config.length > 0 && (
+                                                                        <div className="flex flex-wrap gap-1 mt-1.5">
+                                                                            {p.options_config.map((opt: any, idx: number) => (
+                                                                                <span key={idx} className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">
+                                                                                    {opt.type === 'multiple' ? '🥛' : '🧊'} {opt.name} ({opt.choices?.length || 0})
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </td>
                                                             <td className="p-2 md:p-4 text-right">
@@ -2340,7 +2357,7 @@ export default function AdminDashboard() {
                                                                 <div className="flex flex-wrap gap-2 justify-center">
                                                                     <button onClick={() => setAdjustingProductStock(p)} className="px-2 py-1 text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-600 hover:text-white transition-colors">+/- Stok</button>
                                                                     <button onClick={() => handleViewProductHistory(p)} className="px-2 py-1 text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-600 hover:text-white transition-colors">Riwayat</button>
-                                                                    <button onClick={() => setEditingProduct(p)} className="px-2 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
+                                                                    <button onClick={() => setEditingProduct({ ...p, options_config: Array.isArray(p.options_config) ? p.options_config : [] })} className="px-2 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
                                                                     <button onClick={() => handleDeleteProduct(p)} className="px-2 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Hapus</button>
                                                                 </div>
                                                             </td>
@@ -2414,7 +2431,7 @@ export default function AdminDashboard() {
                                     {/* Edit Product Modal */}
                                     {editingProduct && (
                                         <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md overflow-y-auto">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-[540px] shadow-2xl my-auto flex-shrink-0">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-2xl sm:max-w-3xl shadow-2xl my-auto flex-shrink-0">
                                                 <h3 className="font-bold text-xl text-white mb-6">Edit Produk: {editingProduct.name}</h3>
                                                 <form onSubmit={handleUpdateProduct} className="space-y-4">
                                                     {/* Image Upload Edit */}
@@ -2515,6 +2532,13 @@ export default function AdminDashboard() {
                                                                 </div>
                                                             )}
                                                         </div>
+                                                    </div>
+
+                                                    <div className="mt-4">
+                                                        <ProductOptionsEditor
+                                                            options={editingProduct.options_config || []}
+                                                            onChange={(opts) => setEditingProduct((p: any) => ({ ...p, options_config: opts }))}
+                                                        />
                                                     </div>
 
                                                     <div className="flex gap-4 mt-6">

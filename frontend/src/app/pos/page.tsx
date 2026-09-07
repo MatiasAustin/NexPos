@@ -732,48 +732,78 @@ export default function PosPage() {
     };
 
     const addToCart = (product: any, options: any = null) => {
-        const optionAddon = options ? Object.values(options).reduce((sum: number, choice: any) => sum + (Number(choice.price_adjustment) || 0), 0) : 0;
-        const optionsString = options ? Object.entries(options).map(([k, v]: any) => `${k}: ${v.name}`).join(', ') : '';
+        let optionAddon = 0;
+        const optionParts: string[] = [];
+        const choiceKeyParts: string[] = [];
+
+        if (options && typeof options === 'object') {
+            Object.entries(options).forEach(([catName, val]: [string, any]) => {
+                if (Array.isArray(val)) {
+                    val.forEach((choice: any) => {
+                        const adj = Number(choice.price_adjustment) || 0;
+                        optionAddon += adj;
+                        optionParts.push(choice.name + (adj > 0 ? ` (+Rp ${adj.toLocaleString('id-ID')})` : ''));
+                        choiceKeyParts.push(choice.id || choice.name);
+                    });
+                } else if (val && typeof val === 'object') {
+                    const adj = Number(val.price_adjustment) || 0;
+                    optionAddon += adj;
+                    optionParts.push(val.name + (adj > 0 ? ` (+Rp ${adj.toLocaleString('id-ID')})` : ''));
+                    choiceKeyParts.push(val.id || val.name);
+                }
+            });
+        }
+
+        const optionsString = optionParts.join(', ');
+        choiceKeyParts.sort();
+        const cartKey = `${product.id}${choiceKeyParts.length > 0 ? `-${choiceKeyParts.join('_')}` : ''}`;
         
-        // Add addon price to base product price before discount, or after? Usually before.
-        const basePrice = product.price + optionAddon;
-        const finalPrice = product.discount_percentage > 0 ? basePrice * (1 - product.discount_percentage / 100) : basePrice;
+        const basePrice = Number(product.price) + optionAddon;
+        const finalPrice = (product.discount_percentage || 0) > 0 
+            ? basePrice * (1 - product.discount_percentage / 100) 
+            : basePrice;
         
         const finalProduct = {
             ...product,
-            id: product.id + (optionsString ? '-' + Date.now() : ''), // unique ID so different options don't stack
-            name: product.name + (optionsString ? ` (${optionsString})` : ''),
+            original_id: product.id,
+            cart_key: cartKey,
+            variant_details: optionsString,
             original_price: product.price,
+            unit_addon: optionAddon,
             price: finalPrice,
             modifiers: options
         };
         
         setCart((prev) => {
-            // Because we changed the ID for options, they will stack separately
-            const existing = prev.find((p) => p.product.id === finalProduct.id);
+            const existing = prev.find((item) => (item.product.cart_key || item.product.id) === cartKey);
             if (existing) {
-                return prev.map((p) =>
-                    p.product.id === finalProduct.id ? { ...p, qty: p.qty + 1 } : p
+                return prev.map((item) =>
+                    (item.product.cart_key || item.product.id) === cartKey ? { ...item, qty: item.qty + 1 } : item
                 );
             }
             return [...prev, { product: finalProduct, qty: 1 }];
         });
     };
-    
-    // Ignore the old addToCart implementation to prevent redeclaration
-    /*
-        setCart((prev) => {
-            const existing = prev.find((p) => p.product.id === product.id);
-            if (existing) {
-                return prev.map((p) =>
-                    p.product.id === product.id ? { ...p, qty: p.qty + 1 } : p
-                );
-            }
-            const finalPrice = product.discount_percentage > 0 ? product.price * (1 - product.discount_percentage / 100) : product.price;
-            return [...prev, { product: { ...product, original_price: product.price, price: finalPrice }, qty: 1 }];
-        });
+
+    const handleProductClick = (product: any) => {
+        if (product.options_config && Array.isArray(product.options_config) && product.options_config.length > 0) {
+            const initial: any = {};
+            product.options_config.forEach((cat: any) => {
+                if (cat.type === 'multiple') {
+                    initial[cat.name] = [];
+                } else {
+                    if (cat.choices && cat.choices.length > 0) {
+                        initial[cat.name] = cat.choices[0];
+                    }
+                }
+            });
+            setSelectedOptions(initial);
+            setSelectedProductForOptions(product);
+            setShowOptionsModal(true);
+        } else {
+            addToCart(product);
+        }
     };
-    */
 
     const clearCart = () => {
         setCart([]);
@@ -781,13 +811,13 @@ export default function PosPage() {
         setCustomerName("");
     };
 
-    const updateCartQty = (productId: string, newQty: number) => {
+    const updateCartQty = (key: string, newQty: number) => {
         if (newQty < 1) return;
-        setCart(prev => prev.map(p => p.product.id === productId ? { ...p, qty: newQty } : p));
+        setCart(prev => prev.map(p => ((p.product.cart_key || p.product.id) === key) ? { ...p, qty: newQty } : p));
     };
 
-    const removeFromCart = (productId: string) => {
-        setCart(prev => prev.filter(p => p.product.id !== productId));
+    const removeFromCart = (key: string) => {
+        setCart(prev => prev.filter(p => (p.product.cart_key || p.product.id) !== key));
     };
 
     const subTotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
@@ -812,11 +842,14 @@ export default function PosPage() {
                 customer_name: customerName,
                 payment_method_id: selectedMethod.id,
                 items: cart.map(item => ({
-                    product_id: item.product.id,
-                    product_name: item.product.name,
+                    product_id: item.product.original_id || item.product.id,
+                    product_name: item.product.variant_details 
+                        ? `${item.product.name} (${item.product.variant_details})` 
+                        : item.product.name,
                     quantity: item.qty,
                     price: item.product.price,
-                    cogs: item.product.cogs || 0
+                    cogs: item.product.cogs || 0,
+                    modifiers: item.product.modifiers || []
                 })),
                 staff_name: staff?.full_name || 'System'
             };
@@ -918,50 +951,6 @@ export default function PosPage() {
         return (
             <div className="flex min-h-screen bg-[#121214] items-center justify-center p-4">
                 <ConfirmDialog />
-    {showOptionsModal && selectedProductForOptions && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div className="bg-[#1a1a1c] p-6 rounded-2xl w-full max-w-md shadow-2xl border border-gray-800 relative max-h-[90vh] flex flex-col">
-                <button onClick={() => setShowOptionsModal(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white">✕</button>
-                <h2 className="text-xl font-bold mb-1 text-white">{selectedProductForOptions.name}</h2>
-                <p className="text-gray-400 text-sm mb-6">Pilih opsi untuk pesanan ini</p>
-                
-                <div className="flex-1 overflow-y-auto pr-2 space-y-6">
-                    {selectedProductForOptions.options_config.map((cat: any, i: number) => (
-                        <div key={i}>
-                            <h3 className="font-bold text-gray-300 mb-3">{cat.name}</h3>
-                            <div className="space-y-2">
-                                {cat.choices.map((choice: any, j: number) => (
-                                    <label key={j} className="flex items-center gap-3 p-3 bg-gray-900 border border-gray-800 rounded-xl cursor-pointer hover:border-blue-500 transition-colors">
-                                        <input 
-                                            type="radio" 
-                                            name={cat.name} 
-                                            checked={selectedOptions[cat.name]?.name === choice.name}
-                                            onChange={() => setSelectedOptions({...selectedOptions, [cat.name]: choice})}
-                                            className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 focus:ring-blue-600"
-                                        />
-                                        <div className="flex-1 text-white text-sm">{choice.name}</div>
-                                        {Number(choice.price_adjustment) > 0 && <div className="text-blue-400 text-xs font-bold">+Rp {Number(choice.price_adjustment).toLocaleString('id-ID')}</div>}
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                
-                <div className="mt-6 pt-4 border-t border-gray-800">
-                    <button 
-                        onClick={() => {
-                            addToCart(selectedProductForOptions, selectedOptions);
-                            setShowOptionsModal(false);
-                        }}
-                        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-500 transition-colors"
-                    >
-                        Tambahkan ke Keranjang
-                    </button>
-                </div>
-            </div>
-        </div>
-    )}
                 <div className="bg-[#1a1a1c] p-4 md:p-8 rounded-2xl w-full max-w-[400px] shadow-2xl border border-gray-800 text-center">
                     <Banknote className="w-12 h-12 text-blue-500 mx-auto mb-4" />
                     <h2 className="text-2xl font-bold mb-2 text-white">Buka Shift Kasir</h2>
@@ -1183,7 +1172,7 @@ export default function PosPage() {
                             filteredProducts.map((p) => (
                                 <div
                                     key={p.id}
-                                    onClick={() => addToCart(p)}
+                                    onClick={() => handleProductClick(p)}
                                     className={`bg-[#1a1a1c] rounded-2xl border border-gray-800 cursor-pointer hover:border-blue-500/50 hover:bg-gray-800/50 transition-all shadow-lg group overflow-hidden ${
                                         viewMode === 'grid' 
                                         ? "p-4 flex flex-col h-full relative text-left" 
@@ -1197,8 +1186,22 @@ export default function PosPage() {
                                             </div>
                                         )}
                                         <div>
-                                            <h3 className="font-bold text-[11px] md:text-xs leading-tight mb-1 text-white">{p.name}</h3>
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                <h3 className="font-bold text-[11px] md:text-xs leading-tight mb-1 text-white">{p.name}</h3>
+                                                {p.options_config && p.options_config.length > 0 && viewMode === 'list' && (
+                                                    <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-bold mb-1">
+                                                        ⚙️ {p.options_config.length} Opsi
+                                                    </span>
+                                                )}
+                                            </div>
                                             {viewMode === 'list' && <p className="text-gray-500 text-xs">{p.category || 'Uncategorized'}</p>}
+                                            {p.options_config && p.options_config.length > 0 && viewMode === 'grid' && (
+                                                <div className="mt-1 flex flex-wrap gap-1">
+                                                    <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded font-medium">
+                                                        ⚙️ {p.options_config.length} Pilihan/Addon
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <p className={`text-blue-400 font-bold ${viewMode === 'grid' ? "mt-2 text-sm md:text-base" : "text-sm md:text-base shrink-0"} relative z-10`}>
@@ -1237,11 +1240,18 @@ export default function PosPage() {
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {cart.map((item, idx) => (
-                                <div key={idx} className="flex flex-col gap-3 pb-4 border-b border-gray-800/50">
+                            {cart.map((item, idx) => {
+                                const itemKey = item.product.cart_key || item.product.id;
+                                return (
+                                <div key={itemKey || idx} className="flex flex-col gap-3 pb-4 border-b border-gray-800/50">
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1 pr-3">
                                             <p className="font-bold text-xs md:text-sm leading-tight text-white mb-1">{item.product.name}</p>
+                                            {item.product.variant_details && (
+                                                <div className="text-[11px] text-blue-400 font-medium mb-1.5 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20 inline-block leading-tight">
+                                                    {item.product.variant_details}
+                                                </div>
+                                            )}
                                             <p className="text-blue-400 font-bold text-xs md:text-sm">
                                                 Rp {item.product.price.toLocaleString("id-ID")}
                                             </p>
@@ -1250,14 +1260,14 @@ export default function PosPage() {
                                             <p className="font-bold text-sm md:text-base whitespace-nowrap text-white mb-2">
                                                 Rp {(item.product.price * item.qty).toLocaleString("id-ID")}
                                             </p>
-                                            <button onClick={() => removeFromCart(item.product.id)} className="text-red-400 hover:text-red-300 p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors inline-flex">
+                                            <button onClick={() => removeFromCart(itemKey)} className="text-red-400 hover:text-red-300 p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors inline-flex">
                                                 <Trash2 className="w-5 h-5" />
                                             </button>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button 
-                                            onClick={() => updateCartQty(item.product.id, item.qty - 1)}
+                                            onClick={() => updateCartQty(itemKey, item.qty - 1)}
                                             disabled={item.qty <= 1}
                                             className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white rounded-lg transition-colors border border-gray-700"
                                         >
@@ -1266,18 +1276,19 @@ export default function PosPage() {
                                         <input 
                                             type="number" 
                                             value={item.qty}
-                                            onChange={(e) => updateCartQty(item.product.id, parseInt(e.target.value) || 1)}
+                                            onChange={(e) => updateCartQty(itemKey, parseInt(e.target.value) || 1)}
                                             className="w-14 h-10 bg-[#121214] text-center font-bold text-sm text-white border border-gray-800 rounded-lg outline-none focus:border-blue-500"
                                         />
                                         <button 
-                                            onClick={() => updateCartQty(item.product.id, item.qty + 1)}
+                                            onClick={() => updateCartQty(itemKey, item.qty + 1)}
                                             className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors border border-gray-700"
                                         >
                                             <Plus className="w-5 h-5" />
                                         </button>
                                     </div>
                                 </div>
-                            ))}
+                            );
+                            })}
                         </div>
                     )}
                 </div>
@@ -2037,7 +2048,133 @@ export default function PosPage() {
                 </div>
             )}
 
+            {/* PRODUCT OPTIONS & ADD-ON MODAL */}
+            {showOptionsModal && selectedProductForOptions && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-[#1a1a1c] p-6 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-800 relative max-h-[90vh] flex flex-col">
+                        <div className="flex justify-between items-start mb-4 pb-3 border-b border-gray-800">
+                            <div>
+                                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                    <span>{selectedProductForOptions.image_icon || '☕'}</span>
+                                    <span>{selectedProductForOptions.name}</span>
+                                </h2>
+                                <p className="text-gray-400 text-xs mt-1">
+                                    Harga Dasar: <span className="text-blue-400 font-semibold">Rp {Number(selectedProductForOptions.price).toLocaleString('id-ID')}</span>
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setShowOptionsModal(false)} 
+                                className="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 flex items-center justify-center font-bold text-sm transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+                            {(selectedProductForOptions.options_config || []).map((cat: any, i: number) => {
+                                const isMulti = cat.type === 'multiple';
+                                const currentVal = selectedOptions[cat.name];
+                                return (
+                                    <div key={i} className="bg-gray-900/60 p-4 rounded-2xl border border-gray-800/80">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h3 className="font-bold text-sm text-gray-200 flex items-center gap-2">
+                                                <span>{cat.name}</span>
+                                                {cat.is_required && (
+                                                    <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold">Wajib</span>
+                                                )}
+                                            </h3>
+                                            <span className="text-[11px] text-gray-500 font-medium">
+                                                {isMulti ? 'Bisa pilih lebih dari 1' : 'Pilih salah satu'}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {(cat.choices || []).map((choice: any, j: number) => {
+                                                const isSelected = isMulti 
+                                                    ? Array.isArray(currentVal) && currentVal.some((c: any) => c.name === choice.name)
+                                                    : currentVal?.name === choice.name;
+                                                
+                                                const handleToggle = () => {
+                                                    if (isMulti) {
+                                                        const arr = Array.isArray(currentVal) ? [...currentVal] : [];
+                                                        const existsIdx = arr.findIndex((c: any) => c.name === choice.name);
+                                                        if (existsIdx >= 0) {
+                                                            arr.splice(existsIdx, 1);
+                                                        } else {
+                                                            arr.push(choice);
+                                                        }
+                                                        setSelectedOptions({ ...selectedOptions, [cat.name]: arr });
+                                                    } else {
+                                                        setSelectedOptions({ ...selectedOptions, [cat.name]: choice });
+                                                    }
+                                                };
 
+                                                return (
+                                                    <div 
+                                                        key={j} 
+                                                        onClick={handleToggle}
+                                                        className={`flex items-center justify-between p-3 rounded-xl cursor-pointer border transition-all select-none ${
+                                                            isSelected 
+                                                                ? 'bg-blue-600/20 border-blue-500 text-white shadow-sm ring-1 ring-blue-500/30' 
+                                                                : 'bg-gray-800/60 border-gray-700/60 text-gray-300 hover:border-gray-600 hover:bg-gray-800'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div className={`w-4 h-4 rounded-${isMulti ? 'md' : 'full'} border flex items-center justify-center text-[10px] transition-colors ${
+                                                                isSelected ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-600 bg-gray-900'
+                                                            }`}>
+                                                                {isSelected && (isMulti ? '✓' : '•')}
+                                                            </div>
+                                                            <span className="text-xs font-semibold">{choice.name}</span>
+                                                        </div>
+                                                        {Number(choice.price_adjustment) > 0 && (
+                                                            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+                                                                isSelected ? 'bg-blue-500/30 text-blue-300' : 'bg-gray-700/60 text-blue-400'
+                                                            }`}>
+                                                                +Rp {Number(choice.price_adjustment).toLocaleString('id-ID')}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        
+                        {/* Modal Footer with Dynamic Total Price */}
+                        <div className="mt-5 pt-4 border-t border-gray-800 flex items-center justify-between gap-4">
+                            <div>
+                                <span className="text-xs text-gray-500 block">Total per Porsi</span>
+                                <span className="text-xl font-black text-blue-400">
+                                    Rp {(() => {
+                                        let total = Number(selectedProductForOptions.price) || 0;
+                                        Object.values(selectedOptions).forEach((val: any) => {
+                                            if (Array.isArray(val)) {
+                                                val.forEach((c: any) => total += Number(c.price_adjustment) || 0);
+                                            } else if (val && typeof val === 'object') {
+                                                total += Number(val.price_adjustment) || 0;
+                                            }
+                                        });
+                                        const disc = Number(selectedProductForOptions.discount_percentage) || 0;
+                                        return (disc > 0 ? total * (1 - disc / 100) : total).toLocaleString('id-ID');
+                                    })()}
+                                </span>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    addToCart(selectedProductForOptions, selectedOptions);
+                                    setShowOptionsModal(false);
+                                }}
+                                className="flex-1 py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition-all text-sm flex items-center justify-center gap-2"
+                            >
+                                + Tambahkan ke Pesanan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div>
     );
