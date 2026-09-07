@@ -11,6 +11,7 @@ import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
 import { LoadingSpinner, SkeletonCard, SkeletonTable } from "@/components/Loading";
 import ProductOptionsEditor from "@/components/ProductOptionsEditor";
+import { parseExpenseQtyAndUnit, formatExpenseDescription, cleanExpenseDescription } from "@/lib/expenseHelpers";
 
 const CategoryDropdown = ({ value, onChange, categories, onAdd, onRemove }: { value: string, onChange: (v: string) => void, categories: string[], onAdd: (v: string) => void, onRemove: (v: string) => void }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -1308,29 +1309,46 @@ export default function AdminDashboard() {
 
     const handleCreateExpense = async (e: React.FormEvent) => {
         e.preventDefault();
+        const expCat = (newExpense.category || 'operasional').toLowerCase();
         // Validate: if bahan_baku category, must select material
-        if (newExpense.category === 'bahan_baku' && !newExpense.material_id) {
+        if (expCat === 'bahan_baku' && !newExpense.material_id) {
             toast.error("Pilih bahan baku terlebih dahulu untuk kategori Bahan Baku!");
             return;
         }
         setLoading(true);
         try {
-            const { error } = await supabase.from('expenses').insert([{
-                description: newExpense.payment_method === 'CASH' ? newExpense.description : `[${newExpense.payment_method}] ${newExpense.description}`,
+            const rawDesc = newExpense.payment_method === 'CASH' ? newExpense.description : `[${newExpense.payment_method}] ${newExpense.description}`;
+            const bUnit = (newExpense as any).buy_unit || 'kg';
+            const finalDesc = expCat === 'bahan_baku' && Number(newExpense.quantity) > 0
+                ? formatExpenseDescription(rawDesc, newExpense.quantity, bUnit)
+                : rawDesc;
+
+            const insertPayload: any = {
+                description: finalDesc,
                 amount: Number(newExpense.amount),
                 recorded_by: profile?.id,
                 staff_name: profile?.full_name,
-                category: newExpense.category,
-                raw_material_id: newExpense.material_id || null
-            }]);
-            if (error) throw error;
+                category: expCat,
+                raw_material_id: expCat === 'bahan_baku' ? (newExpense.material_id || null) : null,
+                quantity: expCat === 'bahan_baku' && Number(newExpense.quantity) > 0 ? Number(newExpense.quantity) : null,
+                buy_unit: expCat === 'bahan_baku' && Number(newExpense.quantity) > 0 ? bUnit : null
+            };
+
+            let { error } = await supabase.from('expenses').insert([insertPayload]);
+            if (error && (error.code === 'PGRST204' || error.message?.includes('quantity') || error.message?.includes('buy_unit'))) {
+                delete insertPayload.quantity;
+                delete insertPayload.buy_unit;
+                const retry = await supabase.from('expenses').insert([insertPayload]);
+                if (retry.error) throw retry.error;
+            } else if (error) {
+                throw error;
+            }
             
             // Handle Material Stock Update if selected
-            if (newExpense.material_id && Number(newExpense.quantity) > 0) {
+            if (expCat === 'bahan_baku' && newExpense.material_id && Number(newExpense.quantity) > 0) {
                 const material = rawMaterials.find(m => m.id === newExpense.material_id);
                 if (material) {
                     let mult = 1;
-                    const bUnit = (newExpense as any).buy_unit || material.unit;
                     if ((material.unit === 'g' || material.unit === 'gr') && bUnit === 'kg') mult = 1000;
                     else if (material.unit === 'ml' && (bUnit === 'liter' || bUnit === 'l')) mult = 1000;
 
@@ -1350,13 +1368,13 @@ export default function AdminDashboard() {
                         current_stock: newStock,
                         price: Number(unitPrice.toFixed(2)),
                         staff_name: profile?.full_name,
-                        note: `Dari Pengeluaran: ${newExpense.description}`
+                        note: `Dari Pengeluaran: ${finalDesc}`
                     }]);
                 }
             }
             
             toast.success("Pengeluaran berhasil dicatat.");
-            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional' });
+            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional', buy_unit: 'kg' });
             fetchData();
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
@@ -1372,23 +1390,36 @@ export default function AdminDashboard() {
         }
         setLoading(true);
         try {
-            const { error } = await supabase.from('expenses')
-                .update({
-                    description: editingExpense.description,
-                    amount: Number(editingExpense.amount),
-                    staff_name: profile?.full_name,
-                    category: expCat,
-                    raw_material_id: expCat === 'bahan_baku' ? (editingExpense.material_id || null) : null
-                })
-                .eq('id', editingExpense.id);
-            if (error) throw error;
+            const bUnit = editingExpense.buy_unit || 'kg';
+            const finalDesc = expCat === 'bahan_baku' && Number(editingExpense.quantity) > 0
+                ? formatExpenseDescription(editingExpense.description, editingExpense.quantity, bUnit)
+                : editingExpense.description;
+
+            const updatePayload: any = {
+                description: finalDesc,
+                amount: Number(editingExpense.amount),
+                staff_name: profile?.full_name,
+                category: expCat,
+                raw_material_id: expCat === 'bahan_baku' ? (editingExpense.material_id || null) : null,
+                quantity: expCat === 'bahan_baku' && Number(editingExpense.quantity) > 0 ? Number(editingExpense.quantity) : null,
+                buy_unit: expCat === 'bahan_baku' && Number(editingExpense.quantity) > 0 ? bUnit : null
+            };
+
+            let { error } = await supabase.from('expenses').update(updatePayload).eq('id', editingExpense.id);
+            if (error && (error.code === 'PGRST204' || error.message?.includes('quantity') || error.message?.includes('buy_unit'))) {
+                delete updatePayload.quantity;
+                delete updatePayload.buy_unit;
+                const retry = await supabase.from('expenses').update(updatePayload).eq('id', editingExpense.id);
+                if (retry.error) throw retry.error;
+            } else if (error) {
+                throw error;
+            }
 
             // If material selected and quantity entered, update material price and stock
             if (expCat === 'bahan_baku' && editingExpense.material_id && Number(editingExpense.quantity) > 0) {
                 const material = rawMaterials.find(m => m.id === editingExpense.material_id);
                 if (material) {
                     let mult = 1;
-                    const bUnit = editingExpense.buy_unit || material.unit;
                     if ((material.unit === 'g' || material.unit === 'gr') && bUnit === 'kg') mult = 1000;
                     else if (material.unit === 'ml' && (bUnit === 'liter' || bUnit === 'l')) mult = 1000;
 
@@ -1411,12 +1442,12 @@ export default function AdminDashboard() {
                         current_stock: Number(material.current_stock),
                         price: Number(unitPrice.toFixed(2)),
                         staff_name: profile?.full_name,
-                        note: `Edit Pengeluaran: ${editingExpense.description} (${editingExpense.quantity} ${bUnit})`
+                        note: `Edit Pengeluaran: ${finalDesc}`
                     }]);
                 }
             }
 
-            toast.success("Pengeluaran berhasil diperbarui."); await logAudit("EDIT_DATA", "expenses", editingExpense.id, { description: editingExpense.description, action: "Edit Pengeluaran" });
+            toast.success("Pengeluaran berhasil diperbarui."); await logAudit("EDIT_DATA", "expenses", editingExpense.id, { description: finalDesc, action: "Edit Pengeluaran" });
             setEditingExpense(null);
             setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional', buy_unit: 'kg' });
             fetchData();
@@ -2823,12 +2854,14 @@ export default function AdminDashboard() {
                                                                                         onClick={() => {
                                                                                             const matId = exp.raw_material_id || exp.material_id || '';
                                                                                             const mat = rawMaterials.find(m => m.id === matId);
+                                                                                            const parsed = parseExpenseQtyAndUnit(exp, mat, materialStockLogs);
                                                                                             setEditingExpense({
                                                                                                 ...exp, 
                                                                                                 category: isBahan ? 'bahan_baku' : 'operasional', 
                                                                                                 material_id: matId,
-                                                                                                quantity: exp.quantity || 1,
-                                                                                                buy_unit: exp.buy_unit || (mat ? (mat.unit === 'g' ? 'kg' : mat.unit === 'ml' ? 'liter' : mat.unit) : 'kg')
+                                                                                                quantity: parsed.qty,
+                                                                                                buy_unit: parsed.unit,
+                                                                                                description: cleanExpenseDescription(exp.description)
                                                                                             });
                                                                                         }} 
                                                                                         className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors"
