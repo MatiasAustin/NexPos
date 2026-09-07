@@ -3133,7 +3133,7 @@ export default function AdminDashboard() {
                                     </div>
 
                                     {/* Input & List Bahan Baku */}
-                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                                    <div className="flex flex-col gap-8">
                                         {/* Tambah Bahan Baku */}
                                         <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
                                             <div className="flex items-center gap-2 mb-6 border-b border-gray-800 pb-3">
@@ -3479,7 +3479,7 @@ export default function AdminDashboard() {
                             )}
                             {/* SETTINGS TAB */}
                             {activeTab === "settings" && (
-                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:p-6">
+                                <div className="flex flex-col gap-4 md:p-6">
                                     <div className="space-y-6">
                                         {/* Brand Settings */}
                                         <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">

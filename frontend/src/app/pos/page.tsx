@@ -75,6 +75,8 @@ export default function PosPage() {
     const [collapseAddExp, setCollapseAddExp] = useState(false);
     const [collapseListExp, setCollapseListExp] = useState(false);
 
+
+
     const fetchSessionData = async (id: string) => {
         if (!id) return;
         try {
@@ -1876,12 +1878,16 @@ export default function PosPage() {
                                             {editingExpense ? 'Simpan Perubahan' : 'Simpan Pengeluaran'}
                                         </button>
                                     </form>
+                                    )}
                                 </div>
 
                                 <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden">
-                                    <div className="p-4 bg-gray-800/30 border-b border-gray-800 flex flex-col sm:flex-row gap-2 justify-between sm:items-center">
-                                        <h3 className="font-bold text-gray-300">Riwayat Pengeluaran</h3>
-                                        <div className="flex gap-1 bg-gray-900 rounded-lg p-1 border border-gray-700">
+                                    <div className="p-4 bg-gray-800/30 border-b border-gray-800 flex flex-col sm:flex-row gap-2 justify-between sm:items-center cursor-pointer" onClick={() => setCollapseListExp(!collapseListExp)}>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-bold text-gray-300">Riwayat Pengeluaran</h3>
+                                            <button type="button" className="text-gray-400 hover:text-white transition-colors">{collapseListExp ? '+' : '−'}</button>
+                                        </div>
+                                        <div className="flex gap-1 bg-gray-900 rounded-lg p-1 border border-gray-700" onClick={e => e.stopPropagation()}>
                                             {[{k:'all',l:'Semua'},{k:'bahan_baku',l:'🧪 Bahan'},{k:'operasional',l:'⚙️ Ops'}].map(f => (
                                                 <button key={f.k} type="button" onClick={() => setPosExpenseCategoryFilter(f.k as any)}
                                                     className={`px-2 py-0.5 rounded text-xs font-bold transition-all ${
@@ -1890,6 +1896,7 @@ export default function PosPage() {
                                             ))}
                                         </div>
                                     </div>
+                                    {!collapseListExp && (
                                     <div className="max-h-[300px] overflow-y-auto">
                                         {(() => {
                                             const getPosCategory = (e: any) => (e.category || (e.raw_material_id ? 'bahan_baku' : 'operasional')).toLowerCase();
