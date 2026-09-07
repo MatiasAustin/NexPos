@@ -17,6 +17,7 @@ export default function PosPage() {
     const [products, setProducts] = useState<any[]>([]);
     const [activeCategory, setActiveCategory] = useState("Semua");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
     
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
     const [showPayment, setShowPayment] = useState(false);
@@ -534,17 +535,20 @@ export default function PosPage() {
             // Deduct from cash drawer if shift is open AND paid with CASH
             if (sessionId && staff && newExpense.payment_method === 'CASH') {
                 try {
-                    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-movements`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            session_id: sessionId,
-                            staff_id: staff.id,
-                            type: 'expense',
-                            amount: -Number(newExpense.amount),
-                            reason: `Pengeluaran: ${finalDesc}`
-                        })
+                    const { error: moveError } = await supabase.from('cash_movements').insert({
+                        session_id: sessionId,
+                        staff_id: staff.id,
+                        type: 'expense',
+                        amount: -Number(newExpense.amount),
+                        reason: `Pengeluaran: ${finalDesc}`
                     });
+                    
+                    if (!moveError) {
+                        const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
+                        if (session) {
+                            await supabase.from('cash_sessions').update({ expected_cash: Number(session.expected_cash) - Number(newExpense.amount) }).eq('id', sessionId);
+                        }
+                    }
                 } catch (err) {
                     console.error("Gagal mencatat cash movement untuk pengeluaran:", err);
                 }
@@ -860,9 +864,41 @@ export default function PosPage() {
                 })),
                 staff_name: staff?.full_name || 'System'
             };
-            
-            const result = await processPayment(payload);
-            
+            // Bypass slow Vercel backend and insert directly to Supabase for instant speed
+            const status = payload.amount_received >= payload.amount_due ? 'Paid' : 'Pending';
+            const change_given = payload.amount_received >= payload.amount_due ? payload.amount_received - payload.amount_due : 0;
+
+            const { data: transactionData, error: txError } = await supabase
+                .from('transactions')
+                .insert({
+                    order_reference: payload.order_reference,
+                    amount_due: payload.amount_due,
+                    amount_received: payload.amount_received,
+                    change_given,
+                    tax_amount: payload.tax_amount || 0,
+                    customer_name: payload.customer_name || null,
+                    status,
+                    payment_method_id: payload.payment_method_id
+                })
+                .select('*')
+                .single();
+
+            if (txError) throw txError;
+
+            if (payload.items && payload.items.length > 0) {
+                const orderItems = payload.items.map((item: any) => ({
+                    transaction_id: transactionData.id,
+                    product_id: item.product_id,
+                    product_name: item.product_name,
+                    quantity: item.quantity,
+                    price_at_time: item.price,
+                    cogs_at_time: item.cogs || 0,
+                    modifiers: item.modifiers || []
+                }));
+                await supabase.from('order_items').insert(orderItems);
+            }
+
+            const result = transactionData;
             // --- HACK FOR OUTDATED VERCEL BACKEND: DEDUCT STOCK MANUALLY ---
             const prodStockUpdates: Record<string, number> = {};
             const matStockUpdates: Record<string, { delta: number, products: string[] }> = {};
@@ -944,16 +980,19 @@ export default function PosPage() {
                 // Update Session Expected Cash if payment is CASH
                 if (selectedMethod?.type?.toLowerCase() === 'cash' && sessionId && staff) {
                     try {
-                        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-movements`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                session_id: sessionId,
-                                staff_id: staff.id,
-                                type: 'sale',
-                                amount: grandTotal
-                            })
+                        const { error: moveError } = await supabase.from('cash_movements').insert({
+                            session_id: sessionId,
+                            staff_id: staff.id,
+                            type: 'sale',
+                            amount: grandTotal
                         });
+
+                        if (!moveError) {
+                            const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
+                            if (session) {
+                                await supabase.from('cash_sessions').update({ expected_cash: Number(session.expected_cash) + grandTotal }).eq('id', sessionId);
+                            }
+                        }
                     } catch(err) {
                         console.error("Gagal mencatat mutasi kasir:", err);
                     }
@@ -1244,14 +1283,19 @@ export default function PosPage() {
             </div>
 
             {/* RIGHT: CART */}
-            <div className="w-full sm:w-[260px] md:w-[280px] lg:w-[320px] xl:w-[400px] h-[45vh] sm:h-screen bg-[#1a1a1c] shadow-2xl flex flex-col border-t-2 sm:border-t-0 sm:border-l border-gray-800 z-10 shrink-0 print:hidden">
+            <div className={`w-full sm:w-[260px] md:w-[280px] lg:w-[320px] xl:w-[400px] h-full sm:h-screen bg-[#1a1a1c] shadow-2xl flex flex-col sm:border-t-0 sm:border-l border-gray-800 shrink-0 print:hidden fixed sm:relative inset-0 z-50 sm:z-10 transition-transform duration-300 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full sm:translate-y-0"}`}>
                 <div className="p-3 sm:p-4 md:p-5 border-b border-gray-800 flex justify-between items-center bg-[#1a1a1c]">
                     <h2 className="text-sm sm:text-base md:text-lg font-bold flex items-center gap-2 text-white">
                         <ShoppingCart className="w-5 h-5 text-blue-500" /> Current Order
                     </h2>
-                    <button onClick={clearCart} className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors border border-transparent hover:border-red-500/20">
-                        <Trash2 className="w-5 h-5" />
-                    </button>
+                    <div className="flex gap-2">
+                        <button onClick={clearCart} className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors border border-transparent hover:border-red-500/20">
+                            <Trash2 className="w-5 h-5" />
+                        </button>
+                        <button onClick={() => setIsMobileCartOpen(false)} className="sm:hidden text-gray-400 hover:text-white p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
+                            &#10005;
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-5">
@@ -2218,6 +2262,21 @@ export default function PosPage() {
                         </div>
                     </div>
                 </div>
+            )}
+            {/* MOBILE FLOATING CART BUTTON */}
+            {!isMobileCartOpen && (
+                <button
+                    onClick={() => setIsMobileCartOpen(true)}
+                    className="sm:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-blue-600 hover:bg-blue-500 text-white shadow-[0_10px_40px_rgba(37,99,235,0.5)] px-6 py-3.5 rounded-full font-bold flex items-center gap-3 transition-transform"
+                >
+                    <ShoppingCart className="w-5 h-5" />
+                    <span>Lihat Pesanan</span>
+                    {cart.reduce((sum, item) => sum + item.qty, 0) > 0 && (
+                        <span className="bg-white text-blue-600 px-2.5 py-0.5 rounded-full text-xs font-black">
+                            {cart.reduce((sum, item) => sum + item.qty, 0)} item
+                        </span>
+                    )}
+                </button>
             )}
 
         </div>
