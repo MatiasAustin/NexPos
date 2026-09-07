@@ -360,8 +360,12 @@ export default function AdminDashboard() {
                     console.error("Store settings table might not exist yet", e);
                 }
             } else if (activeTab === "raw_materials") {
-                const { data: matData } = await supabase.from('raw_materials').select('*').order('name', { ascending: true });
-                setRawMaterials(matData || []);
+                const [matRes, logRes] = await Promise.all([
+                    supabase.from('raw_materials').select('*').order('name', { ascending: true }),
+                    supabase.from('material_stock_logs').select('*').order('created_at', { ascending: false }).limit(50)
+                ]);
+                setRawMaterials(matRes.data || []);
+                setMaterialStockLogs(logRes.data || []);
             } else if (activeTab === "cash_sessions") {
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/cash-sessions?_t=${Date.now()}`, { cache: 'no-store' });
                 if (res.ok) {
@@ -1105,25 +1109,103 @@ export default function AdminDashboard() {
     const handleDeleteTransaction = async (trx: any) => {
         const ok = await confirm({
             title: "Hapus Transaksi",
-            message: `Hapus transaksi ${trx.order_reference} secara permanen? Data laporan akan ikut terhapus.`,
+            message: `Hapus transaksi ${trx.order_reference} secara permanen? Data laporan akan ikut terhapus dan stok bahan baku akan dikembalikan.`,
             confirmText: "Ya, Hapus Permanen",
             variant: "danger"
         });
         if (!ok) return;
         setLoading(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/transactions/${trx.id}`, {
-                method: 'DELETE'
-            });
-            if(res.ok || res.status === 204) {
-                toast.success("Transaksi berhasil dihapus.");
-                fetchData();
-            } else {
-                const err = await res.json();
-                toast.error(err.error || "Gagal menghapus.");
+            // 1. Ambil order items untuk mengembalikan stok
+            const { data: items } = await supabase.from('order_items').select('*').eq('transaction_id', trx.id);
+            
+            if (items && items.length > 0) {
+                const prodIds = [...new Set(items.map(i => i.product_id).filter(Boolean))];
+                const { data: prods } = await supabase.from('products').select('*').in('id', prodIds);
+                
+                const prodStockUpdates: Record<string, number> = {};
+                const matStockUpdates: Record<string, { delta: number, products: string[] }> = {};
+                
+                items.forEach((item: any) => {
+                    const prod = prods?.find(p => p.id === item.product_id);
+                    if (prod) {
+                        if (prod.stock !== undefined && prod.stock !== null) {
+                            prodStockUpdates[prod.id] = (prodStockUpdates[prod.id] || 0) + item.quantity;
+                        }
+                        if (prod.ingredients && Array.isArray(prod.ingredients)) {
+                            prod.ingredients.forEach((ing: any) => {
+                                const matId = ing.raw_material_id || ing.id;
+                                if (matId && ing.qty > 0) {
+                                    if (!matStockUpdates[matId]) {
+                                        matStockUpdates[matId] = { delta: 0, products: [] };
+                                    }
+                                    matStockUpdates[matId].delta += (ing.qty * item.quantity);
+                                    matStockUpdates[matId].products.push(item.product_name || prod.name);
+                                }
+                            });
+                        }
+                    }
+                });
+
+                // Update products & raw_materials
+                await Promise.all([
+                    ...Object.keys(prodStockUpdates).map(async prodId => {
+                        const prod = prods?.find(p => p.id === prodId);
+                        if (prod) {
+                            const newStock = Number(prod.stock) + prodStockUpdates[prodId];
+                            await supabase.from('products').update({ stock: newStock }).eq('id', prodId);
+                        }
+                    }),
+                    ...Object.keys(matStockUpdates).map(async matId => {
+                        const { delta, products: prodNames } = matStockUpdates[matId];
+                        const { data: matData } = await supabase.from('raw_materials').select('current_stock, name').eq('id', matId).single();
+                        if (matData) {
+                            const newStock = Number(matData.current_stock) + delta;
+                            await supabase.from('raw_materials').update({ current_stock: newStock }).eq('id', matId);
+                            await supabase.from('material_stock_logs').insert([{
+                                material_id: matId,
+                                material_name: matData.name,
+                                delta: delta,
+                                current_stock: newStock,
+                                note: `Pengembalian: ${Array.from(new Set(prodNames)).join(', ')} (Ref: ${trx.order_reference} Dibatalkan)`,
+                                staff_name: profile?.full_name || 'System'
+                            }]);
+                        }
+                    })
+                ]);
             }
-        } catch(error) {
-            toast.error("Terjadi kesalahan sistem saat menghapus.");
+            
+            // 2. Kembalikan pencatatan Cash Movement laci kasir
+            const { data: movements } = await supabase.from('cash_movements').select('*').eq('transaction_id', trx.id);
+            if (movements && movements.length > 0) {
+                let netCashChange = 0;
+                let sessionId = null;
+                for (const mov of movements) {
+                    netCashChange += Number(mov.amount);
+                    sessionId = mov.session_id;
+                }
+                if (sessionId && netCashChange !== 0) {
+                    const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
+                    if (session) {
+                        const restoredCash = Number(session.expected_cash) - netCashChange;
+                        await supabase.from('cash_sessions').update({ expected_cash: restoredCash }).eq('id', sessionId);
+                    }
+                }
+            }
+            
+            // 3. Hapus data secara lokal ke Supabase
+            await supabase.from('refunds').delete().eq('transaction_id', trx.id);
+            await supabase.from('cash_movements').delete().eq('transaction_id', trx.id);
+            await supabase.from('transaction_items').delete().eq('transaction_id', trx.id);
+            await supabase.from('order_items').delete().eq('transaction_id', trx.id);
+            const { error } = await supabase.from('transactions').delete().eq('id', trx.id);
+            
+            if (error) throw error;
+
+            toast.success("Transaksi berhasil dihapus dan stok dikembalikan.");
+            fetchData();
+        } catch(error: any) {
+            toast.error(error.message || "Terjadi kesalahan sistem saat menghapus.");
         }
         setLoading(false);
     };
