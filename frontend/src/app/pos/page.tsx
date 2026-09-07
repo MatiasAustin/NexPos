@@ -1351,7 +1351,7 @@ export default function PosPage() {
             {/* PAYMENT MODAL */}
             {showPayment && (
                 <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 backdrop-blur-md overflow-y-auto print:hidden">
-                    <div className="bg-[#1a1a1c] border border-gray-800 p-4 md:p-6 md:p-4 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl my-auto flex-shrink-0">
+                    <div className="bg-[#1a1a1c] border border-gray-800 p-4 md:p-6 md:p-4 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl mt-16 mb-16">
                         {!paymentResult ? (
                             <>
                                 <h2 className="text-2xl font-bold mb-6 border-b border-gray-800 pb-4 text-white">Pilih Pembayaran</h2>
@@ -1561,7 +1561,7 @@ export default function PosPage() {
             {/* EXPENSES & RAW MATERIALS MODAL */}
                         {showCloseShiftModal && (
                 <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
-                    <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-md shadow-2xl my-auto flex-shrink-0">
+                    <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-md shadow-2xl mt-16 mb-16">
                         <h3 className="font-bold text-xl text-white mb-2">Tutup Shift</h3>
                         <p className="text-gray-400 text-sm mb-6">Hitung seluruh uang fisik (kertas & koin) yang ada di dalam laci kasir saat ini, lalu masukkan totalnya di bawah ini.</p>
                         <input 
@@ -1977,7 +1977,7 @@ export default function PosPage() {
             {/* Adjust Material Stock Modal */}
             {selectedMaterial && (
                 <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-[200] p-4 overflow-y-auto backdrop-blur-md">
-                    <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl my-auto flex-shrink-0">
+                    <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl mt-16 mb-16">
                         <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
                             <div>
                                 <h3 className="font-bold text-lg md:text-xl text-white">Update Stok Bahan</h3>
@@ -2080,7 +2080,7 @@ export default function PosPage() {
             {/* PRODUCT OPTIONS & ADD-ON MODAL */}
             {showOptionsModal && selectedProductForOptions && (
                 <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 backdrop-blur-sm overflow-y-auto">
-                    <div className="bg-[#1a1a1c] p-6 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-800 relative max-h-[90vh] flex flex-col my-auto flex-shrink-0">
+                    <div className="bg-[#1a1a1c] p-6 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-800 relative max-h-[90vh] flex flex-col mt-16 mb-16">
                         <div className="flex justify-between items-start mb-4 pb-3 border-b border-gray-800">
                             <div>
                                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
