@@ -206,8 +206,8 @@ export default function AdminDashboard() {
     const [expenses, setExpenses] = useState<any[]>([]);
     const [rawMaterials, setRawMaterials] = useState<any[]>([]);
     const [materialStockLogs, setMaterialStockLogs] = useState<any[]>([]);
-    const [newExpense, setNewExpense] = useState({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional' });
-    const [newMaterial, setNewMaterial] = useState({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0, min_stock: 0 });
+    const [newExpense, setNewExpense] = useState<{ description: string; amount: number; material_id: string; quantity: number; payment_method: string; category: string; buy_unit?: string }>({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional', buy_unit: 'kg' });
+    const [newMaterial, setNewMaterial] = useState({ name: '', unit: 'g', current_stock: 0, last_price_per_unit: 0, min_stock: 0 });
     const [materialSortBy, setMaterialSortBy] = useState<'updated' | 'price_desc' | 'price_asc' | 'low_stock' | 'name_asc'>('updated');
     const [materialSearchQuery, setMaterialSearchQuery] = useState('');
     const [newStaff, setNewStaff] = useState({ full_name: '', email: '', password: '', role: 'staff' });
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
     // UI states for new features
     const [materialMode, setMaterialMode] = useState<'add' | 'update'>('add');
     const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
-    const [stockAdjustment, setStockAdjustment] = useState<{ delta: number; note: string; price: number }>({ delta: 0, note: '', price: 0 });
+    const [stockAdjustment, setStockAdjustment] = useState<{ delta: number; note: string; price: number; unit?: string }>({ delta: 0, note: '', price: 0, unit: '' });
     const [expenseSortOrder, setExpenseSortOrder] = useState<'desc' | 'asc'>('desc');
     const [expensePeriod, setExpensePeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly' | 'all'>('all');
     const [expenseCategoryFilter, setExpenseCategoryFilter] = useState<'all' | 'bahan_baku' | 'operasional'>('all');
@@ -226,7 +226,7 @@ export default function AdminDashboard() {
     
     // Inline add material in expense form
     const [showInlineAddMaterial, setShowInlineAddMaterial] = useState(false);
-    const [inlineNewMaterial, setInlineNewMaterial] = useState({ name: '', unit: '', last_price_per_unit: 0 });
+    const [inlineNewMaterial, setInlineNewMaterial] = useState({ name: '', unit: 'g', last_price_per_unit: 0 });
 
     const OPERATIONAL_COST = 3000;
     
@@ -371,7 +371,11 @@ export default function AdminDashboard() {
                     supabase.from('raw_materials').select('*').order('name', { ascending: true }),
                     supabase.from('material_stock_logs').select('*').order('created_at', { ascending: false }).limit(50)
                 ]);
-                setExpenses(expRes.data || []);
+                const normalizedExpenses = (expRes.data || []).map((e: any) => ({
+                    ...e,
+                    category: (e.category || (e.raw_material_id ? 'bahan_baku' : 'operasional')).toLowerCase()
+                }));
+                setExpenses(normalizedExpenses);
                 setRawMaterials(matRes.data || []);
                 setMaterialStockLogs(logRes.data || []);
             }
@@ -657,7 +661,7 @@ export default function AdminDashboard() {
         let filtered = expenses.filter(exp => {
             // Category filter
             if (expenseCategoryFilter !== 'all') {
-                const expCat = exp.category || 'operasional';
+                const expCat = (exp.category || (exp.raw_material_id ? 'bahan_baku' : 'operasional')).toLowerCase();
                 if (expCat !== expenseCategoryFilter) return false;
             }
 
@@ -1217,14 +1221,24 @@ export default function AdminDashboard() {
         e.preventDefault();
         if (!selectedMaterial) return;
         setLoading(true);
-        const newStock = selectedMaterial.current_stock + Number(stockAdjustment.delta);
+        const adjUnit = stockAdjustment.unit || selectedMaterial.unit;
+        let mult = 1;
+        if ((selectedMaterial.unit === 'g' || selectedMaterial.unit === 'gr') && adjUnit === 'kg') mult = 1000;
+        else if (selectedMaterial.unit === 'ml' && (adjUnit === 'liter' || adjUnit === 'l')) mult = 1000;
+
+        const effectiveDelta = Number(stockAdjustment.delta) * mult;
+        const newStock = selectedMaterial.current_stock + effectiveDelta;
         if (newStock < 0) { toast.error("Stok tidak boleh negatif!"); setLoading(false); return; }
         try {
             const updatePayload: any = {
                 current_stock: newStock,
                 updated_by_name: profile?.full_name
             };
-            if (stockAdjustment.price > 0) updatePayload.last_price_per_unit = Number(stockAdjustment.price);
+            if (stockAdjustment.price > 0) {
+                const totalUnits = Math.abs(effectiveDelta) || 1;
+                const calculatedBasePrice = mult > 1 ? (Number(stockAdjustment.price) / totalUnits) : Number(stockAdjustment.price);
+                updatePayload.last_price_per_unit = Number(calculatedBasePrice.toFixed(2));
+            }
             
             // 1. Update raw_materials
             const { error } = await supabase.from('raw_materials').update(updatePayload).eq('id', selectedMaterial.id);
@@ -1234,17 +1248,17 @@ export default function AdminDashboard() {
             await supabase.from('material_stock_logs').insert([{
                 material_id: selectedMaterial.id,
                 material_name: selectedMaterial.name,
-                delta: Number(stockAdjustment.delta),
+                delta: effectiveDelta,
                 current_stock: newStock,
-                price: Number(stockAdjustment.price) || null,
+                price: updatePayload.last_price_per_unit || Number(stockAdjustment.price) || null,
                 staff_name: profile?.full_name,
-                note: stockAdjustment.note
+                note: stockAdjustment.note ? `${stockAdjustment.note} (${stockAdjustment.delta} ${adjUnit})` : `Update Stok (${stockAdjustment.delta} ${adjUnit})`
             }]);
 
-            const action = stockAdjustment.delta >= 0 ? `+${stockAdjustment.delta}` : `${stockAdjustment.delta}`;
+            const action = effectiveDelta >= 0 ? `+${effectiveDelta}` : `${effectiveDelta}`;
             toast.success(`Stok ${selectedMaterial.name} diupdate (${action} ${selectedMaterial.unit}).`);
             setSelectedMaterial(null);
-            setStockAdjustment({ delta: 0, note: '', price: 0 });
+            setStockAdjustment({ delta: 0, note: '', price: 0, unit: '' });
             fetchData();
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
@@ -1350,8 +1364,9 @@ export default function AdminDashboard() {
 
     const handleUpdateExpense = async (e: React.FormEvent) => {
         e.preventDefault();
+        const expCat = (editingExpense.category || 'operasional').toLowerCase();
         // Validate: if bahan_baku category, must select material
-        if (editingExpense.category === 'bahan_baku' && !editingExpense.material_id) {
+        if (expCat === 'bahan_baku' && !editingExpense.material_id) {
             toast.error("Pilih bahan baku terlebih dahulu untuk kategori Bahan Baku!");
             return;
         }
@@ -1362,15 +1377,48 @@ export default function AdminDashboard() {
                     description: editingExpense.description,
                     amount: Number(editingExpense.amount),
                     staff_name: profile?.full_name,
-                    category: editingExpense.category || 'operasional',
-                    raw_material_id: editingExpense.material_id || null
+                    category: expCat,
+                    raw_material_id: expCat === 'bahan_baku' ? (editingExpense.material_id || null) : null
                 })
                 .eq('id', editingExpense.id);
             if (error) throw error;
 
+            // If material selected and quantity entered, update material price and stock
+            if (expCat === 'bahan_baku' && editingExpense.material_id && Number(editingExpense.quantity) > 0) {
+                const material = rawMaterials.find(m => m.id === editingExpense.material_id);
+                if (material) {
+                    let mult = 1;
+                    const bUnit = editingExpense.buy_unit || material.unit;
+                    if ((material.unit === 'g' || material.unit === 'gr') && bUnit === 'kg') mult = 1000;
+                    else if (material.unit === 'ml' && (bUnit === 'liter' || bUnit === 'l')) mult = 1000;
+
+                    const addedStock = Number(editingExpense.quantity) * mult;
+                    const unitPrice = addedStock > 0 ? (Number(editingExpense.amount) / addedStock) : Number(material.last_price_per_unit || 0);
+
+                    // Update material price
+                    await supabase.from('raw_materials')
+                        .update({ 
+                            last_price_per_unit: Number(unitPrice.toFixed(2)),
+                            updated_by_name: profile?.full_name
+                        })
+                        .eq('id', editingExpense.material_id);
+
+                    // Log stock update
+                    await supabase.from('material_stock_logs').insert([{
+                        material_id: material.id,
+                        material_name: material.name,
+                        delta: addedStock,
+                        current_stock: Number(material.current_stock),
+                        price: Number(unitPrice.toFixed(2)),
+                        staff_name: profile?.full_name,
+                        note: `Edit Pengeluaran: ${editingExpense.description} (${editingExpense.quantity} ${bUnit})`
+                    }]);
+                }
+            }
+
             toast.success("Pengeluaran berhasil diperbarui."); await logAudit("EDIT_DATA", "expenses", editingExpense.id, { description: editingExpense.description, action: "Edit Pengeluaran" });
             setEditingExpense(null);
-            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional' });
+            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional', buy_unit: 'kg' });
             fetchData();
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
@@ -2588,7 +2636,17 @@ export default function AdminDashboard() {
                                                                 <p className="text-xs text-blue-300 font-bold">Tambah Bahan Baku Baru</p>
                                                                 <div className="flex gap-2">
                                                                     <input type="text" placeholder="Nama Bahan" value={inlineNewMaterial.name} onChange={e => setInlineNewMaterial({...inlineNewMaterial, name: e.target.value})} className="flex-1 p-2 bg-gray-900 border border-gray-800 rounded-lg text-white text-sm outline-none" />
-                                                                    <input type="text" placeholder="Unit (gr/ml/pcs)" value={inlineNewMaterial.unit} onChange={e => setInlineNewMaterial({...inlineNewMaterial, unit: e.target.value})} className="w-28 p-2 bg-gray-900 border border-gray-800 rounded-lg text-white text-sm outline-none" />
+                                                                    <select value={inlineNewMaterial.unit} onChange={e => setInlineNewMaterial({...inlineNewMaterial, unit: e.target.value})} className="w-32 p-2 bg-gray-900 border border-gray-800 rounded-lg text-white text-sm outline-none font-semibold">
+                                                                        <option value="g">Gram (g)</option>
+                                                                        <option value="ml">Mililiter (ml)</option>
+                                                                        <option value="pcs">Pieces (pcs)</option>
+                                                                        <option value="kg">Kilogram (kg)</option>
+                                                                        <option value="liter">Liter (l)</option>
+                                                                        <option value="pack">Pack</option>
+                                                                        <option value="dus">Dus</option>
+                                                                        <option value="botol">Botol</option>
+                                                                        <option value="kaleng">Kaleng</option>
+                                                                    </select>
                                                                 </div>
                                                                 <button type="button" onClick={handleInlineAddMaterial} disabled={loading} className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-500">+ Simpan Bahan Baru</button>
                                                             </div>
@@ -2598,7 +2656,15 @@ export default function AdminDashboard() {
                                                             <div>
                                                                 <select 
                                                                     value={newExpense.material_id || ''} 
-                                                                    onChange={e => setNewExpense({...newExpense, material_id: e.target.value})}
+                                                                    onChange={e => {
+                                                                        const mId = e.target.value;
+                                                                        const m = rawMaterials.find(rm => rm.id === mId);
+                                                                        setNewExpense({
+                                                                            ...newExpense, 
+                                                                            material_id: mId,
+                                                                            buy_unit: m ? (m.unit === 'g' ? 'kg' : m.unit === 'ml' ? 'liter' : m.unit) : newExpense.buy_unit || 'kg'
+                                                                        });
+                                                                    }}
                                                                     className={`w-full p-3 bg-gray-900 border rounded-xl focus:border-blue-500 outline-none text-white ${
                                                                         newExpense.category === 'bahan_baku' && !newExpense.material_id ? 'border-red-500/50' : 'border-gray-800'
                                                                     }`}
@@ -2614,16 +2680,50 @@ export default function AdminDashboard() {
                                                                 )}
                                                             </div>
                                                             <div>
-                                                                <label className="text-xs text-gray-500 mb-1 block">Kuantitas Tambahan</label>
-                                                                <input 
-                                                                    type="number" 
-                                                                    placeholder="Jml" 
-                                                                    value={newExpense.quantity || ''} 
-                                                                    onChange={e => setNewExpense({...newExpense, quantity: Number(e.target.value)})}
-                                                                    className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white"
-                                                                />
+                                                                <div className="flex gap-2">
+                                                                    <input 
+                                                                        type="number" 
+                                                                        step="any"
+                                                                        placeholder="Kuantitas" 
+                                                                        value={newExpense.quantity || ''} 
+                                                                        onChange={e => setNewExpense({...newExpense, quantity: Number(e.target.value)})}
+                                                                        className="flex-1 p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white"
+                                                                    />
+                                                                    <select 
+                                                                        value={newExpense.buy_unit || 'kg'} 
+                                                                        onChange={e => setNewExpense({...newExpense, buy_unit: e.target.value})}
+                                                                        className="w-24 p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-xs font-bold"
+                                                                    >
+                                                                        <option value="kg">kg</option>
+                                                                        <option value="g">gram (g)</option>
+                                                                        <option value="liter">liter (l)</option>
+                                                                        <option value="ml">ml</option>
+                                                                        <option value="pcs">pcs</option>
+                                                                        <option value="pack">pack</option>
+                                                                        <option value="dus">dus</option>
+                                                                        <option value="botol">botol</option>
+                                                                        <option value="kaleng">kaleng</option>
+                                                                    </select>
+                                                                </div>
                                                             </div>
                                                         </div>
+                                                        {(() => {
+                                                            const mat = rawMaterials.find(m => m.id === newExpense.material_id);
+                                                            if (!mat || !newExpense.quantity || !newExpense.amount) return null;
+                                                            let mult = 1;
+                                                            const bUnit = newExpense.buy_unit || mat.unit;
+                                                            if ((mat.unit === 'g' || mat.unit === 'gr') && bUnit === 'kg') mult = 1000;
+                                                            else if (mat.unit === 'ml' && (bUnit === 'liter' || bUnit === 'l')) mult = 1000;
+                                                            const totalUnits = Number(newExpense.quantity) * mult;
+                                                            const unitPrice = totalUnits > 0 ? (Number(newExpense.amount) / totalUnits) : 0;
+                                                            return (
+                                                                <div className="text-[11px] bg-green-950/40 border border-green-500/30 p-2.5 rounded-lg text-green-300">
+                                                                    <span className="font-bold">Konversi:</span> {newExpense.quantity} {bUnit} = {totalUnits.toLocaleString('id-ID')} {mat.unit}
+                                                                    <br />
+                                                                    <span className="font-bold">Harga per {mat.unit}:</span> Rp {unitPrice.toLocaleString('id-ID', { maximumFractionDigits: 2 })} / {mat.unit}
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 )}
 
@@ -2665,8 +2765,9 @@ export default function AdminDashboard() {
                                             </div>
                                     {(() => {
                                                 const filteredExpenses = getFilteredExpenses();
-                                                const totalBahanBaku = filteredExpenses.filter(e => (e.category || 'operasional') === 'bahan_baku').reduce((s, e) => s + Number(e.amount), 0);
-                                                const totalOperasional = filteredExpenses.filter(e => (e.category || 'operasional') === 'operasional').reduce((s, e) => s + Number(e.amount), 0);
+                                                const getExpCategory = (e: any) => (e.category || (e.raw_material_id ? 'bahan_baku' : 'operasional')).toLowerCase();
+                                                const totalBahanBaku = filteredExpenses.filter(e => getExpCategory(e) === 'bahan_baku').reduce((s, e) => s + Number(e.amount), 0);
+                                                const totalOperasional = filteredExpenses.filter(e => getExpCategory(e) === 'operasional').reduce((s, e) => s + Number(e.amount), 0);
                                                 return filteredExpenses.length === 0 ? (
                                                     <p className="p-2 md:p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran pada periode ini.</p>
                                                 ) : (
@@ -2691,37 +2792,55 @@ export default function AdminDashboard() {
                                                     <div className="overflow-x-auto max-h-[600px]">
                                                         <table className="w-full text-left text-xs md:text-sm">
                                                             <tbody>
-                                                                {filteredExpenses.map((exp: any) => (
-                                                                    <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20">
-                                                                        <td className="p-2 md:p-4">
-                                                                            <p className="font-bold text-white">{exp.description}</p>
-                                                                            <p className="text-xs text-gray-500">{new Date(exp.expense_date || exp.created_at).toLocaleString('id-ID')}</p>
-                                                                        </td>
-                                                                        <td className="p-2 md:p-4 text-center">
-                                                                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold border ${
-                                                                                (exp.category || 'operasional') === 'bahan_baku'
-                                                                                    ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                                                                                    : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
-                                                                            }`}>
-                                                                                {(exp.category || 'operasional') === 'bahan_baku' ? '🧪 Bahan' : '⚙️ Ops'}
-                                                                            </span>
-                                                                        </td>
-                                                                        <td className="p-2 md:p-4 text-center">
-                                                                            {exp.staff_name ? (
-                                                                                <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{exp.staff_name}</span>
-                                                                            ) : (
-                                                                                <span className="px-2 py-1 bg-gray-800 text-gray-400 rounded-md text-[10px] border border-gray-700">Owner</span>
-                                                                            )}
-                                                                        </td>
-                                                                        <td className="p-2 md:p-4 text-right font-bold text-red-400 whitespace-nowrap">- Rp {Number(exp.amount).toLocaleString('id-ID')}</td>
-                                                                        <td className="p-3 text-right">
-                                                                            <div className="flex gap-1 justify-end">
-                                                                                <button onClick={() => setEditingExpense({...exp, category: exp.category || 'operasional', material_id: exp.raw_material_id || exp.material_id || ''})} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
-                                                                                <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
-                                                                            </div>
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
+                                                                {filteredExpenses.map((exp: any) => {
+                                                                    const isBahan = getExpCategory(exp) === 'bahan_baku';
+                                                                    return (
+                                                                        <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20">
+                                                                            <td className="p-2 md:p-4">
+                                                                                <p className="font-bold text-white">{exp.description}</p>
+                                                                                <p className="text-xs text-gray-500">{new Date(exp.expense_date || exp.created_at).toLocaleString('id-ID')}</p>
+                                                                            </td>
+                                                                            <td className="p-2 md:p-4 text-center">
+                                                                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold border ${
+                                                                                    isBahan
+                                                                                        ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                                                                        : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                                                                }`}>
+                                                                                    {isBahan ? '🧪 Bahan' : '⚙️ Ops'}
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="p-2 md:p-4 text-center">
+                                                                                {exp.staff_name ? (
+                                                                                    <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{exp.staff_name}</span>
+                                                                                ) : (
+                                                                                    <span className="px-2 py-1 bg-gray-800 text-gray-400 rounded-md text-[10px] border border-gray-700">Owner</span>
+                                                                                )}
+                                                                            </td>
+                                                                            <td className="p-2 md:p-4 text-right font-bold text-red-400 whitespace-nowrap">- Rp {Number(exp.amount).toLocaleString('id-ID')}</td>
+                                                                            <td className="p-3 text-right">
+                                                                                <div className="flex gap-1 justify-end">
+                                                                                    <button 
+                                                                                        onClick={() => {
+                                                                                            const matId = exp.raw_material_id || exp.material_id || '';
+                                                                                            const mat = rawMaterials.find(m => m.id === matId);
+                                                                                            setEditingExpense({
+                                                                                                ...exp, 
+                                                                                                category: isBahan ? 'bahan_baku' : 'operasional', 
+                                                                                                material_id: matId,
+                                                                                                quantity: exp.quantity || 1,
+                                                                                                buy_unit: exp.buy_unit || (mat ? (mat.unit === 'g' ? 'kg' : mat.unit === 'ml' ? 'liter' : mat.unit) : 'kg')
+                                                                                            });
+                                                                                        }} 
+                                                                                        className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors"
+                                                                                    >
+                                                                                        Edit
+                                                                                    </button>
+                                                                                    <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                                </div>
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
                                                             </tbody>
                                                         </table>
                                                     </div>
@@ -2807,21 +2926,82 @@ export default function AdminDashboard() {
                                                     </div>
                                                     
                                                     {(editingExpense.category || 'operasional') === 'bahan_baku' && (
-                                                        <div>
-                                                            <label className="text-xs text-gray-500 mb-1 block">Bahan Baku (Wajib)</label>
-                                                            <select 
-                                                                value={editingExpense.material_id || ''} 
-                                                                onChange={e => setEditingExpense({...editingExpense, material_id: e.target.value})}
-                                                                className={`w-full p-3 bg-gray-900 border rounded-xl focus:border-blue-500 outline-none text-white text-sm ${
-                                                                    !editingExpense.material_id ? 'border-red-500/50' : 'border-gray-800'
-                                                                }`}
-                                                                required={(editingExpense.category || 'operasional') === 'bahan_baku'}
-                                                            >
-                                                                <option value="">-- Pilih Bahan Baku --</option>
-                                                                {rawMaterials.map(m => (
-                                                                    <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
-                                                                ))}
-                                                            </select>
+                                                        <div className="space-y-3 p-3 bg-green-500/5 border border-green-500/20 rounded-xl">
+                                                            <div>
+                                                                <label className="text-xs text-green-400 font-bold mb-1 block">Bahan Baku (Wajib)</label>
+                                                                <select 
+                                                                    value={editingExpense.material_id || ''} 
+                                                                    onChange={e => {
+                                                                        const mId = e.target.value;
+                                                                        const m = rawMaterials.find(rm => rm.id === mId);
+                                                                        setEditingExpense({
+                                                                            ...editingExpense, 
+                                                                            material_id: mId,
+                                                                            buy_unit: m ? (m.unit === 'g' ? 'kg' : m.unit === 'ml' ? 'liter' : m.unit) : (editingExpense.buy_unit || 'kg')
+                                                                        });
+                                                                    }}
+                                                                    className={`w-full p-3 bg-gray-900 border rounded-xl focus:border-blue-500 outline-none text-white text-sm ${
+                                                                        !editingExpense.material_id ? 'border-red-500/50' : 'border-gray-800'
+                                                                    }`}
+                                                                    required={(editingExpense.category || 'operasional') === 'bahan_baku'}
+                                                                >
+                                                                    <option value="">-- Pilih Bahan Baku --</option>
+                                                                    {rawMaterials.map(m => (
+                                                                        <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div>
+                                                                    <label className="text-xs font-bold text-gray-400 block mb-1">Kuantitas Dibeli</label>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        step="any"
+                                                                        placeholder="Contoh: 1 atau 500" 
+                                                                        value={editingExpense.quantity || ''} 
+                                                                        onChange={e => setEditingExpense({...editingExpense, quantity: Number(e.target.value)})} 
+                                                                        className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500 text-sm"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs font-bold text-gray-400 block mb-1">Satuan Beli</label>
+                                                                    <select 
+                                                                        value={editingExpense.buy_unit || 'kg'} 
+                                                                        onChange={e => setEditingExpense({...editingExpense, buy_unit: e.target.value})}
+                                                                        className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500 text-sm font-semibold"
+                                                                    >
+                                                                        <option value="kg">Kilogram (kg)</option>
+                                                                        <option value="g">Gram (g)</option>
+                                                                        <option value="liter">Liter (l)</option>
+                                                                        <option value="ml">Mililiter (ml)</option>
+                                                                        <option value="pcs">Pieces (pcs)</option>
+                                                                        <option value="pack">Pack</option>
+                                                                        <option value="dus">Dus</option>
+                                                                        <option value="botol">Botol</option>
+                                                                        <option value="kaleng">Kaleng</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Real-time Calculation Helper */}
+                                                            {(() => {
+                                                                const mat = rawMaterials.find(m => m.id === editingExpense.material_id);
+                                                                if (!mat || !editingExpense.quantity || !editingExpense.amount) return null;
+                                                                let mult = 1;
+                                                                const bUnit = editingExpense.buy_unit || mat.unit;
+                                                                if ((mat.unit === 'g' || mat.unit === 'gr') && bUnit === 'kg') mult = 1000;
+                                                                else if (mat.unit === 'ml' && (bUnit === 'liter' || bUnit === 'l')) mult = 1000;
+                                                                const totalUnits = Number(editingExpense.quantity) * mult;
+                                                                const unitPrice = totalUnits > 0 ? (Number(editingExpense.amount) / totalUnits) : 0;
+                                                                return (
+                                                                    <div className="text-[11px] bg-green-950/40 border border-green-500/30 p-2.5 rounded-lg text-green-300">
+                                                                        <span className="font-bold">Konversi:</span> {editingExpense.quantity} {bUnit} = {totalUnits.toLocaleString('id-ID')} {mat.unit}
+                                                                        <br />
+                                                                        <span className="font-bold">Harga Satuan Baru:</span> Rp {unitPrice.toLocaleString('id-ID', { maximumFractionDigits: 2 })} / {mat.unit}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     )}
                                                     
@@ -2905,9 +3085,19 @@ export default function AdminDashboard() {
                                             <form onSubmit={handleCreateMaterial} className="space-y-4">
                                                 <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                                 <div className="grid grid-cols-3 gap-4">
-                                                    <input type="text" placeholder="Unit (kg/lt)" required value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                    <select value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white font-semibold">
+                                                        <option value="g">Gram (g)</option>
+                                                        <option value="ml">Mililiter (ml)</option>
+                                                        <option value="pcs">Pieces (pcs)</option>
+                                                        <option value="kg">Kilogram (kg)</option>
+                                                        <option value="liter">Liter (l)</option>
+                                                        <option value="pack">Pack</option>
+                                                        <option value="dus">Dus</option>
+                                                        <option value="botol">Botol</option>
+                                                        <option value="kaleng">Kaleng</option>
+                                                    </select>
                                                     <input type="number" placeholder="Stok" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                    <input type="number" placeholder="Harga/Unit" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                    <input type="number" placeholder="Harga/Unit Dasar" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                                 </div>
                                                 <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Bahan</button>
                                             </form>
@@ -3646,23 +3836,86 @@ export default function AdminDashboard() {
                                                   </div>
                                                   <form onSubmit={handleAdjustStock} className="space-y-4 md:space-y-5">
                                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                                <div>
-                                    <label className="text-xs md:text-sm font-bold text-gray-400 block mb-2">Penambahan / Pengurangan</label>
-                                    <div className="flex items-center gap-2 md:gap-3">
-                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) - 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xl md:text-2xl font-black border border-gray-700">-</button>
-                                        <input type="number" className="flex-1 min-w-0 w-full text-center bg-gray-900 border border-gray-800 rounded-xl py-2 md:py-3 text-white font-bold text-base md:text-lg outline-none focus:border-blue-500" value={stockAdjustment.delta || ''} onChange={e => setStockAdjustment({...stockAdjustment, delta: Number(e.target.value) || 0})} />
-                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) + 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xl md:text-2xl font-black border border-gray-700">+</button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="text-xs md:text-sm font-bold text-gray-400 block mb-2">Harga Beli (Opsional)</label>
-                                    <input type="number" placeholder="Bila kosong = tetap" value={stockAdjustment.price || ''} onChange={e => setStockAdjustment({...stockAdjustment, price: Number(e.target.value)})} className="w-full p-2 md:p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white h-10 md:h-12" />
-                                </div>
-                            </div>
-                                                      <div>
-                                                          <label className="text-xs md:text-sm font-bold text-gray-400 block mb-1 md:mb-2">Keterangan Aktivitas</label>
-                                                          <input type="text" placeholder="Contoh: Beli bahan baru, terpakai tester..." required value={stockAdjustment.note || ''} onChange={e => setStockAdjustment({...stockAdjustment, note: e.target.value})} className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                      </div>
+                                                        <div>
+                                                            <label className="text-xs md:text-sm font-bold text-gray-400 block mb-2">Penambahan / Pengurangan</label>
+                                                            <div className="flex items-center gap-2">
+                                                                <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) - 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xl md:text-2xl font-black border border-gray-700">-</button>
+                                                                <input type="number" step="any" className="flex-1 min-w-0 w-full text-center bg-gray-900 border border-gray-800 rounded-xl py-2 md:py-3 text-white font-bold text-base md:text-lg outline-none focus:border-blue-500" value={stockAdjustment.delta || ''} onChange={e => setStockAdjustment({...stockAdjustment, delta: Number(e.target.value) || 0})} placeholder="0" />
+                                                                <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) + 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xl md:text-2xl font-black border border-gray-700">+</button>
+                                                                
+                                                                {/* UNIT SELECTOR */}
+                                                                <select 
+                                                                    value={stockAdjustment.unit || selectedMaterial.unit} 
+                                                                    onChange={e => setStockAdjustment({...stockAdjustment, unit: e.target.value})}
+                                                                    className="w-28 p-2 md:p-3 bg-gray-900 border border-gray-800 rounded-xl text-white font-bold text-xs md:text-sm outline-none focus:border-blue-500 h-10 md:h-12"
+                                                                >
+                                                                    {(selectedMaterial.unit === 'g' || selectedMaterial.unit === 'gr') && (
+                                                                        <>
+                                                                            <option value="g">Gram (g)</option>
+                                                                            <option value="kg">Kg (1000g)</option>
+                                                                        </>
+                                                                    )}
+                                                                    {(selectedMaterial.unit === 'ml' || selectedMaterial.unit === 'liter' || selectedMaterial.unit === 'l') && (
+                                                                        <>
+                                                                            <option value="ml">Mililiter (ml)</option>
+                                                                            <option value="liter">Liter (1000ml)</option>
+                                                                        </>
+                                                                    )}
+                                                                    {selectedMaterial.unit === 'pcs' && (
+                                                                        <>
+                                                                            <option value="pcs">Pieces (pcs)</option>
+                                                                            <option value="pack">Pack</option>
+                                                                            <option value="dus">Dus</option>
+                                                                        </>
+                                                                    )}
+                                                                    {!['g', 'gr', 'ml', 'liter', 'l', 'pcs'].includes(selectedMaterial.unit) && (
+                                                                        <>
+                                                                            <option value={selectedMaterial.unit}>{selectedMaterial.unit}</option>
+                                                                            <option value="kg">kg</option>
+                                                                            <option value="g">g</option>
+                                                                            <option value="liter">liter</option>
+                                                                            <option value="ml">ml</option>
+                                                                            <option value="pcs">pcs</option>
+                                                                            <option value="pack">pack</option>
+                                                                            <option value="dus">dus</option>
+                                                                        </>
+                                                                    )}
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-xs md:text-sm font-bold text-gray-400 block mb-2">Harga Beli Total (Opsional)</label>
+                                                            <input type="number" placeholder="Bila kosong = harga lama" value={stockAdjustment.price || ''} onChange={e => setStockAdjustment({...stockAdjustment, price: Number(e.target.value)})} className="w-full p-2 md:p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white h-10 md:h-12 text-sm" />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Smart Conversion Helper Preview */}
+                                                    {(() => {
+                                                        const adjUnit = stockAdjustment.unit || selectedMaterial.unit;
+                                                        let mult = 1;
+                                                        if ((selectedMaterial.unit === 'g' || selectedMaterial.unit === 'gr') && adjUnit === 'kg') mult = 1000;
+                                                        else if (selectedMaterial.unit === 'ml' && (adjUnit === 'liter' || adjUnit === 'l')) mult = 1000;
+                                                        const effDelta = (Number(stockAdjustment.delta) || 0) * mult;
+                                                        const finalStock = Number(selectedMaterial.current_stock) + effDelta;
+                                                        return (
+                                                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-xs text-blue-300 flex flex-col gap-1.5">
+                                                                <div className="flex justify-between items-center">
+                                                                    <span>Perubahan Stok: <b className={effDelta >= 0 ? 'text-green-400' : 'text-red-400'}>{effDelta >= 0 ? `+${effDelta.toLocaleString('id-ID')}` : effDelta.toLocaleString('id-ID')} {selectedMaterial.unit}</b></span>
+                                                                    <span>Stok Akhir: <b className="text-white">{finalStock.toLocaleString('id-ID')} {selectedMaterial.unit}</b></span>
+                                                                </div>
+                                                                {stockAdjustment.price > 0 && (
+                                                                    <div className="text-[11px] text-green-300 border-t border-blue-500/20 pt-1">
+                                                                        💡 Harga Baru per {selectedMaterial.unit}: <b>Rp {((mult > 1 ? (Number(stockAdjustment.price) / (Math.abs(effDelta) || 1)) : Number(stockAdjustment.price))).toLocaleString('id-ID', { maximumFractionDigits: 2 })} / {selectedMaterial.unit}</b>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })()}
+
+                                                    <div>
+                                                        <label className="text-xs md:text-sm font-bold text-gray-400 block mb-1 md:mb-2">Keterangan Aktivitas</label>
+                                                        <input type="text" placeholder="Contoh: Beli bahan baru, terpakai tester..." required value={stockAdjustment.note || ''} onChange={e => setStockAdjustment({...stockAdjustment, note: e.target.value})} className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                    </div>
                                                       <p className="text-xs text-gray-500">?? <b>Tip:</b> Anda bisa langsung mengetik jumlah di kotak angka. Gunakan angka minus (-) jika bahan terpakai/dibuang.</p>
                                                       <div className="flex gap-4 mt-6 pt-4 border-t border-gray-800">
                                                           <button type="button" onClick={() => setSelectedMaterial(null)} className="flex-1 py-2 md:py-3 text-sm md:text-base bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-colors">Batal</button>
