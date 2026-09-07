@@ -247,6 +247,25 @@ router.post('/refunds/:id/approve', async (req, res) => {
 // =======================
 router.get('/health2', (req, res) => res.json({ status: 'v3' }));
 router.get('/debug-sessions2', async (req, res) => { const { data, error } = await supabase.from('cash_sessions').select('*').order('created_at', { ascending: false }).limit(10); res.json({ data, error }); });
+router.put('/admin/cash-sessions/:id/opening-cash', async (req, res) => {
+    try {
+        const { opening_cash } = req.body;
+        if (opening_cash === undefined || opening_cash === null) {
+            return res.status(400).json({ error: 'opening_cash is required' });
+        }
+        const { data, error } = await supabase
+            .from('cash_sessions')
+            .update({ opening_cash: Number(opening_cash) })
+            .eq('id', req.params.id)
+            .select('*')
+            .single();
+        if (error) throw error;
+        res.json(data);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 router.delete('/admin/cash-sessions/:id', async (req, res) => {
     try {
         await supabase.from('cash_movements').delete().eq('session_id', req.params.id);

@@ -36,7 +36,12 @@ export default function PosPage() {
     const [showExpensesModal, setShowExpensesModal] = useState(false);
     const [expenses, setExpenses] = useState<any[]>([]);
     const [rawMaterials, setRawMaterials] = useState<any[]>([]);
-    const [newExpense, setNewExpense] = useState({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
+    const [newExpense, setNewExpense] = useState({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional' });
+    
+    // Inline add material in expense form
+    const [showInlineAddMaterial, setShowInlineAddMaterial] = useState(false);
+    const [inlineNewMaterial, setInlineNewMaterial] = useState({ name: '', unit: '', last_price_per_unit: 0 });
+
     const [newMaterial, setNewMaterial] = useState({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
     const [editingMaterial, setEditingMaterial] = useState<any>(null);
     
@@ -414,15 +419,48 @@ export default function PosPage() {
         }
     }, [showExpensesModal]);
 
+    const handleInlineAddMaterial = async () => {
+        if (!inlineNewMaterial.name || !inlineNewMaterial.unit) {
+            toast.error("Nama dan satuan bahan wajib diisi!");
+            return;
+        }
+        setLoading(true);
+        try {
+            const { data: matData, error } = await supabase.from('raw_materials').insert([{
+                name: inlineNewMaterial.name,
+                unit: inlineNewMaterial.unit,
+                current_stock: 0,
+                last_price_per_unit: Number(inlineNewMaterial.last_price_per_unit) || 0,
+                updated_by_name: staff?.full_name
+            }]).select().single();
+            if (error) throw error;
+            toast.success(`Bahan baku "${inlineNewMaterial.name}" berhasil ditambahkan!`);
+            setInlineNewMaterial({ name: '', unit: '', last_price_per_unit: 0 });
+            setShowInlineAddMaterial(false);
+            // Reload materials
+            await fetchExpensesAndMaterials();
+            // Auto-select the new material
+            if (matData) setNewExpense(prev => ({ ...prev, material_id: matData.id }));
+        } catch (e: any) { toast.error(e.message); }
+        setLoading(false);
+    };
+
     const handleCreateExpense = async (e: React.FormEvent) => {
         e.preventDefault();
+        // Validate: if bahan_baku category, must select material
+        if (newExpense.category === 'bahan_baku' && !newExpense.material_id) {
+            toast.error("Pilih bahan baku terlebih dahulu untuk kategori Bahan Baku!");
+            return;
+        }
         setLoading(true);
         try {
             const { data: expData, error } = await supabase.from('expenses').insert([{
                 description: newExpense.payment_method === 'CASH' ? newExpense.description : `[${newExpense.payment_method}] ${newExpense.description}`,
                 amount: Number(newExpense.amount),
                 recorded_by: staff?.id,
-                staff_name: staff?.full_name
+                staff_name: staff?.full_name,
+                category: newExpense.category,
+                material_id: newExpense.material_id || null
             }]).select();
             if (error) throw error;
             
@@ -471,7 +509,7 @@ export default function PosPage() {
             }
 
             toast.success("Pengeluaran berhasil dicatat (Laci dikurangi).");
-            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
+            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional' });
             fetchExpensesAndMaterials();
             if (sessionId) fetchSessionData(sessionId);
         } catch (e: any) { toast.error(e.message); }
@@ -489,7 +527,7 @@ export default function PosPage() {
 
             toast.success("Pengeluaran diperbarui.");
             setEditingExpense(null);
-            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
+            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional' });
             fetchExpensesAndMaterials();
             if (sessionId) fetchSessionData(sessionId);
         } catch (e: any) { toast.error(e.message); }
@@ -1502,7 +1540,7 @@ export default function PosPage() {
                                             {editingExpense ? 'Edit Pengeluaran' : 'Catat Pengeluaran Operasional'}
                                         </h3>
                                         {editingExpense && (
-                                            <button onClick={() => { setEditingExpense(null); setNewExpense({description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH'}); }} className="text-xs text-blue-400 hover:text-blue-300">Batal Edit</button>
+                                            <button onClick={() => { setEditingExpense(null); setNewExpense({description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional'}); }} className="text-xs text-blue-400 hover:text-blue-300">Batal Edit</button>
                                         )}
                                     </div>
                                     <form onSubmit={editingExpense ? handleUpdateExpense : handleCreateExpense} className="space-y-4">
@@ -1516,34 +1554,60 @@ export default function PosPage() {
                                                 <span>Saldo Rekening (QRIS/Trf)</span>
                                             </label>
                                         </div>
+                                        {/* Kategori Pengeluaran */}
+                                        <div className="flex gap-4 mb-2 p-2 bg-gray-900 border border-gray-800 rounded-xl">
+                                            <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-sm font-bold transition-all ${newExpense.category === 'operasional' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'text-gray-400 hover:bg-gray-800'}`}>
+                                                <input type="radio" name="exp_category_pos" value="operasional" checked={newExpense.category === 'operasional'} onChange={() => setNewExpense({...newExpense, category: 'operasional'})} className="hidden" />
+                                                ⚙️ Operasional
+                                            </label>
+                                            <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-sm font-bold transition-all ${newExpense.category === 'bahan_baku' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'text-gray-400 hover:bg-gray-800'}`}>
+                                                <input type="radio" name="exp_category_pos" value="bahan_baku" checked={newExpense.category === 'bahan_baku'} onChange={() => setNewExpense({...newExpense, category: 'bahan_baku'})} className="hidden" />
+                                                🧪 Bahan Baku
+                                            </label>
+                                        </div>
+
                                         <input type="text" placeholder="Deskripsi Pengeluaran (contoh: Beli Es Batu)" required value={editingExpense ? editingExpense.description : newExpense.description} onChange={e => editingExpense ? setEditingExpense({...editingExpense, description: e.target.value}) : setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                         <input type="number" placeholder="Nominal (Rp)" required value={editingExpense ? editingExpense.amount || '' : newExpense.amount || ''} onChange={e => editingExpense ? setEditingExpense({...editingExpense, amount: Number(e.target.value)}) : setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                         
                                         {!editingExpense && (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="text-xs text-gray-500 mb-1 block">Tambah Stok Bahan (Opsional)</label>
-                                                    <select 
-                                                        value={newExpense.material_id || ''} 
-                                                        onChange={e => setNewExpense({...newExpense, material_id: e.target.value})}
-                                                        className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white"
-                                                    >
-                                                        <option value="">Pilih Bahan Baku...</option>
-                                                        {rawMaterials.map(m => (
-                                                            <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
-                                                        ))}
-                                                    </select>
+                                            <div className="p-3 bg-gray-900 border border-gray-800 rounded-xl">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <label className="text-xs font-bold text-gray-400 block">Hubungkan ke Bahan Baku (Opsional)</label>
+                                                    {!showInlineAddMaterial && (
+                                                        <button type="button" onClick={() => setShowInlineAddMaterial(true)} className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded hover:bg-blue-500/20">+ Tambah Jenis Baru</button>
+                                                    )}
                                                 </div>
-                                                {newExpense.material_id && (
-                                                    <div>
-                                                        <label className="text-xs text-gray-500 mb-1 block">Kuantitas Tambahan</label>
-                                                        <input 
-                                                            type="number" 
-                                                            placeholder="Jml" 
-                                                            value={newExpense.quantity || ''} 
-                                                            onChange={e => setNewExpense({...newExpense, quantity: Number(e.target.value)})}
-                                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white"
-                                                        />
+                                                
+                                                {showInlineAddMaterial ? (
+                                                    <div className="p-3 bg-blue-900/10 border border-blue-500/20 rounded-xl mb-3 space-y-2">
+                                                        <input type="text" placeholder="Nama Bahan Baru (Cth: Susu Oat)" value={inlineNewMaterial.name} onChange={e => setInlineNewMaterial({...inlineNewMaterial, name: e.target.value})} className="w-full p-2 text-sm bg-[#0B0F19] border border-gray-700 rounded-lg text-white outline-none" />
+                                                        <div className="flex gap-2">
+                                                            <input type="text" placeholder="Satuan (Cth: Liter)" value={inlineNewMaterial.unit} onChange={e => setInlineNewMaterial({...inlineNewMaterial, unit: e.target.value})} className="flex-1 p-2 text-sm bg-[#0B0F19] border border-gray-700 rounded-lg text-white outline-none" />
+                                                            <button type="button" onClick={handleInlineAddMaterial} className="px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-500">Simpan Bahan</button>
+                                                            <button type="button" onClick={() => setShowInlineAddMaterial(false)} className="px-3 py-2 bg-gray-800 text-gray-400 text-xs font-bold rounded-lg hover:bg-gray-700">Batal</button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <select 
+                                                            value={newExpense.material_id || ''} 
+                                                            onChange={e => setNewExpense({...newExpense, material_id: e.target.value})}
+                                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm"
+                                                        >
+                                                            <option value="">-- Pilih Bahan Baku yg Ada --</option>
+                                                            {rawMaterials.map(m => (
+                                                                <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
+                                                            ))}
+                                                        </select>
+                                                        {newExpense.material_id && (
+                                                            <input 
+                                                                type="number" 
+                                                                placeholder="Jumlah Kuantitas" 
+                                                                value={newExpense.quantity || ''} 
+                                                                onChange={e => setNewExpense({...newExpense, quantity: Number(e.target.value)})}
+                                                                className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm"
+                                                            />
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>

@@ -63,17 +63,17 @@ export default function AdminDashboard() {
     
     // Edit & Expenses States
     const [editingProduct, setEditingProduct] = useState<any>(null);
-    const [adjustingProductStock, setAdjustingProductStock] = useState<any>(null); // New state for product stock
-    const [viewingProductHistory, setViewingProductHistory] = useState<any>(null); // New state for product history
-    const [productHistoryData, setProductHistoryData] = useState<any[]>([]); // New state for product history data
-    const [productStockDelta, setProductStockDelta] = useState<number>(0); // New state for stock delta
+    const [adjustingProductStock, setAdjustingProductStock] = useState<any>(null);
+    const [viewingProductHistory, setViewingProductHistory] = useState<any>(null);
+    const [productHistoryData, setProductHistoryData] = useState<any[]>([]);
+    const [productStockDelta, setProductStockDelta] = useState<number>(0);
     const [editingStaff, setEditingStaff] = useState<any>(null);
     const [editingMaterial, setEditingMaterial] = useState<any>(null);
     const [editingExpense, setEditingExpense] = useState<any>(null);
     const [expenses, setExpenses] = useState<any[]>([]);
     const [rawMaterials, setRawMaterials] = useState<any[]>([]);
-    const [materialStockLogs, setMaterialStockLogs] = useState<any[]>([]); // New state
-    const [newExpense, setNewExpense] = useState({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
+    const [materialStockLogs, setMaterialStockLogs] = useState<any[]>([]);
+    const [newExpense, setNewExpense] = useState({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional' });
     const [newMaterial, setNewMaterial] = useState({ name: '', unit: '', current_stock: 0, last_price_per_unit: 0 });
     const [newStaff, setNewStaff] = useState({ full_name: '', email: '', password: '', role: 'staff' });
     
@@ -83,6 +83,17 @@ export default function AdminDashboard() {
     const [stockAdjustment, setStockAdjustment] = useState<{ delta: number; note: string; price: number }>({ delta: 0, note: '', price: 0 });
     const [expenseSortOrder, setExpenseSortOrder] = useState<'desc' | 'asc'>('desc');
     const [expensePeriod, setExpensePeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly' | 'all'>('all');
+    const [expenseCategoryFilter, setExpenseCategoryFilter] = useState<'all' | 'bahan_baku' | 'operasional'>('all');
+    
+    // Edit opening cash on shift
+    const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+    const [editingOpeningCash, setEditingOpeningCash] = useState<string>('');
+    
+    // Inline add material in expense form
+    const [showInlineAddMaterial, setShowInlineAddMaterial] = useState(false);
+    const [inlineNewMaterial, setInlineNewMaterial] = useState({ name: '', unit: '', last_price_per_unit: 0 });
+
+    const OPERATIONAL_COST = 3000;
     
     // Store Settings
     const [storeSettings, setStoreSettings] = useState({
@@ -101,8 +112,8 @@ export default function AdminDashboard() {
 
     const [products, setProducts] = useState<any[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
-    const [newProduct, setNewProduct] = useState<{name: string, category: string, price: number, cogs: number, stock: number, image_icon: string, image_url: string, discount_percentage?: number, options_config?: any[], ingredients: {raw_material_id: string, name: string, qty: number, cost: number}[]}>({ 
-        name: '', category: 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '📦', image_url: '', discount_percentage: 0, options_config: [], ingredients: [] 
+    const [newProduct, setNewProduct] = useState<{name: string, category: string, price: number, cogs: number, stock: number, image_icon: string, image_url: string, discount_percentage?: number, options_config?: any[], ingredients: {raw_material_id: string, name: string, qty: number, cost: number}[], operational_cost: number}>({ 
+        name: '', category: 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '📦', image_url: '', discount_percentage: 0, options_config: [], ingredients: [], operational_cost: 3000
     });
     
     const [loading, setLoading] = useState(false);
@@ -487,6 +498,12 @@ export default function AdminDashboard() {
 
     const getFilteredExpenses = () => {
         let filtered = expenses.filter(exp => {
+            // Category filter
+            if (expenseCategoryFilter !== 'all') {
+                const expCat = exp.category || 'operasional';
+                if (expCat !== expenseCategoryFilter) return false;
+            }
+
             if (expensePeriod === 'all') return true;
             
             const expDate = new Date(exp.expense_date || exp.created_at);
@@ -576,8 +593,12 @@ export default function AdminDashboard() {
         e.preventDefault();
         setLoading(true);
         
-        const computedCogs = newProduct.ingredients.length > 0 
+        const ingredientsCost = newProduct.ingredients.length > 0 
             ? newProduct.ingredients.reduce((sum, item) => sum + item.cost, 0)
+            : 0;
+        const opCost = Number(newProduct.operational_cost ?? OPERATIONAL_COST);
+        const computedCogs = newProduct.ingredients.length > 0 
+            ? ingredientsCost + opCost
             : Number(newProduct.cogs);
 
         try {
@@ -592,12 +613,13 @@ export default function AdminDashboard() {
                     ingredients: newProduct.ingredients,
                     discount_percentage: Number(newProduct.discount_percentage || 0),
                     options_config: newProduct.options_config || [],
-                    image_url: newProduct.image_url
+                    image_url: newProduct.image_url,
+                    operational_cost: opCost
                 })
             });
             if(res.ok) {
                 toast.success("Produk berhasil ditambahkan!");
-                setNewProduct({ name: '', category: storeSettings.categories?.[0] || 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '📦', image_url: '', discount_percentage: 0, options_config: [], ingredients: [] });
+                setNewProduct({ name: '', category: storeSettings.categories?.[0] || 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '📦', image_url: '', discount_percentage: 0, options_config: [], ingredients: [], operational_cost: OPERATIONAL_COST });
                 fetchData();
             } else {
                 const err = await res.json();
@@ -660,8 +682,13 @@ export default function AdminDashboard() {
     const handleUpdateProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        const computedCogs = editingProduct.ingredients.length > 0 
-            ? editingProduct.ingredients.reduce((sum: number, item: any) => sum + item.cost, 0)
+        const ings = editingProduct.ingredients || [];
+        const ingredientsCost = ings.length > 0 
+            ? ings.reduce((sum: number, item: any) => sum + item.cost, 0)
+            : 0;
+        const opCost = Number(editingProduct.operational_cost ?? OPERATIONAL_COST);
+        const computedCogs = ings.length > 0 
+            ? ingredientsCost + opCost
             : Number(editingProduct.cogs);
 
         try {
@@ -678,7 +705,8 @@ export default function AdminDashboard() {
                     image_url: editingProduct.image_url || null,
                     ingredients: editingProduct.ingredients,
                     discount_percentage: Number(editingProduct.discount_percentage || 0),
-                    options_config: editingProduct.options_config || []
+                    options_config: editingProduct.options_config || [],
+                    operational_cost: opCost
                 })
             });
             if(res.ok) {
@@ -792,6 +820,30 @@ export default function AdminDashboard() {
                 fetchData();
             } else {
                 toast.error("Gagal menghapus shift.");
+            }
+        } catch(error) {
+            toast.error("Terjadi kesalahan jaringan.");
+        }
+        setLoading(false);
+    };
+
+    const handleEditOpeningCash = async () => {
+        if (!editingSessionId || !editingOpeningCash) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/cash-sessions/${editingSessionId}/opening-cash`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ opening_cash: Number(editingOpeningCash) })
+            });
+            if (res.ok) {
+                toast.success("Modal awal shift berhasil diperbarui.");
+                setEditingSessionId(null);
+                setEditingOpeningCash('');
+                fetchData();
+            } else {
+                const err = await res.json();
+                toast.error(err.error || "Gagal mengupdate modal awal.");
             }
         } catch(error) {
             toast.error("Terjadi kesalahan jaringan.");
@@ -994,15 +1046,49 @@ export default function AdminDashboard() {
         } catch (e: any) { toast.error(e.message); }
     };
 
+    const handleInlineAddMaterial = async () => {
+        if (!inlineNewMaterial.name || !inlineNewMaterial.unit) {
+            toast.error("Nama dan satuan bahan wajib diisi!");
+            return;
+        }
+        setLoading(true);
+        try {
+            const { data: matData, error } = await supabase.from('raw_materials').insert([{
+                name: inlineNewMaterial.name,
+                unit: inlineNewMaterial.unit,
+                current_stock: 0,
+                last_price_per_unit: Number(inlineNewMaterial.last_price_per_unit) || 0,
+                updated_by_name: profile?.full_name
+            }]).select().single();
+            if (error) throw error;
+            toast.success(`Bahan baku "${inlineNewMaterial.name}" berhasil ditambahkan!`);
+            setInlineNewMaterial({ name: '', unit: '', last_price_per_unit: 0 });
+            setShowInlineAddMaterial(false);
+            // Reload materials
+            const { data: matRes } = await supabase.from('raw_materials').select('*').order('name', { ascending: true });
+            setRawMaterials(matRes || []);
+            // Auto-select the new material
+            if (matData) setNewExpense(prev => ({ ...prev, material_id: matData.id }));
+        } catch (e: any) { toast.error(e.message); }
+        setLoading(false);
+    };
+
     const handleCreateExpense = async (e: React.FormEvent) => {
         e.preventDefault();
+        // Validate: if bahan_baku category, must select material
+        if (newExpense.category === 'bahan_baku' && !newExpense.material_id) {
+            toast.error("Pilih bahan baku terlebih dahulu untuk kategori Bahan Baku!");
+            return;
+        }
         setLoading(true);
         try {
             const { error } = await supabase.from('expenses').insert([{
                 description: newExpense.payment_method === 'CASH' ? newExpense.description : `[${newExpense.payment_method}] ${newExpense.description}`,
                 amount: Number(newExpense.amount),
                 recorded_by: profile?.id,
-                staff_name: profile?.full_name
+                staff_name: profile?.full_name,
+                category: newExpense.category,
+                material_id: newExpense.material_id || null
             }]);
             if (error) throw error;
             
@@ -1030,7 +1116,7 @@ export default function AdminDashboard() {
             }
             
             toast.success("Pengeluaran berhasil dicatat.");
-            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
+            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional' });
             fetchData();
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
@@ -1038,40 +1124,27 @@ export default function AdminDashboard() {
 
     const handleUpdateExpense = async (e: React.FormEvent) => {
         e.preventDefault();
+        // Validate: if bahan_baku category, must select material
+        if (editingExpense.category === 'bahan_baku' && !editingExpense.material_id) {
+            toast.error("Pilih bahan baku terlebih dahulu untuk kategori Bahan Baku!");
+            return;
+        }
         setLoading(true);
         try {
             const { error } = await supabase.from('expenses')
                 .update({
                     description: editingExpense.description,
                     amount: Number(editingExpense.amount),
-                    staff_name: profile?.full_name
+                    staff_name: profile?.full_name,
+                    category: editingExpense.category || 'operasional',
+                    material_id: editingExpense.material_id || null
                 })
                 .eq('id', editingExpense.id);
             if (error) throw error;
 
-            if (newExpense.material_id && Number(newExpense.quantity) !== 0) {
-                const material = rawMaterials.find(m => m.id === newExpense.material_id);
-                if (material) {
-                    const newStock = Number(material.current_stock) + Number(newExpense.quantity);
-                    const { error: matError } = await supabase.from('raw_materials')
-                        .update({ current_stock: newStock, updated_by_name: profile?.full_name })
-                        .eq('id', newExpense.material_id);
-                    if (matError) throw matError;
-                    
-                    await supabase.from('material_stock_logs').insert([{
-                        material_id: material.id,
-                        material_name: material.name,
-                        delta: Number(newExpense.quantity),
-                        current_stock: newStock,
-                        staff_name: profile?.full_name,
-                        note: `Koreksi dr Edit Pengeluaran: ${editingExpense.description}`
-                    }]);
-                }
-            }
-
             toast.success("Pengeluaran berhasil diperbarui."); await logAudit("EDIT_DATA", "expenses", editingExpense.id, { description: editingExpense.description, action: "Edit Pengeluaran" });
             setEditingExpense(null);
-            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH' });
+            setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional' });
             fetchData();
         } catch (e: any) { toast.error(e.message); }
         setLoading(false);
@@ -1745,7 +1818,10 @@ export default function AdminDashboard() {
                                                         {session.closed_at && ` | Tutup: ${new Date(session.closed_at).toLocaleString('id-ID')}`}
                                                     </p>
                                                     {profile?.role === 'owner' && (
-                                                        <button onClick={() => handleDeleteSession(session.id)} disabled={loading} className="mt-2 text-[10px] uppercase font-bold tracking-wider px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full hover:bg-red-500/20 w-fit transition-colors">Hapus Shift</button>
+                                                        <div className="flex flex-wrap gap-2 mt-2">
+                                                            <button onClick={() => { setEditingSessionId(session.id); setEditingOpeningCash(String(session.opening_cash || 0)); }} disabled={loading} className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full hover:bg-blue-500/20 w-fit transition-colors">Edit Modal</button>
+                                                            <button onClick={() => handleDeleteSession(session.id)} disabled={loading} className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full hover:bg-red-500/20 w-fit transition-colors">Hapus Shift</button>
+                                                        </div>
                                                     )}
 </div>
                                                 <div className="flex flex-col gap-1 text-sm bg-gray-900/50 p-3 rounded-xl border border-gray-800 min-w-[200px]">
@@ -1767,6 +1843,31 @@ export default function AdminDashboard() {
                                             </div>
                                         ))
                                     )}
+
+                                    {/* Edit Opening Cash Modal */}
+                                    {editingSessionId && (
+                                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
+                                            <div className="bg-[#131B2C] border border-gray-800 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
+                                                <h3 className="font-bold text-xl text-white mb-2">Edit Modal Awal Shift</h3>
+                                                <p className="text-gray-400 text-sm mb-5">Ubah jumlah uang modal pembuka shift ini.</p>
+                                                <div className="mb-5">
+                                                    <label className="text-sm font-bold text-gray-400 block mb-2">Nominal Modal Awal (Rp)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={editingOpeningCash}
+                                                        onChange={e => setEditingOpeningCash(e.target.value)}
+                                                        className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500 text-lg font-bold"
+                                                        placeholder="Contoh: 500000"
+                                                    />
+                                                </div>
+                                                <div className="flex gap-3">
+                                                    <button onClick={() => { setEditingSessionId(null); setEditingOpeningCash(''); }} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
+                                                    <button onClick={handleEditOpeningCash} disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">{loading ? 'Menyimpan...' : 'Simpan'}</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                 </div>
                             )}
 
@@ -1807,7 +1908,8 @@ export default function AdminDashboard() {
                                             />
                                             <input type="text" placeholder="Icon Emoji (opsional)" value={newProduct.image_icon} onChange={e => setNewProduct({...newProduct, image_icon: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
                                             <div><label className="text-xs text-gray-500 mb-2 block">Harga Jual (Rp)</label><input type="number" placeholder="0" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
-                                            <div><label className="text-xs text-gray-500 mb-2 block">HPP / Modal (Rp)</label><input type="number" placeholder="0" required value={newProduct.cogs} onChange={e => setNewProduct({...newProduct, cogs: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
+                                            <div><label className="text-xs text-gray-500 mb-2 block">HPP Bahan (Rp) <span className="text-gray-600 font-normal">(auto jika ada ingredient)</span></label><input type="number" placeholder="0" required value={newProduct.cogs} onChange={e => setNewProduct({...newProduct, cogs: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
+                                            <div><label className="text-xs text-gray-500 mb-2 block">Biaya Operasional (Rp)</label><input type="number" placeholder="3000" value={newProduct.operational_cost ?? OPERATIONAL_COST} onChange={e => setNewProduct({...newProduct, operational_cost: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
                                             <div><label className="text-xs text-gray-500 mb-2 block">Stok Awal</label><input type="number" placeholder="0" required value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
                                         </div>
                                         
@@ -1838,7 +1940,22 @@ export default function AdminDashboard() {
                                                     <button type="button" onClick={() => removeIngredient(i)} className="text-red-400 p-2 hover:bg-red-500/10 rounded-lg">Hapus</button>
                                                 </div>
                                             ))}
-                                            {newProduct.ingredients.length > 0 && <div className="mt-4 pt-4 border-t border-gray-800 text-right font-bold text-blue-400">Total HPP Otomatis: Rp {newProduct.ingredients.reduce((sum, item) => sum + item.cost, 0).toLocaleString('id-ID')}</div>}
+                                            {newProduct.ingredients.length > 0 && (
+                                                <div className="mt-4 pt-4 border-t border-gray-800">
+                                                    <div className="flex justify-between text-sm text-gray-400">
+                                                        <span>HPP Bahan</span>
+                                                        <span>Rp {newProduct.ingredients.reduce((sum, item) => sum + item.cost, 0).toLocaleString('id-ID')}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm text-orange-400">
+                                                        <span>Biaya Operasional</span>
+                                                        <span>Rp {(newProduct.operational_cost ?? OPERATIONAL_COST).toLocaleString('id-ID')}</span>
+                                                    </div>
+                                                    <div className="flex justify-between font-bold text-blue-400 border-t border-gray-700 mt-1 pt-1">
+                                                        <span>Total HPP</span>
+                                                        <span>Rp {(newProduct.ingredients.reduce((sum, item) => sum + item.cost, 0) + (newProduct.operational_cost ?? OPERATIONAL_COST)).toLocaleString('id-ID')}</span>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="mt-4 p-4 bg-[#0B1526] border border-blue-900/40 rounded-xl">
                                             <h4 className="font-bold text-blue-300 mb-3 text-sm">🏷️ Diskon Produk</h4>
@@ -1966,14 +2083,18 @@ export default function AdminDashboard() {
                                                             onRemove={handleRemoveCategory}
                                                         />
                                                     </div>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         <div>
                                                             <label className="text-sm font-bold text-gray-400 block mb-2">Harga Jual</label>
                                                             <input type="number" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
                                                         </div>
                                                         <div>
-                                                            <label className="text-sm font-bold text-gray-400 block mb-2">HPP Dasar</label>
+                                                            <label className="text-sm font-bold text-gray-400 block mb-2">HPP Bahan <span className="font-normal text-gray-600">(auto jika ada ingredient)</span></label>
                                                             <input type="number" value={editingProduct.cogs} onChange={e => setEditingProduct({...editingProduct, cogs: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-sm font-bold text-gray-400 block mb-2">Biaya Operasional (Rp)</label>
+                                                            <input type="number" value={editingProduct.operational_cost ?? OPERATIONAL_COST} onChange={e => setEditingProduct({...editingProduct, operational_cost: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" />
                                                         </div>
                                                     </div>
 
@@ -2082,6 +2203,21 @@ export default function AdminDashboard() {
                                                         <div className="text-center py-8 text-gray-500">Belum ada data penjualan untuk produk ini.</div>
                                                     ) : (
                                                         <div className="space-y-3">
+                                                            <div className="flex gap-2 p-3 bg-gray-800/50 rounded-xl mb-4 text-center border border-gray-700">
+                                                                <div className="flex-1">
+                                                                    <div className="text-[10px] text-gray-400 font-bold">Total Terjual</div>
+                                                                    <div className="text-sm font-bold text-white">{productHistoryData.reduce((sum: number, h: any) => sum + h.quantity, 0)}</div>
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <div className="text-[10px] text-gray-400 font-bold">Pendapatan</div>
+                                                                    <div className="text-sm font-bold text-green-400">Rp {productHistoryData.reduce((sum: number, h: any) => sum + (h.quantity * h.price_at_time), 0).toLocaleString('id-ID')}</div>
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <div className="text-[10px] text-gray-400 font-bold">Rata-rata Harga</div>
+                                                                    <div className="text-sm font-bold text-blue-400">Rp {Math.round(productHistoryData.reduce((sum: number, h: any) => sum + (h.quantity * h.price_at_time), 0) / productHistoryData.reduce((sum: number, h: any) => sum + h.quantity, 0)).toLocaleString('id-ID')}</div>
+                                                                </div>
+                                                            </div>
+
                                                             {productHistoryData.map((hist: any, idx: number) => (
                                                                 <div key={idx} className="bg-gray-900 border border-gray-800 p-4 rounded-2xl flex justify-between items-center">
                                                                     <div>
@@ -2122,36 +2258,83 @@ export default function AdminDashboard() {
                                                         <span>Saldo Rek (QRIS)</span>
                                                     </label>
                                                 </div>
+
+                                                {/* Category selector */}
+                                                <div className="flex gap-3 mb-2">
+                                                    <button type="button"
+                                                        onClick={() => setNewExpense({...newExpense, category: 'operasional', material_id: ''})}
+                                                        className={`flex-1 py-2.5 rounded-xl font-bold text-sm border transition-all ${
+                                                            newExpense.category === 'operasional'
+                                                                ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
+                                                                : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'
+                                                        }`}
+                                                    >⚙️ Operasional</button>
+                                                    <button type="button"
+                                                        onClick={() => setNewExpense({...newExpense, category: 'bahan_baku'})}
+                                                        className={`flex-1 py-2.5 rounded-xl font-bold text-sm border transition-all ${
+                                                            newExpense.category === 'bahan_baku'
+                                                                ? 'bg-green-500/20 text-green-300 border-green-500/40'
+                                                                : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'
+                                                        }`}
+                                                    >🧪 Bahan Baku</button>
+                                                </div>
+
                                                 <input type="text" placeholder="Deskripsi Pengeluaran" required value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                                 <input type="number" placeholder="Nominal (Rp)" required value={newExpense.amount || ''} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
                                                 
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label className="text-xs text-gray-500 mb-1 block">Bahan Baku (Opsional)</label>
-                                                        <select 
-                                                            value={newExpense.material_id || ''} 
-                                                            onChange={e => setNewExpense({...newExpense, material_id: e.target.value})}
-                                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white"
-                                                        >
-                                                            <option value="">Pilih Bahan Baku...</option>
-                                                            {rawMaterials.map(m => (
-                                                                <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                    {newExpense.material_id && (
-                                                        <div>
-                                                            <label className="text-xs text-gray-500 mb-1 block">Kuantitas Tambahan</label>
-                                                            <input 
-                                                                type="number" 
-                                                                placeholder="Jml" 
-                                                                value={newExpense.quantity || ''} 
-                                                                onChange={e => setNewExpense({...newExpense, quantity: Number(e.target.value)})}
-                                                                className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white"
-                                                            />
+                                                {newExpense.category === 'bahan_baku' && (
+                                                    <div className="space-y-3 p-3 bg-green-500/5 border border-green-500/20 rounded-xl">
+                                                        <div className="flex items-center justify-between">
+                                                            <label className="text-xs text-green-400 font-bold block">Bahan Baku (Wajib Dipilih)</label>
+                                                            <button type="button" onClick={() => setShowInlineAddMaterial(prev => !prev)}
+                                                                className="text-xs text-blue-400 hover:text-blue-300 font-bold border border-blue-500/20 px-2 py-1 rounded-lg bg-blue-500/10">
+                                                                {showInlineAddMaterial ? '✕ Tutup' : '+ Tambah Bahan Baru'}
+                                                            </button>
                                                         </div>
-                                                    )}
-                                                </div>
+                                                        
+                                                        {showInlineAddMaterial && (
+                                                            <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl space-y-2">
+                                                                <p className="text-xs text-blue-300 font-bold">Tambah Bahan Baku Baru</p>
+                                                                <div className="flex gap-2">
+                                                                    <input type="text" placeholder="Nama Bahan" value={inlineNewMaterial.name} onChange={e => setInlineNewMaterial({...inlineNewMaterial, name: e.target.value})} className="flex-1 p-2 bg-gray-900 border border-gray-800 rounded-lg text-white text-sm outline-none" />
+                                                                    <input type="text" placeholder="Unit (gr/ml/pcs)" value={inlineNewMaterial.unit} onChange={e => setInlineNewMaterial({...inlineNewMaterial, unit: e.target.value})} className="w-28 p-2 bg-gray-900 border border-gray-800 rounded-lg text-white text-sm outline-none" />
+                                                                </div>
+                                                                <button type="button" onClick={handleInlineAddMaterial} disabled={loading} className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-500">+ Simpan Bahan Baru</button>
+                                                            </div>
+                                                        )}
+                                                        
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                            <div>
+                                                                <select 
+                                                                    value={newExpense.material_id || ''} 
+                                                                    onChange={e => setNewExpense({...newExpense, material_id: e.target.value})}
+                                                                    className={`w-full p-3 bg-gray-900 border rounded-xl focus:border-blue-500 outline-none text-white ${
+                                                                        newExpense.category === 'bahan_baku' && !newExpense.material_id ? 'border-red-500/50' : 'border-gray-800'
+                                                                    }`}
+                                                                    required={newExpense.category === 'bahan_baku'}
+                                                                >
+                                                                    <option value="">-- Pilih Bahan Baku --</option>
+                                                                    {rawMaterials.map(m => (
+                                                                        <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
+                                                                    ))}
+                                                                </select>
+                                                                {newExpense.category === 'bahan_baku' && !newExpense.material_id && (
+                                                                    <p className="text-[10px] text-red-400 mt-1">Pilih bahan baku wajib untuk kategori ini</p>
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs text-gray-500 mb-1 block">Kuantitas Tambahan</label>
+                                                                <input 
+                                                                    type="number" 
+                                                                    placeholder="Jml" 
+                                                                    value={newExpense.quantity || ''} 
+                                                                    onChange={e => setNewExpense({...newExpense, quantity: Number(e.target.value)})}
+                                                                    className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 <button type="submit" disabled={loading} className="w-full py-3 bg-red-600/20 text-red-400 border border-red-500/30 rounded-xl font-bold hover:bg-red-500/30 mt-2">Catat Pengeluaran</button>
                                             </form>
@@ -2162,9 +2345,19 @@ export default function AdminDashboard() {
                                     <div className="grid grid-cols-1 gap-8">
                                         {/* Pengeluaran */}
                                         <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                            <div className="p-2 md:p-4 bg-gray-800/30 border-b border-gray-800 flex flex-col md:flex-row gap-3 justify-between md:items-center">
+                                        <div className="p-2 md:p-4 bg-gray-800/30 border-b border-gray-800 flex flex-col md:flex-row gap-3 justify-between md:items-center">
                                                 <h3 className="font-bold text-gray-300">Riwayat Pengeluaran</h3>
                                                 <div className="flex flex-wrap items-center gap-2">
+                                                    {/* Category filter */}
+                                                    <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700">
+                                                        {[{k:'all',l:'Semua'},{k:'bahan_baku',l:'🧪 Bahan'},{k:'operasional',l:'⚙️ Operasional'}].map(f => (
+                                                            <button key={f.k} onClick={() => setExpenseCategoryFilter(f.k as any)}
+                                                                className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                                                                    expenseCategoryFilter === f.k ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+                                                                }`}>{f.l}</button>
+                                                        ))}
+                                                    </div>
+                                                    {/* Period filter */}
                                                     <div className="flex flex-wrap bg-gray-900 rounded-lg p-1 border border-gray-700 w-full md:w-fit">
                                                         {[{k:'all',l:'Semua'},{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'},{k:'yearly',l:'Tahunan'}].map(f => (
                                                             <button key={f.k} onClick={() => setExpensePeriod(f.k as any)}
@@ -2179,11 +2372,31 @@ export default function AdminDashboard() {
                                                     </button>
                                                 </div>
                                             </div>
-                                            {(() => {
+                                    {(() => {
                                                 const filteredExpenses = getFilteredExpenses();
+                                                const totalBahanBaku = filteredExpenses.filter(e => (e.category || 'operasional') === 'bahan_baku').reduce((s, e) => s + Number(e.amount), 0);
+                                                const totalOperasional = filteredExpenses.filter(e => (e.category || 'operasional') === 'operasional').reduce((s, e) => s + Number(e.amount), 0);
                                                 return filteredExpenses.length === 0 ? (
                                                     <p className="p-2 md:p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran pada periode ini.</p>
                                                 ) : (
+                                                    <>
+                                                    {/* Summary by category */}
+                                                    <div className="flex gap-3 p-3 bg-gray-800/40 border-b border-gray-800">
+                                                        <div className="flex-1 text-center">
+                                                            <div className="text-[10px] text-green-400 font-bold">🧪 Bahan Baku</div>
+                                                            <div className="text-sm font-bold text-white">Rp {totalBahanBaku.toLocaleString('id-ID')}</div>
+                                                        </div>
+                                                        <div className="w-px bg-gray-700"></div>
+                                                        <div className="flex-1 text-center">
+                                                            <div className="text-[10px] text-orange-400 font-bold">⚙️ Operasional</div>
+                                                            <div className="text-sm font-bold text-white">Rp {totalOperasional.toLocaleString('id-ID')}</div>
+                                                        </div>
+                                                        <div className="w-px bg-gray-700"></div>
+                                                        <div className="flex-1 text-center">
+                                                            <div className="text-[10px] text-gray-400 font-bold">Total</div>
+                                                            <div className="text-sm font-bold text-red-400">Rp {(totalBahanBaku + totalOperasional).toLocaleString('id-ID')}</div>
+                                                        </div>
+                                                    </div>
                                                     <div className="overflow-x-auto max-h-[600px]">
                                                         <table className="w-full text-left text-xs md:text-sm">
                                                             <tbody>
@@ -2192,6 +2405,15 @@ export default function AdminDashboard() {
                                                                         <td className="p-2 md:p-4">
                                                                             <p className="font-bold text-white">{exp.description}</p>
                                                                             <p className="text-xs text-gray-500">{new Date(exp.expense_date || exp.created_at).toLocaleString('id-ID')}</p>
+                                                                        </td>
+                                                                        <td className="p-2 md:p-4 text-center">
+                                                                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold border ${
+                                                                                (exp.category || 'operasional') === 'bahan_baku'
+                                                                                    ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                                                                    : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                                                            }`}>
+                                                                                {(exp.category || 'operasional') === 'bahan_baku' ? '🧪 Bahan' : '⚙️ Ops'}
+                                                                            </span>
                                                                         </td>
                                                                         <td className="p-2 md:p-4 text-center">
                                                                             {exp.staff_name ? (
@@ -2203,7 +2425,7 @@ export default function AdminDashboard() {
                                                                         <td className="p-2 md:p-4 text-right font-bold text-red-400 whitespace-nowrap">- Rp {Number(exp.amount).toLocaleString('id-ID')}</td>
                                                                         <td className="p-3 text-right">
                                                                             <div className="flex gap-1 justify-end">
-                                                                                <button onClick={() => setEditingExpense({...exp})} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
+                                                                                <button onClick={() => setEditingExpense({...exp, category: exp.category || 'operasional'})} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
                                                                                 <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
                                                                             </div>
                                                                         </td>
@@ -2212,6 +2434,7 @@ export default function AdminDashboard() {
                                                             </tbody>
                                                         </table>
                                                     </div>
+                                                    </>
                                                 );
                                             })()}
                                         </div>
@@ -2269,33 +2492,48 @@ export default function AdminDashboard() {
                                                     <input type="text" placeholder="Deskripsi" value={editingExpense.description} onChange={e => setEditingExpense({...editingExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
                                                     <input type="number" placeholder="Nominal (Rp)" value={editingExpense.amount} onChange={e => setEditingExpense({...editingExpense, amount: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
                                                     
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {/* Category */}
+                                                    <div>
+                                                        <label className="text-sm font-bold text-gray-400 block mb-2">Kategori</label>
+                                                        <div className="flex gap-2">
+                                                            <button type="button"
+                                                                onClick={() => setEditingExpense({...editingExpense, category: 'operasional', material_id: ''})}
+                                                                className={`flex-1 py-2 rounded-xl font-bold text-sm border transition-all ${
+                                                                    (editingExpense.category || 'operasional') === 'operasional'
+                                                                        ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
+                                                                        : 'bg-gray-800 text-gray-400 border-gray-700'
+                                                                }`}
+                                                            >⚙️ Operasional</button>
+                                                            <button type="button"
+                                                                onClick={() => setEditingExpense({...editingExpense, category: 'bahan_baku'})}
+                                                                className={`flex-1 py-2 rounded-xl font-bold text-sm border transition-all ${
+                                                                    (editingExpense.category || 'operasional') === 'bahan_baku'
+                                                                        ? 'bg-green-500/20 text-green-300 border-green-500/40'
+                                                                        : 'bg-gray-800 text-gray-400 border-gray-700'
+                                                                }`}
+                                                            >🧪 Bahan Baku</button>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {(editingExpense.category || 'operasional') === 'bahan_baku' && (
                                                         <div>
-                                                            <label className="text-xs text-gray-500 mb-1 block">Koreksi Stok (Opsional, minus jika berlebih)</label>
+                                                            <label className="text-xs text-gray-500 mb-1 block">Bahan Baku (Wajib)</label>
                                                             <select 
-                                                                value={newExpense.material_id || ''} 
-                                                                onChange={e => setNewExpense({...newExpense, material_id: e.target.value})}
-                                                                className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm"
+                                                                value={editingExpense.material_id || ''} 
+                                                                onChange={e => setEditingExpense({...editingExpense, material_id: e.target.value})}
+                                                                className={`w-full p-3 bg-gray-900 border rounded-xl focus:border-blue-500 outline-none text-white text-sm ${
+                                                                    !editingExpense.material_id ? 'border-red-500/50' : 'border-gray-800'
+                                                                }`}
+                                                                required={(editingExpense.category || 'operasional') === 'bahan_baku'}
                                                             >
-                                                                <option value="">Pilih Bahan Baku...</option>
+                                                                <option value="">-- Pilih Bahan Baku --</option>
                                                                 {rawMaterials.map(m => (
                                                                     <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
                                                                 ))}
                                                             </select>
                                                         </div>
-                                                        {newExpense.material_id && (
-                                                            <div>
-                                                                <label className="text-xs text-gray-500 mb-1 block">Jml Koreksi</label>
-                                                                <input 
-                                                                    type="number" 
-                                                                    placeholder="Jml" 
-                                                                    value={newExpense.quantity || ''} 
-                                                                    onChange={e => setNewExpense({...newExpense, quantity: Number(e.target.value)})}
-                                                                    className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm"
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                    )}
+                                                    
                                                     <div className="flex gap-3 mt-4">
                                                         <button type="button" onClick={() => setEditingExpense(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
                                                         <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan</button>
