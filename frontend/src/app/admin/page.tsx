@@ -235,6 +235,7 @@ export default function AdminDashboard() {
     const [storeSettings, setStoreSettings] = useState({
         logo_base64: "",
         qris_image_base64: "",
+        qris_enabled: false,
         cafe_name: "NexPos Cafe",
         receipt_footer: "Terima kasih atas kunjungan Anda!",
         wifi_name: "",
@@ -340,6 +341,7 @@ export default function AdminDashboard() {
                         setStoreSettings({
                             logo_base64: data.logo_base64 || "",
                             qris_image_base64: data.qris_image_base64 || "",
+                            qris_enabled: !!data.qris_enabled,
                             cafe_name: data.cafe_name || "NexPos Cafe",
                             receipt_footer: data.receipt_footer || "Terima kasih atas kunjungan Anda!",
                             wifi_name: data.wifi_name || "",
@@ -3585,7 +3587,18 @@ export default function AdminDashboard() {
                                                     ></textarea>
                                                 </div>
 
-                                                <div>
+                                                <div className="bg-[#0B0F19] border border-gray-800 rounded-xl p-4">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <div>
+                                                            <h4 className="font-bold text-white">QRIS Aktif</h4>
+                                                            <p className="text-xs text-gray-500 mt-1">Tampilkan QRIS pada struk jika pembayaran menggunakan QRIS.</p>
+                                                        </div>
+                                                        <label className="relative inline-flex items-center cursor-pointer">
+                                                            <input type="checkbox" className="sr-only peer" checked={storeSettings.qris_enabled || false} onChange={e => setStoreSettings({...storeSettings, qris_enabled: e.target.checked})} />
+                                                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                                        </label>
+                                                    </div>
+
                                                     <label className="block text-sm font-bold text-gray-300 mb-2">QRIS Statis Toko (Opsional)</label>
                                                     <div className="flex items-center gap-4 md:p-6">
                                                         {storeSettings.qris_image_base64 ? (
@@ -3598,12 +3611,6 @@ export default function AdminDashboard() {
                                                                 <Upload className="w-4 h-4" /> Upload QRIS
                                                                 <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={handleQrisUpload} />
                                                             </label>
-                                                            {storeSettings.qris_image_base64 && (
-                                                                <div>
-                                                                    <label className="text-xs text-gray-500 block mb-1 font-semibold">Ukuran QRIS di Struk: {storeSettings.qris_size}px</label>
-                                                                    <input type="range" min="60" max="200" value={storeSettings.qris_size} onChange={e => setStoreSettings({...storeSettings, qris_size: Number(e.target.value)})} className="w-full accent-blue-500" />
-                                                                </div>
-                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -3741,10 +3748,10 @@ export default function AdminDashboard() {
                                                 </div>
                                             )}
 
-                                            {storeSettings.qris_image_base64 && (
-                                                <div className="flex flex-col items-center justify-center my-6">
-                                                    <p className="font-bold text-xs mb-2 text-center">SCAN QRIS UNTUK BAYAR</p>
-                                                    <img src={storeSettings.qris_image_base64} alt="QRIS" style={{ width: storeSettings.qris_size, height: storeSettings.qris_size }} className="object-contain" />
+                                            {storeSettings.qris_enabled && storeSettings.qris_image_base64 && (
+                                                <div className="flex flex-col items-center justify-center my-6 w-full">
+                                                    <p className="font-bold text-[10px] mb-1 text-center">SCAN QRIS UNTUK BAYAR</p>
+                                                    <img src={storeSettings.qris_image_base64} alt="QRIS" style={{ width: "100%", height: "auto" }} className="w-full object-contain" />
                                                 </div>
                                             )}
 

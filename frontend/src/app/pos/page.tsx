@@ -864,40 +864,55 @@ export default function PosPage() {
             const result = await processPayment(payload);
             
             // --- HACK FOR OUTDATED VERCEL BACKEND: DEDUCT STOCK MANUALLY ---
-            for (const item of payload.items) {
+            const prodStockUpdates: Record<string, number> = {};
+            const matStockUpdates: Record<string, { delta: number, products: string[] }> = {};
+
+            payload.items.forEach((item: any) => {
                 const prod = products.find(p => p.id === item.product_id);
                 if (prod) {
-                    // 1. Deduct Product Stock (if any)
                     if (prod.stock !== undefined) {
-                        const newProdStock = Number(prod.stock) - item.quantity;
-                        await supabase.from('products').update({ stock: newProdStock }).eq('id', prod.id);
+                        prodStockUpdates[prod.id] = (prodStockUpdates[prod.id] || 0) + item.quantity;
                     }
-                    // 2. Deduct Ingredients/Raw Materials
                     if (prod.ingredients && Array.isArray(prod.ingredients)) {
-                        for (const ing of prod.ingredients) {
+                        prod.ingredients.forEach((ing: any) => {
                             const matId = ing.raw_material_id || ing.id;
                             if (matId && ing.qty > 0) {
-                                // fetch latest stock directly to avoid race conditions
-                                const { data: matData } = await supabase.from('raw_materials').select('current_stock, name').eq('id', matId).single();
-                                if (matData) {
-                                    const totalQtyUsed = ing.qty * item.quantity;
-                                    const newStock = Number(matData.current_stock) - totalQtyUsed;
-                                    
-                                    await supabase.from('raw_materials').update({ current_stock: newStock }).eq('id', matId);
-                                    await supabase.from('material_stock_logs').insert([{
-                                        material_id: matId,
-                                        material_name: matData.name,
-                                        delta: -totalQtyUsed,
-                                        current_stock: newStock,
-                                        note: `Terjual: ${item.product_name} (Ref: ${orderRef})`,
-                                        staff_name: staff?.full_name || 'System'
-                                    }]);
+                                if (!matStockUpdates[matId]) {
+                                    matStockUpdates[matId] = { delta: 0, products: [] };
                                 }
+                                matStockUpdates[matId].delta += (ing.qty * item.quantity);
+                                matStockUpdates[matId].products.push(item.product_name);
                             }
-                        }
+                        });
                     }
                 }
-            }
+            });
+
+            await Promise.all([
+                ...Object.keys(prodStockUpdates).map(async prodId => {
+                    const prod = products.find(p => p.id === prodId);
+                    if (prod) {
+                        const newStock = Number(prod.stock) - prodStockUpdates[prodId];
+                        await supabase.from('products').update({ stock: newStock }).eq('id', prodId);
+                    }
+                }),
+                ...Object.keys(matStockUpdates).map(async matId => {
+                    const { delta, products: prodNames } = matStockUpdates[matId];
+                    const { data: matData } = await supabase.from('raw_materials').select('current_stock, name').eq('id', matId).single();
+                    if (matData) {
+                        const newStock = Number(matData.current_stock) - delta;
+                        await supabase.from('raw_materials').update({ current_stock: newStock }).eq('id', matId);
+                        await supabase.from('material_stock_logs').insert([{
+                            material_id: matId,
+                            material_name: matData.name,
+                            delta: -delta,
+                            current_stock: newStock,
+                            note: `Terjual: ${Array.from(new Set(prodNames)).join(', ')} (Ref: ${orderRef})`,
+                            staff_name: staff?.full_name || 'System'
+                        }]);
+                    }
+                })
+            ]);
             // ----------------------------------------------------------------
 
             setPaymentResult({
@@ -1539,10 +1554,10 @@ export default function PosPage() {
                     </div>
 
                     <div className="w-full text-center pt-4">
-                        {storeSettings?.qris_image_base64 && (
-                            <div className="flex flex-col items-center justify-center my-4">
-                                <p className="font-bold text-xs mb-2">SCAN QRIS UNTUK BAYAR</p>
-                                <img src={storeSettings.qris_image_base64} alt="QRIS" className="w-32 h-32 object-contain" />
+                        {storeSettings?.qris_enabled && storeSettings?.qris_image_base64 && paymentResult?.payment_method_name?.toLowerCase().includes('qris') && (
+                            <div className="flex flex-col items-center justify-center my-4 w-full">
+                                <p className="font-bold text-[10px] mb-1">SCAN QRIS UNTUK BAYAR</p>
+                                <img src={storeSettings.qris_image_base64} alt="QRIS" style={{ width: "100%", height: "auto" }} className="w-full object-contain" />
                             </div>
                         )}
                         <p className="mb-2 font-bold whitespace-pre-wrap">{storeSettings?.receipt_footer || 'Terima kasih atas kunjungan Anda!'}</p>
