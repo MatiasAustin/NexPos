@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart, CreditCard, Banknote, Trash2, Clock, Minus, Plus, LayoutGrid, List, Maximize } from "lucide-react";
+import { ShoppingCart, CreditCard, Banknote, Trash2, Clock, Minus, Plus, LayoutGrid, List, Maximize, ClipboardList } from "lucide-react";
 import { processPayment, getPaymentMethods, getActiveProducts } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -18,6 +18,7 @@ export default function PosPage() {
     const [activeCategory, setActiveCategory] = useState("Semua");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+    const [isMobileDraftOpen, setIsMobileDraftOpen] = useState(false);
     
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
     const [showPayment, setShowPayment] = useState(false);
@@ -1144,60 +1145,63 @@ export default function PosPage() {
                 </div>
 
                 <div className="p-4 md:p-6 flex-1 overflow-y-auto no-scrollbar">
-                    {/* INCOMING ORDERS NOTIFICATION */}
-                    {pendingOrders.filter(o => o.status === 'pending').length > 0 && (
-                        <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl shadow-lg">
-                            <h3 className="font-bold text-orange-400 mb-3 flex items-center gap-2">🛒 Pesanan Baru dari Customer</h3>
-                            <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
-                                {pendingOrders.map((order: any, idx: number) => order.status === 'pending' && (
-                                    <div key={order.id} className="relative group flex-shrink-0 min-w-[150px]">
-                                        <button 
-                                            onClick={() => loadCustomerOrder(order, idx)}
-                                            className="w-full h-full bg-gradient-to-br from-orange-500/20 to-red-500/20 px-4 py-3 rounded-xl border border-orange-500/40 text-white font-bold hover:from-orange-500/30 hover:to-red-500/30 shadow-sm transition-all text-left flex flex-col relative overflow-hidden"
-                                        >
-                                            <div className="absolute top-0 right-0 w-2 h-full bg-orange-500 animate-pulse"></div>
-                                            <span className="text-orange-400 text-xs mb-1">{order.queue_number || order.id}</span>
-                                            <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
-                                        </button>
-                                        <button
-                                            onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
-                                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-opacity z-10"
-                                            title="Tolak Pesanan"
-                                        >
-                                            &#10005;
-                                        </button>
-                                    </div>
-                                ))}
+                    {/* INLINE NOTIFICATIONS (DESKTOP ONLY) */}
+                    <div className="hidden sm:block">
+                        {/* INCOMING ORDERS NOTIFICATION */}
+                        {pendingOrders.filter(o => o.status === 'pending').length > 0 && (
+                            <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl shadow-lg">
+                                <h3 className="font-bold text-orange-400 mb-3 flex items-center gap-2">🛒 Pesanan Baru dari Customer</h3>
+                                <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                                    {pendingOrders.map((order: any, idx: number) => order.status === 'pending' && (
+                                        <div key={order.id} className="relative group flex-shrink-0 min-w-[150px]">
+                                            <button 
+                                                onClick={() => loadCustomerOrder(order, idx)}
+                                                className="w-full h-full bg-gradient-to-br from-orange-500/20 to-red-500/20 px-4 py-3 rounded-xl border border-orange-500/40 text-white font-bold hover:from-orange-500/30 hover:to-red-500/30 shadow-sm transition-all text-left flex flex-col relative overflow-hidden"
+                                            >
+                                                <div className="absolute top-0 right-0 w-2 h-full bg-orange-500 animate-pulse"></div>
+                                                <span className="text-orange-400 text-xs mb-1">{order.queue_number || order.id}</span>
+                                                <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
+                                            </button>
+                                            <button
+                                                onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
+                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-opacity z-10"
+                                                title="Tolak Pesanan"
+                                            >
+                                                &#10005;
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* DRAFT ORDERS NOTIFICATION */}
-                    {pendingOrders.filter(o => o.status === 'draft').length > 0 && (
-                        <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl shadow-lg">
-                            <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">📝 Draft Pesanan (Belum Bayar)</h3>
-                            <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
-                                {pendingOrders.map((order: any, idx: number) => order.status === 'draft' && (
-                                    <div key={order.id} className="relative group flex-shrink-0 min-w-[150px]">
-                                        <button 
-                                            onClick={() => loadCustomerOrder(order, idx)}
-                                            className="w-full h-full bg-[#1a1a1c] px-4 py-3 rounded-xl border border-blue-500/20 text-white font-bold hover:bg-gray-800 shadow-sm transition-colors text-left flex flex-col"
-                                        >
-                                            <span className="text-blue-400 text-xs mb-1">{order.queue_number || order.id}</span>
-                                            <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
-                                        </button>
-                                        <button
-                                            onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
-                                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-opacity z-10"
-                                            title="Hapus Draft"
-                                        >
-                                            &#10005;
-                                        </button>
-                                    </div>
-                                ))}
+                        {/* DRAFT ORDERS NOTIFICATION */}
+                        {pendingOrders.filter(o => o.status === 'draft').length > 0 && (
+                            <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl shadow-lg">
+                                <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">📝 Draft Pesanan (Belum Bayar)</h3>
+                                <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                                    {pendingOrders.map((order: any, idx: number) => order.status === 'draft' && (
+                                        <div key={order.id} className="relative group flex-shrink-0 min-w-[150px]">
+                                            <button 
+                                                onClick={() => loadCustomerOrder(order, idx)}
+                                                className="w-full h-full bg-[#1a1a1c] px-4 py-3 rounded-xl border border-blue-500/20 text-white font-bold hover:bg-bg-gray-800 shadow-sm transition-colors text-left flex flex-col"
+                                            >
+                                                <span className="text-blue-400 text-xs mb-1">{order.queue_number || order.id}</span>
+                                                <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
+                                            </button>
+                                            <button
+                                                onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
+                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-opacity z-10"
+                                                title="Hapus Draft"
+                                            >
+                                                &#10005;
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
 
                     {/* Categories & View Mode Toggle */}
                     <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center mb-6">
@@ -1282,9 +1286,23 @@ export default function PosPage() {
                 </div>
             </div>
 
+            {/* MOBILE CART BACKDROP */}
+            {isMobileCartOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/60 z-40 sm:hidden backdrop-blur-sm"
+                    onClick={() => setIsMobileCartOpen(false)}
+                />
+            )}
+            
             {/* RIGHT: CART */}
-            <div className={`w-full sm:w-[260px] md:w-[280px] lg:w-[320px] xl:w-[400px] h-full sm:h-screen bg-[#1a1a1c] shadow-2xl flex flex-col sm:border-t-0 sm:border-l border-gray-800 shrink-0 print:hidden fixed sm:relative inset-0 z-50 sm:z-10 transition-transform duration-300 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full sm:translate-y-0"}`}>
-                <div className="p-3 sm:p-4 md:p-5 border-b border-gray-800 flex justify-between items-center bg-[#1a1a1c]">
+            <div className={`w-full sm:w-[260px] md:w-[280px] lg:w-[320px] xl:w-[400px] h-[85vh] sm:h-screen bg-[#1a1a1c] shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sm:shadow-2xl flex flex-col sm:border-t-0 sm:border-l border-gray-800 shrink-0 print:hidden fixed sm:relative bottom-0 left-0 right-0 rounded-t-3xl sm:rounded-none z-50 sm:z-10 transition-transform duration-300 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full sm:translate-y-0"}`}>
+                
+                {/* Mobile Drag Handle */}
+                <div className="w-full flex justify-center pt-3 pb-1 sm:hidden cursor-pointer" onClick={() => setIsMobileCartOpen(false)}>
+                    <div className="w-12 h-1.5 bg-gray-600 rounded-full"></div>
+                </div>
+
+                <div className="p-3 sm:p-4 md:p-5 border-b border-gray-800 flex justify-between items-center bg-[#1a1a1c] sm:pt-4 pt-1">
                     <h2 className="text-sm sm:text-base md:text-lg font-bold flex items-center gap-2 text-white">
                         <ShoppingCart className="w-5 h-5 text-blue-500" /> Current Order
                     </h2>
@@ -2263,21 +2281,121 @@ export default function PosPage() {
                     </div>
                 </div>
             )}
-            {/* MOBILE FLOATING CART BUTTON */}
-            {!isMobileCartOpen && (
-                <button
-                    onClick={() => setIsMobileCartOpen(true)}
-                    className="sm:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-blue-600 hover:bg-blue-500 text-white shadow-[0_10px_40px_rgba(37,99,235,0.5)] px-6 py-3.5 rounded-full font-bold flex items-center gap-3 transition-transform"
-                >
-                    <ShoppingCart className="w-5 h-5" />
-                    <span>Lihat Pesanan</span>
-                    {cart.reduce((sum, item) => sum + item.qty, 0) > 0 && (
-                        <span className="bg-white text-blue-600 px-2.5 py-0.5 rounded-full text-xs font-black">
-                            {cart.reduce((sum, item) => sum + item.qty, 0)} item
-                        </span>
-                    )}
-                </button>
+            {/* MOBILE DRAFT & INCOMING DRAWER */}
+            {isMobileDraftOpen && (
+                <div className="fixed inset-0 z-[60] sm:hidden flex flex-col justify-end">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileDraftOpen(false)}></div>
+                    <div className="relative bg-[#1a1a1c] w-full h-[75vh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] flex flex-col">
+                        <div className="w-full flex justify-center pt-3 pb-1 cursor-pointer" onClick={() => setIsMobileDraftOpen(false)}>
+                            <div className="w-12 h-1.5 bg-gray-600 rounded-full"></div>
+                        </div>
+                        <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-[#1a1a1c]">
+                            <h2 className="font-bold text-white text-lg">Daftar Antrean & Draft</h2>
+                            <button onClick={() => setIsMobileDraftOpen(false)} className="text-gray-400 hover:text-white p-2 bg-gray-800 rounded-lg">
+                                &#10005;
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                            {/* INCOMING ORDERS NOTIFICATION */}
+                            {pendingOrders.filter((o: any) => o.status === 'pending').length > 0 && (
+                                <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl">
+                                    <h3 className="font-bold text-orange-400 mb-3 flex items-center gap-2">🛒 Pesanan Baru</h3>
+                                    <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                                        {pendingOrders.filter((o: any) => o.status === 'pending').map((order: any, idx: number) => (
+                                            <div key={order.id} className="relative group flex-shrink-0 min-w-[140px]">
+                                                <button 
+                                                    onClick={() => {
+                                                        loadCustomerOrder(order, pendingOrders.findIndex((p: any) => p.id === order.id));
+                                                        setIsMobileDraftOpen(false);
+                                                    }}
+                                                    className="w-full h-full bg-gradient-to-br from-orange-500/20 to-red-500/20 px-4 py-3 rounded-xl border border-orange-500/40 text-white font-bold text-left flex flex-col relative overflow-hidden"
+                                                >
+                                                    <span className="text-orange-400 text-xs mb-1">{order.queue_number || order.id}</span>
+                                                    <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
+                                                </button>
+                                                <button
+                                                    onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-lg"
+                                                >
+                                                    &#10005;
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {/* DRAFT ORDERS NOTIFICATION */}
+                            {pendingOrders.filter((o: any) => o.status === 'draft').length > 0 && (
+                                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
+                                    <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">📝 Draft Tersimpan</h3>
+                                    <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                                        {pendingOrders.filter((o: any) => o.status === 'draft').map((order: any, idx: number) => (
+                                            <div key={order.id} className="relative group flex-shrink-0 min-w-[140px]">
+                                                <button 
+                                                    onClick={() => {
+                                                        loadCustomerOrder(order, pendingOrders.findIndex((p: any) => p.id === order.id));
+                                                        setIsMobileDraftOpen(false);
+                                                    }}
+                                                    className="w-full h-full bg-[#121214] px-4 py-3 rounded-xl border border-blue-500/20 text-white font-bold text-left flex flex-col"
+                                                >
+                                                    <span className="text-blue-400 text-xs mb-1">{order.queue_number || order.id}</span>
+                                                    <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
+                                                </button>
+                                                <button
+                                                    onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-lg"
+                                                >
+                                                    &#10005;
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {pendingOrders.length === 0 && (
+                                <div className="text-center text-gray-500 py-10">Tidak ada antrean atau draft.</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
+
+            {/* MOBILE FLOATING BUTTONS */}
+            <div className="sm:hidden fixed bottom-6 left-0 right-0 px-4 flex justify-between items-end z-40 pointer-events-none">
+                {/* DRAFT FAB */}
+                <div className="pointer-events-auto">
+                    {pendingOrders.length > 0 && !isMobileCartOpen && !isMobileDraftOpen && (
+                        <button
+                            onClick={() => setIsMobileDraftOpen(true)}
+                            className="bg-gray-800 border border-gray-700 text-gray-200 shadow-lg px-4 py-3.5 rounded-full font-bold flex items-center gap-2 transition-transform relative"
+                        >
+                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+                            </span>
+                            <ClipboardList className="w-5 h-5 text-orange-400" />
+                        </button>
+                    )}
+                </div>
+
+                {/* CART FAB */}
+                <div className="pointer-events-auto">
+                    {!isMobileCartOpen && (
+                        <button
+                            onClick={() => setIsMobileCartOpen(true)}
+                            className="bg-blue-600 hover:bg-blue-500 text-white shadow-[0_10px_40px_rgba(37,99,235,0.5)] px-6 py-3.5 rounded-full font-bold flex items-center gap-3 transition-transform"
+                        >
+                            <ShoppingCart className="w-5 h-5" />
+                            <span>Lihat Pesanan</span>
+                            {cart.reduce((sum, item) => sum + item.qty, 0) > 0 && (
+                                <span className="bg-white text-blue-600 px-2.5 py-0.5 rounded-full text-xs font-black">
+                                    {cart.reduce((sum, item) => sum + item.qty, 0)} item
+                                </span>
+                            )}
+                        </button>
+                    )}
+                </div>
+            </div>
 
         </div>
     );
