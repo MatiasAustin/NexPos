@@ -349,6 +349,12 @@ export default function PosPage() {
             } else {
                 await supabase.from('kiosk_orders').insert([draftOrder]);
             }
+            // Immediately refresh pendingOrders so the new draft is visible
+            const { data: freshOrders } = await supabase.from('kiosk_orders')
+                .select('*')
+                .in('status', ['pending', 'draft', 'waiting_payment'])
+                .order('created_at', { ascending: false });
+            if (freshOrders) setPendingOrders(freshOrders);
             toast.info("Pesanan sebelumnya disimpan sebagai Draft");
         }
 
@@ -390,6 +396,12 @@ export default function PosPage() {
         } else {
             await supabase.from('kiosk_orders').insert([draftOrder]);
         }
+        // Immediately refresh pendingOrders so the new draft is visible
+        const { data: freshOrders } = await supabase.from('kiosk_orders')
+            .select('*')
+            .in('status', ['pending', 'draft', 'waiting_payment'])
+            .order('created_at', { ascending: false });
+        if (freshOrders) setPendingOrders(freshOrders);
         
         const draftItems = cart.map(i => ({
             product_name: i.product.name,
