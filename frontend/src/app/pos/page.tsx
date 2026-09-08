@@ -544,19 +544,19 @@ export default function PosPage() {
             // Deduct from cash drawer if shift is open AND paid with CASH
             if (sessionId && staff && newExpense.payment_method === 'CASH') {
                 try {
-                    // Use backend API to record movement and deduct expected_cash, bypassing RLS issues
-                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-movements`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            session_id: sessionId,
-                            staff_id: staff.id,
-                            type: 'expense',
-                            amount: -Number(newExpense.amount),
-                            reason: `Pengeluaran: ${finalDesc}`
-                        })
+                    // Insert cash movement (RLS now disabled on this table)
+                    await supabase.from('cash_movements').insert({
+                        session_id: sessionId,
+                        staff_id: staff.id,
+                        type: 'expense',
+                        amount: -Number(newExpense.amount),
+                        reason: `Pengeluaran: ${finalDesc}`
                     });
-                    if (!res.ok) throw new Error(await res.text());
+                    // Directly update expected_cash (RLS now disabled on cash_sessions)
+                    const { data: sessData } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
+                    if (sessData) {
+                        await supabase.from('cash_sessions').update({ expected_cash: Number(sessData.expected_cash) - Number(newExpense.amount) }).eq('id', sessionId);
+                    }
                 } catch (err) {
                     console.error("Gagal mencatat cash movement untuk pengeluaran:", err);
                 }
@@ -988,18 +988,18 @@ export default function PosPage() {
                 // Update Session Expected Cash if payment is CASH
                 if (selectedMethod?.type?.toLowerCase() === 'cash' && sessionId && staff) {
                     try {
-                        // Use backend API to record movement and add expected_cash, bypassing RLS issues
-                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-movements`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                session_id: sessionId,
-                                staff_id: staff.id,
-                                type: 'sale',
-                                amount: grandTotal
-                            })
+                        // Insert cash movement (RLS now disabled)
+                        await supabase.from('cash_movements').insert({
+                            session_id: sessionId,
+                            staff_id: staff.id,
+                            type: 'sale',
+                            amount: grandTotal
                         });
-                        if (!res.ok) throw new Error(await res.text());
+                        // Directly update expected_cash (RLS now disabled on cash_sessions)
+                        const { data: sessData } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
+                        if (sessData) {
+                            await supabase.from('cash_sessions').update({ expected_cash: Number(sessData.expected_cash) + grandTotal }).eq('id', sessionId);
+                        }
                     } catch(err) {
                         console.error("Gagal mencatat mutasi kasir:", err);
                     }
