@@ -330,13 +330,17 @@ router.get('/admin/cash-sessions', async (req, res) => {
         const { data, error } = await supabase.from('cash_sessions').select('*').order('opened_at', { ascending: false });
         if (error) throw error;
         
-        // Fetch movements for all sessions
-        const { data: movements } = await supabase.from('cash_movements').select('session_id, amount, type').in('type', ['expense', 'refund']);
+        // Fetch all expenses and refunds (source of truth)
+        const { data: allExpenses } = await supabase.from('expenses').select('created_at, amount');
+        const { data: allRefunds } = await supabase.from('refunds').select('created_at, refund_amount').eq('status', 'APPROVED');
         
         const sessionsWithTotals = data.map(session => {
-            const sessionMovements = movements ? movements.filter(m => m.session_id === session.id) : [];
-            const total_expense = sessionMovements.filter(m => m.type === 'expense').reduce((sum, m) => sum + Math.abs(m.amount), 0);
-            const total_refund = sessionMovements.filter(m => m.type === 'refund').reduce((sum, m) => sum + Math.abs(m.amount), 0);
+            const sessionStart = session.opened_at;
+            const sessionEnd = session.closed_at || new Date().toISOString();
+            const sessionExpenses = allExpenses ? allExpenses.filter(e => e.created_at >= sessionStart && e.created_at <= sessionEnd) : [];
+            const sessionRefunds = allRefunds ? allRefunds.filter(r => r.created_at >= sessionStart && r.created_at <= sessionEnd) : [];
+            const total_expense = sessionExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+            const total_refund = sessionRefunds.reduce((sum, r) => sum + Number(r.refund_amount), 0);
             return {
                 ...session,
                 total_expense,
