@@ -88,10 +88,9 @@ export default function PosPage() {
                 const sess = await res.json();
                 // Manually query expenses and refunds to get accurate totals
                 const { data: expenses } = await supabase.from('expenses')
-                    .select('amount')
-                    .eq('payment_method', 'CASH')
+                    .select('amount, description')
                     .gte('created_at', sess.opened_at || new Date(new Date().setHours(0,0,0,0)).toISOString());
-                sess.total_expense = expenses ? expenses.reduce((sum, e) => sum + Number(e.amount), 0) : 0;
+                sess.total_expense = expenses ? expenses.filter(e => !e.description.startsWith('[')).reduce((sum, e) => sum + Number(e.amount), 0) : 0;
 
                 const { data: refunds } = await supabase.from('refunds')
                     .select('refund_amount')
@@ -545,19 +544,19 @@ export default function PosPage() {
             // Deduct from cash drawer if shift is open AND paid with CASH
             if (sessionId && staff && newExpense.payment_method === 'CASH') {
                 try {
-                    const { error: moveError } = await supabase.from('cash_movements').insert({
-                        session_id: sessionId,
-                        staff_id: staff.id,
-                        type: 'expense',
-                        amount: -Number(newExpense.amount),
-                        reason: `Pengeluaran: ${finalDesc}`
+                    // Use backend API to record movement and deduct expected_cash, bypassing RLS issues
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-movements`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            session_id: sessionId,
+                            staff_id: staff.id,
+                            type: 'expense',
+                            amount: -Number(newExpense.amount),
+                            reason: `Pengeluaran: ${finalDesc}`
+                        })
                     });
-                    
-                    // Bypass moveError check due to possible RLS block on cash_movements
-                    const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
-                    if (session) {
-                        await supabase.from('cash_sessions').update({ expected_cash: Number(session.expected_cash) - Number(newExpense.amount) }).eq('id', sessionId);
-                    }
+                    if (!res.ok) throw new Error(await res.text());
                 } catch (err) {
                     console.error("Gagal mencatat cash movement untuk pengeluaran:", err);
                 }
@@ -989,17 +988,18 @@ export default function PosPage() {
                 // Update Session Expected Cash if payment is CASH
                 if (selectedMethod?.type?.toLowerCase() === 'cash' && sessionId && staff) {
                     try {
-                        await supabase.from('cash_movements').insert({
-                            session_id: sessionId,
-                            staff_id: staff.id,
-                            type: 'sale',
-                            amount: grandTotal
+                        // Use backend API to record movement and add expected_cash, bypassing RLS issues
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-movements`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                session_id: sessionId,
+                                staff_id: staff.id,
+                                type: 'sale',
+                                amount: grandTotal
+                            })
                         });
-                        // Bypass moveError check due to possible RLS block on cash_movements
-                        const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
-                        if (session) {
-                            await supabase.from('cash_sessions').update({ expected_cash: Number(session.expected_cash) + grandTotal }).eq('id', sessionId);
-                        }
+                        if (!res.ok) throw new Error(await res.text());
                     } catch(err) {
                         console.error("Gagal mencatat mutasi kasir:", err);
                     }
