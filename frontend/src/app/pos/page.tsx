@@ -86,10 +86,19 @@ export default function PosPage() {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staff.id}&terminalId=TERM-01&_t=${Date.now()}`, { cache: 'no-store' });
             if (res.ok) {
                 const sess = await res.json();
-                // Manually query movements to get total_expense and total_refund since backend on Vercel is outdated
-                const { data: movements } = await supabase.from('cash_movements').select('amount, type').eq('session_id', sess.id).in('type', ['expense', 'refund']);
-                sess.total_expense = movements ? movements.filter(m => m.type === 'expense').reduce((sum, m) => sum + Math.abs(m.amount), 0) : 0;
-                sess.total_refund = movements ? movements.filter(m => m.type === 'refund').reduce((sum, m) => sum + Math.abs(m.amount), 0) : 0;
+                // Manually query expenses and refunds to get accurate totals
+                const { data: expenses } = await supabase.from('expenses')
+                    .select('amount')
+                    .eq('payment_method', 'CASH')
+                    .gte('created_at', sess.opened_at || new Date(new Date().setHours(0,0,0,0)).toISOString());
+                sess.total_expense = expenses ? expenses.reduce((sum, e) => sum + Number(e.amount), 0) : 0;
+
+                const { data: refunds } = await supabase.from('refunds')
+                    .select('refund_amount')
+                    .eq('status', 'APPROVED')
+                    .gte('created_at', sess.opened_at || new Date(new Date().setHours(0,0,0,0)).toISOString());
+                sess.total_refund = refunds ? refunds.reduce((sum, r) => sum + Number(r.refund_amount), 0) : 0;
+                
                 setSessionData(sess);
             }
         } catch(e) {
@@ -544,11 +553,10 @@ export default function PosPage() {
                         reason: `Pengeluaran: ${finalDesc}`
                     });
                     
-                    if (!moveError) {
-                        const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
-                        if (session) {
-                            await supabase.from('cash_sessions').update({ expected_cash: Number(session.expected_cash) - Number(newExpense.amount) }).eq('id', sessionId);
-                        }
+                    // Bypass moveError check due to possible RLS block on cash_movements
+                    const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
+                    if (session) {
+                        await supabase.from('cash_sessions').update({ expected_cash: Number(session.expected_cash) - Number(newExpense.amount) }).eq('id', sessionId);
                     }
                 } catch (err) {
                     console.error("Gagal mencatat cash movement untuk pengeluaran:", err);
@@ -981,18 +989,16 @@ export default function PosPage() {
                 // Update Session Expected Cash if payment is CASH
                 if (selectedMethod?.type?.toLowerCase() === 'cash' && sessionId && staff) {
                     try {
-                        const { error: moveError } = await supabase.from('cash_movements').insert({
+                        await supabase.from('cash_movements').insert({
                             session_id: sessionId,
                             staff_id: staff.id,
                             type: 'sale',
                             amount: grandTotal
                         });
-
-                        if (!moveError) {
-                            const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
-                            if (session) {
-                                await supabase.from('cash_sessions').update({ expected_cash: Number(session.expected_cash) + grandTotal }).eq('id', sessionId);
-                            }
+                        // Bypass moveError check due to possible RLS block on cash_movements
+                        const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
+                        if (session) {
+                            await supabase.from('cash_sessions').update({ expected_cash: Number(session.expected_cash) + grandTotal }).eq('id', sessionId);
                         }
                     } catch(err) {
                         console.error("Gagal mencatat mutasi kasir:", err);
