@@ -3,12 +3,6 @@ import fs from 'fs';
 const filePath = 'd:\\WORK\\BUILD_APP\\NexPos\\frontend\\src\\app\\pos\\page.tsx';
 let content = fs.readFileSync(filePath, 'utf-8');
 
-// 1. State
-content = content.replace(
-    'const [isMobileDraftOpen, setIsMobileDraftOpen] = useState(false);',
-    `const [isMobileDraftOpen, setIsMobileDraftOpen] = useState(false);\n    \n    // Discount State\n    const [discountType, setDiscountType] = useState<"nominal" | "percentage">("nominal");\n    const [discountValue, setDiscountValue] = useState<string>("");`
-);
-
 // 2. clearCart
 content = content.replace(
     `        setCustomerName("");\n    };`,
