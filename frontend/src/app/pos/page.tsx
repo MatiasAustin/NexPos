@@ -20,6 +20,10 @@ export default function PosPage() {
     const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
     const [isMobileDraftOpen, setIsMobileDraftOpen] = useState(false);
     
+    // Discount State
+    const [discountType, setDiscountType] = useState<"nominal" | "percentage">("nominal");
+    const [discountValue, setDiscountValue] = useState<string>("");
+    
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
     const [showPayment, setShowPayment] = useState(false);
     const [amountReceived, setAmountReceived] = useState<string>("");
