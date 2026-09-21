@@ -1,3 +1,4 @@
+import { supabase } from '@/lib/supabase';
 import axios from 'axios';
 
 let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
@@ -33,11 +34,30 @@ export const closeCashSession = async (data: any) => {
 };
 
 export const getReconciliationReport = async (startDate?: string, endDate?: string) => {
-    const params = new URLSearchParams();
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate || startDate!);
-    const res = await api.get(`/reconciliation?${params.toString()}`);
-    return res.data;
+    try {
+        const { data: transactions, error } = await supabase
+            .from('transactions')
+            .select('id, amount_due, status, payment_method_id, created_at, payment_methods ( name, type )')
+            .gte('created_at', startDate || new Date().toISOString())
+            .lte('created_at', endDate || new Date().toISOString())
+            .eq('status', 'Paid');
+
+        if (error || !transactions) return [];
+
+        const report: Record<string, any> = {};
+        transactions.forEach((tx: any) => {
+            const mName = tx.payment_methods?.name || 'Unknown';
+            if (!report[mName]) {
+                report[mName] = { method_name: mName, pos_total: 0, transaction_count: 0 };
+            }
+            report[mName].pos_total += Number(tx.amount_due || 0);
+            report[mName].transaction_count += 1;
+        });
+        return Object.values(report);
+    } catch(e) {
+        console.error(e);
+        return [];
+    }
 };
 
 export const getAuditLogs = async (limit = 50) => {

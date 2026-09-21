@@ -302,15 +302,15 @@ export default function AdminDashboard() {
             } else if (activeTab === "audit") {
                 await fetchAuditLogs();
             } else if (activeTab === "staff") {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff`);
-                if(res.ok) setStaffList(await res.json());
+                const { data } = await supabase.from('staff_profiles').select('*').order('full_name', { ascending: true });
+                if(data) setStaffList(data);
             } else if (activeTab === "inventory") {
                 const [prodRes, matRes, orderItemsRes] = await Promise.all([
-                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products`),
+                    supabase.from('products').select('*').order('category', { ascending: true }),
                     supabase.from('raw_materials').select('*').order('name', { ascending: true }),
                     supabase.from('order_items').select('product_id, product_name, quantity, price_at_time, created_at').order('created_at', { ascending: false }).limit(500)
                 ]);
-                if (prodRes.ok) setProducts(await prodRes.json());
+                if (prodRes.data) setProducts(prodRes.data);
                 setRawMaterials(matRes.data || []);
 
                 if (orderItemsRes.data) {
@@ -367,11 +367,8 @@ export default function AdminDashboard() {
                 setRawMaterials(matRes.data || []);
                 setMaterialStockLogs(logRes.data || []);
             } else if (activeTab === "cash_sessions") {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/cash-sessions?_t=${Date.now()}`, { cache: 'no-store' });
-                if (res.ok) {
-                    const sessions = await res.json();
-                    setCashSessions(sessions);
-                }
+                const { data } = await supabase.from('cash_sessions').select('*, staff_profiles(full_name)').order('created_at', { ascending: false });
+                if (data) setCashSessions(data.map((s: any) => ({ ...s, staff_name: s.staff_profiles?.full_name })));
             } else if (activeTab === "expenses") {
                 const [expRes, matRes, logRes] = await Promise.all([
                     supabase.from('expenses').select('*').order('created_at', { ascending: expenseSortOrder === 'desc' ? false : true }),
@@ -505,8 +502,13 @@ export default function AdminDashboard() {
             
             const startStr = start.toISOString();
             const endStr = end.toISOString();
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions?startDate=${startStr}&endDate=${endStr}`);
-            if (res.ok) setTransactions(await res.json());
+            const { data, error } = await supabase
+                .from('transactions')
+                .select('*, payment_methods(name, type), order_items(*)')
+                .gte('created_at', startStr)
+                .lte('created_at', endStr)
+                .order('created_at', { ascending: false });
+            if (!error && data) setTransactions(data);
         } catch (error) {
             console.error(error);
         }
@@ -1566,8 +1568,8 @@ export default function AdminDashboard() {
             setAuditLogs(data);
         } else {
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/audit-logs?limit=100`);
-                if (res.ok) setAuditLogs(await res.json());
+                const { data: fallbackData } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100);
+                if (fallbackData) setAuditLogs(fallbackData);
             } catch(e) {}
         }
     };
