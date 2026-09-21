@@ -247,6 +247,8 @@ export default function AdminDashboard() {
         categories: ["Makanan", "Minuman", "Snack"]
     });
 
+    const [saasSettings, setSaasSettings] = useState({ app_name: 'NexPos', app_logo: '' });
+
     const [products, setProducts] = useState<any[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
     const [newProduct, setNewProduct] = useState<{name: string, category: string, price: number, cogs: number, stock: number, image_icon: string, image_url: string, discount_percentage?: number, options_config?: any[], ingredients: {raw_material_id: string, name: string, qty: number, cost: number}[], operational_cost: number}>({ 
@@ -290,6 +292,15 @@ export default function AdminDashboard() {
                 router.push('/pos');
                 return;
             }
+            setProfile(prof);
+
+            try {
+                const { data: saas } = await supabase.from('saas_settings').select('app_name, app_logo').limit(1).maybeSingle();
+                if (saas) setSaasSettings(saas);
+            } catch (e) {}
+
+            // Fetch current store settings
+            const { data: storeData } = await supabase.from('stores').select('*').eq('id', prof.store_id).single();
             const allowedStaffTabs = ['reconciliation', 'history', 'cash_sessions', 'raw_materials', 'inventory', 'expenses'];
             if (prof.role !== 'owner' && !allowedStaffTabs.includes(activeTab)) {
                 setActiveTab('reconciliation');
@@ -1717,10 +1728,14 @@ export default function AdminDashboard() {
                 <div className="p-2 md:p-4 md:p-6 border-b border-gray-800/60 flex items-center justify-between">
                     <div>
                         <h1 className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-3">
-                            <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-lg shadow-lg shadow-blue-900/20">N</span>
-                            Dashbrd X
+                            {saasSettings.app_logo ? (
+                                <img src={saasSettings.app_logo} alt="Logo" className="w-8 h-8 object-contain rounded-lg" />
+                            ) : (
+                                <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-lg shadow-lg shadow-blue-900/20">{saasSettings.app_name.charAt(0).toUpperCase()}</span>
+                            )}
+                            {saasSettings.app_name}
                         </h1>
-                        <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mt-2">NexPos Control Center</p>
+                        <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mt-2">Control Center</p>
                     </div>
                     <div className="flex gap-2">
                         <button onClick={toggleFullscreen} className="p-2 text-gray-400 hover:text-white bg-gray-800/50 rounded-xl" title="Toggle Fullscreen">
@@ -1770,8 +1785,8 @@ export default function AdminDashboard() {
                         <ArrowLeft className="w-5 h-5" /> Kembali ke Menu Utama
                     </Link>
                     <p className="text-center text-[10px] text-gray-700 mt-3 leading-relaxed">
-                        ┬⌐ {new Date().getFullYear()} NexPos<br />
-                        <span className="font-medium">Developed by Matias Austin</span>
+                        &copy; {new Date().getFullYear()} {saasSettings.app_name}<br />
+                        <span className="font-medium">SaaS Platform</span>
                     </p>
                 </div>
             </div>

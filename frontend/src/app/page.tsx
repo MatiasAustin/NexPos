@@ -1,17 +1,27 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, LayoutDashboard, MonitorSmartphone, ShoppingCart, Zap, TrendingUp, Shield } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+    // Fetch saas_settings for dynamic branding and pricing
+    const { data: saasSettings } = await supabase.from('saas_settings').select('*').limit(1).maybeSingle();
+    const appName = saasSettings?.app_name || 'NexPos';
+    const appLogo = saasSettings?.app_logo || '';
+    
     return (
         <div className="min-h-screen bg-[#0B0F19] text-gray-200 font-sans selection:bg-blue-500/30">
             {/* Navbar */}
             <nav className="fixed w-full z-50 bg-[#0B0F19]/80 backdrop-blur-md border-b border-gray-800/50">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20">
-                            <span className="text-xl font-black text-white">N</span>
-                        </div>
-                        <span className="text-2xl font-black text-white tracking-tight">NexPos</span>
+                        {appLogo ? (
+                            <img src={appLogo} alt="Logo" className="w-10 h-10 object-contain rounded-xl" />
+                        ) : (
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20">
+                                <span className="text-xl font-black text-white">{appName.charAt(0).toUpperCase()}</span>
+                            </div>
+                        )}
+                        <span className="text-2xl font-black text-white tracking-tight">{appName}</span>
                     </div>
                     <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
                         <a href="#features" className="hover:text-white transition-colors">Fitur</a>
@@ -46,7 +56,7 @@ export default function LandingPage() {
                         </span>
                     </h1>
                     <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10">
-                        NexPos adalah solusi All-in-One untuk kasir, manajemen inventaris, dan analisa penjualan. Tingkatkan omset bisnis Anda dengan teknologi terkini.
+                        {appName} adalah solusi All-in-One untuk kasir, manajemen inventaris, dan analisa penjualan. Tingkatkan omset bisnis Anda dengan teknologi terkini.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <Link href="/signup" className="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white text-lg font-bold rounded-xl transition-all shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 hover:scale-105">
@@ -229,7 +239,7 @@ export default function LandingPage() {
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
                         <h2 className="text-3xl md:text-5xl font-black text-white mb-6 relative z-10">Siap Mengubah Bisnis Anda?</h2>
                         <p className="text-blue-100 text-lg md:text-xl mb-10 max-w-2xl mx-auto relative z-10">
-                            Bergabung dengan ribuan pengusaha yang sudah mempercayakan operasional bisnisnya menggunakan NexPos.
+                            Bergabung dengan ribuan pengusaha yang sudah mempercayakan operasional bisnisnya menggunakan {appName}.
                         </p>
                         <Link href="/signup" className="inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-gray-50 px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-xl hover:scale-105 relative z-10">
                             Daftar Sekarang <ArrowRight className="w-5 h-5" />
@@ -243,10 +253,14 @@ export default function LandingPage() {
                 <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-8 mb-8">
                     <div className="col-span-1 md:col-span-2">
                         <div className="flex items-center gap-2 mb-4">
-                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                                <span className="text-lg font-black text-white">N</span>
-                            </div>
-                            <span className="text-xl font-black text-white tracking-tight">NexPos</span>
+                            {appLogo ? (
+                                <img src={appLogo} alt="Logo" className="w-8 h-8 object-contain rounded-lg" />
+                            ) : (
+                                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                    <span className="text-lg font-black text-white">{appName.charAt(0).toUpperCase()}</span>
+                                </div>
+                            )}
+                            <span className="text-xl font-black text-white tracking-tight">{appName}</span>
                         </div>
                         <p className="text-gray-500 text-sm max-w-sm mb-4">
                             Sistem Manajemen Bisnis & Kasir modern untuk memudahkan transaksi dan memantau performa penjualan secara real-time.
@@ -272,7 +286,7 @@ export default function LandingPage() {
                     </div>
                 </div>
                 <div className="max-w-7xl mx-auto px-6 pt-8 border-t border-gray-800/50 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-600">
-                    <p>&copy; {new Date().getFullYear()} NexPos System. All rights reserved.</p>
+                    <p>&copy; {new Date().getFullYear()} {appName} System. All rights reserved.</p>
                     <p>Developed by <strong className="text-gray-500">Matias Austin</strong></p>
                 </div>
             </footer>

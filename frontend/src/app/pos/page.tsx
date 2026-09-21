@@ -110,6 +110,7 @@ export default function PosPage() {
     };
     const [isCheckingSession, setIsCheckingSession] = useState(true);
     const [storeSettings, setStoreSettings] = useState<any>(null);
+    const [saasSettings, setSaasSettings] = useState({ app_name: 'NexPos', app_logo: '' });
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -122,6 +123,11 @@ export default function PosPage() {
                     setStoreSettings(data);
                     localStorage.setItem("nexpos_store_settings", JSON.stringify(data));
                 }
+            } catch(e) {}
+
+            try {
+                const { data: saas } = await supabase.from('saas_settings').select('app_name, app_logo, maintenance_mode').limit(1).maybeSingle();
+                if (saas) setSaasSettings(saas);
             } catch(e) {}
         };
         loadSettings();
@@ -1110,9 +1116,13 @@ export default function PosPage() {
             <div className="flex-1 flex flex-col overflow-y-auto print:hidden">
                 <div className="p-4 md:p-6 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#1a1a1c]">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white text-xl font-black">N</div>
+                        {saasSettings.app_logo ? (
+                            <img src={saasSettings.app_logo} alt="Logo" className="w-10 h-10 object-contain rounded-xl" />
+                        ) : (
+                            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white text-xl font-black">{saasSettings.app_name.charAt(0).toUpperCase()}</div>
+                        )}
                         <div>
-                            <h1 className="text-xl font-bold text-white leading-tight">NexPos Terminal</h1>
+                            <h1 className="text-xl font-bold text-white leading-tight">{saasSettings.app_name} Terminal</h1>
                             <span className="text-gray-500 text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date().toLocaleTimeString()}</span>
                         </div>
                         <button onClick={toggleFullscreen} className="ml-2 p-2 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors text-gray-300" title="Toggle Fullscreen">

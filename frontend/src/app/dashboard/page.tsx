@@ -9,9 +9,16 @@ import { ShoppingCart, LayoutDashboard, MonitorSmartphone, Power } from "lucide-
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [appSettings, setAppSettings] = useState<any>({ app_name: 'NexPos', app_logo: '' });
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuthAndSettings = async () => {
+      // Fetch saas settings (publicly accessible based on our RLS)
+      try {
+        const { data: saas } = await supabase.from('saas_settings').select('app_name, app_logo').limit(1).maybeSingle();
+        if (saas) setAppSettings(saas);
+      } catch (e) {}
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push("/login");
@@ -19,7 +26,7 @@ export default function Home() {
         setLoading(false);
       }
     };
-    checkAuth();
+    checkAuthAndSettings();
   }, [router]);
 
   const handleLogout = async () => {
@@ -39,10 +46,16 @@ export default function Home() {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none"></div>
 
         <div className="text-center mb-12 relative z-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-xl shadow-blue-900/20 mb-6">
-            <span className="text-4xl font-black text-white">N</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">NexPos</h1>
+          {appSettings.app_logo ? (
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-white/5 rounded-2xl shadow-xl shadow-blue-900/20 mb-6 p-2">
+              <img src={appSettings.app_logo} alt="App Logo" className="max-w-full max-h-full object-contain" />
+            </div>
+          ) : (
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-xl shadow-blue-900/20 mb-6">
+              <span className="text-4xl font-black text-white">{appSettings.app_name.charAt(0).toUpperCase()}</span>
+            </div>
+          )}
+          <h1 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">{appSettings.app_name}</h1>
           <p className="text-gray-400 text-lg">Pilih modul aplikasi untuk melanjutkan</p>
         </div>
         
@@ -85,7 +98,7 @@ export default function Home() {
       </div>
 
       <footer className="py-6 text-center text-gray-600 text-sm border-t border-gray-800/30 relative z-10">
-        &copy; {new Date().getFullYear()} NexPos System. All rights reserved.
+        &copy; {new Date().getFullYear()} {appSettings.app_name} System. All rights reserved.
       </footer>
     </div>
   );

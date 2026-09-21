@@ -21,7 +21,10 @@ export default function SuperAdminPage() {
     
     // SaaS Settings State
     const [activeTab, setActiveTab] = useState<'dashboard' | 'settings'>('dashboard');
-    const [saasSettings, setSaasSettings] = useState({ id: '', app_name: 'NexPos App', app_logo: '', support_email: 'support@nexpos.local', support_phone: '' });
+    const [saasSettings, setSaasSettings] = useState({ 
+        id: '', app_name: 'NexPos App', app_logo: '', support_email: 'support@nexpos.local', support_phone: '',
+        maintenance_mode: false, plan_starter_price: 0, plan_pro_price: 149000, plan_enterprise_price: 499000
+    });
     const [savingSettings, setSavingSettings] = useState(false);
 
     useEffect(() => {
@@ -82,20 +85,21 @@ export default function SuperAdminPage() {
         e.preventDefault();
         setSavingSettings(true);
         try {
+            const payload = {
+                app_name: saasSettings.app_name,
+                app_logo: saasSettings.app_logo,
+                support_email: saasSettings.support_email,
+                support_phone: saasSettings.support_phone,
+                maintenance_mode: saasSettings.maintenance_mode,
+                plan_starter_price: Number(saasSettings.plan_starter_price),
+                plan_pro_price: Number(saasSettings.plan_pro_price),
+                plan_enterprise_price: Number(saasSettings.plan_enterprise_price)
+            };
+
             if (saasSettings.id) {
-                await supabase.from('saas_settings').update({
-                    app_name: saasSettings.app_name,
-                    app_logo: saasSettings.app_logo,
-                    support_email: saasSettings.support_email,
-                    support_phone: saasSettings.support_phone
-                }).eq('id', saasSettings.id);
+                await supabase.from('saas_settings').update(payload).eq('id', saasSettings.id);
             } else {
-                const { data } = await supabase.from('saas_settings').insert([{
-                    app_name: saasSettings.app_name,
-                    app_logo: saasSettings.app_logo,
-                    support_email: saasSettings.support_email,
-                    support_phone: saasSettings.support_phone
-                }]).select().single();
+                const { data } = await supabase.from('saas_settings').insert([payload]).select().single();
                 if (data) setSaasSettings(data);
             }
             toast.success("Pengaturan aplikasi berhasil disimpan!");
@@ -374,28 +378,81 @@ export default function SuperAdminPage() {
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-300 mb-2">Logo Aplikasi</label>
-                                    <div className="border-2 border-dashed border-gray-700 bg-[#0B0F19] rounded-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-500 transition-colors">
-                                        {saasSettings.app_logo ? (
-                                            <div className="relative z-10 w-32 h-32 flex items-center justify-center bg-white/5 rounded-2xl p-2">
-                                                <img src={saasSettings.app_logo} alt="Logo" className="max-w-full max-h-full object-contain" />
-                                            </div>
-                                        ) : (
-                                            <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mb-4">
-                                                <span className="text-gray-500 text-2xl font-black">N</span>
-                                            </div>
-                                        )}
-                                        <p className="text-gray-400 text-sm mt-4 text-center">
-                                            Klik untuk upload logo.<br/>
-                                            <span className="text-xs text-gray-500">(Auto-compress ke WebP maks 500x500, format direkomendasikan PNG/JPG transparan)</span>
-                                        </p>
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-300 mb-2">Logo Aplikasi</label>
+                                        <div className="border-2 border-dashed border-gray-700 bg-[#0B0F19] rounded-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-500 transition-colors">
+                                            {saasSettings.app_logo ? (
+                                                <div className="relative z-10 w-32 h-32 flex items-center justify-center bg-white/5 rounded-2xl p-2">
+                                                    <img src={saasSettings.app_logo} alt="Logo" className="max-w-full max-h-full object-contain" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mb-4">
+                                                    <span className="text-gray-500 text-2xl font-black">N</span>
+                                                </div>
+                                            )}
+                                            <p className="text-gray-400 text-sm mt-4 text-center">
+                                                Klik untuk upload logo.<br/>
+                                                <span className="text-xs text-gray-500">(Auto-compress ke WebP maks 500x500, format direkomendasikan PNG/JPG transparan)</span>
+                                            </p>
+                                            <input 
+                                                type="file" 
+                                                accept="image/*"
+                                                onChange={handleLogoUpload}
+                                                className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-gray-800 pt-8 mt-8">
+                                <div className="space-y-6">
+                                    <h3 className="text-lg font-bold text-white">Harga Paket</h3>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-300 mb-2">Harga Paket Starter (Rp)</label>
                                         <input 
-                                            type="file" 
-                                            accept="image/*"
-                                            onChange={handleLogoUpload}
-                                            className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                                            type="number" 
+                                            value={saasSettings.plan_starter_price}
+                                            onChange={e => setSaasSettings({...saasSettings, plan_starter_price: Number(e.target.value)})}
+                                            className="w-full bg-[#0B0F19] border border-gray-800 text-white p-3 rounded-xl focus:border-blue-500 focus:outline-none"
                                         />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-300 mb-2">Harga Paket Pro (Rp)</label>
+                                        <input 
+                                            type="number" 
+                                            value={saasSettings.plan_pro_price}
+                                            onChange={e => setSaasSettings({...saasSettings, plan_pro_price: Number(e.target.value)})}
+                                            className="w-full bg-[#0B0F19] border border-gray-800 text-white p-3 rounded-xl focus:border-blue-500 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-300 mb-2">Harga Paket Enterprise (Rp)</label>
+                                        <input 
+                                            type="number" 
+                                            value={saasSettings.plan_enterprise_price}
+                                            onChange={e => setSaasSettings({...saasSettings, plan_enterprise_price: Number(e.target.value)})}
+                                            className="w-full bg-[#0B0F19] border border-gray-800 text-white p-3 rounded-xl focus:border-blue-500 focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-6">
+                                    <h3 className="text-lg font-bold text-white">Maintenance Mode</h3>
+                                    <div className="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 flex items-center justify-between">
+                                        <div>
+                                            <p className="font-bold text-white">Mode Perbaikan Sistem</p>
+                                            <p className="text-xs text-gray-400">Jika aktif, semua pengguna (kasir/admin tenant) tidak dapat login, dan menampilkan halaman Maintenance.</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                className="sr-only peer" 
+                                                checked={saasSettings.maintenance_mode}
+                                                onChange={e => setSaasSettings({...saasSettings, maintenance_mode: e.target.checked})}
+                                            />
+                                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                                        </label>
                                     </div>
                                 </div>
                             </div>

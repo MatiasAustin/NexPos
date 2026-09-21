@@ -11,11 +11,17 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [saasSettings, setSaasSettings] = useState({ app_name: 'NexPos App', app_logo: '' });
     const router = useRouter();
     const toast = useToast();
 
     useEffect(() => {
         const checkExistingSession = async () => {
+            try {
+                const { data: saas } = await supabase.from('saas_settings').select('app_name, app_logo').limit(1).maybeSingle();
+                if (saas) setSaasSettings(saas);
+            } catch(e) {}
+
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
                 const { data: superAdmin } = await supabase.from('super_admins').select('user_id').eq('user_id', session.user.id).maybeSingle();
@@ -85,8 +91,16 @@ export default function LoginPage() {
         <div className="min-h-screen bg-[#121214] flex items-center justify-center p-4">
             <div className="bg-[#1a1a1c] p-8 rounded-3xl shadow-2xl border border-gray-800 w-full max-w-md">
                 <div className="text-center mb-10">
-                    <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-3xl font-black mx-auto mb-6 shadow-lg shadow-blue-900/20">N</div>
-                    <h1 className="text-3xl font-black text-white tracking-tight">NexPos App</h1>
+                    {saasSettings.app_logo ? (
+                        <div className="w-16 h-16 rounded-2xl mx-auto mb-6 p-1 bg-white/5 shadow-lg shadow-blue-900/20 flex items-center justify-center">
+                            <img src={saasSettings.app_logo} alt="Logo" className="max-w-full max-h-full object-contain" />
+                        </div>
+                    ) : (
+                        <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-3xl font-black mx-auto mb-6 shadow-lg shadow-blue-900/20">
+                            {saasSettings.app_name.charAt(0).toUpperCase()}
+                        </div>
+                    )}
+                    <h1 className="text-3xl font-black text-white tracking-tight">{saasSettings.app_name}</h1>
                     <p className="text-gray-400 mt-2 text-sm">Masuk dengan akun Staff atau Admin Anda.</p>
                 </div>
 
