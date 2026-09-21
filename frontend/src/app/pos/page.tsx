@@ -2426,7 +2426,7 @@ export default function PosPage() {
             )}
 
             {/* MOBILE FLOATING BUTTONS */}
-            <div className="sm:hidden fixed bottom-6 left-0 right-0 px-4 flex justify-between items-end z-40 pointer-events-none">
+            <div className="sm:hidden fixed bottom-6 left-0 right-0 px-4 flex justify-between items-end z-40 pointer-events-none print:hidden">
                 {/* DRAFT FAB */}
                 <div className="pointer-events-auto">
                     {pendingOrders.length > 0 && !isMobileCartOpen && !isMobileDraftOpen && (
