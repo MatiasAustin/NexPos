@@ -957,7 +957,8 @@ export default function PosPage() {
                 }
             });
 
-            await Promise.all([
+            // Run stock deduction in the background (fire and forget) to avoid blocking the UI
+            Promise.all([
                 ...Object.keys(prodStockUpdates).map(async prodId => {
                     const prod = products.find(p => p.id === prodId);
                     if (prod) {
@@ -981,7 +982,7 @@ export default function PosPage() {
                         }]);
                     }
                 })
-            ]);
+            ]).catch(err => console.error("Stock background deduction error:", err));
             // ----------------------------------------------------------------
 
             setPaymentResult({
