@@ -284,7 +284,7 @@ export default function AdminDashboard() {
                 return;
             }
 
-            const { data: prof } = await supabase.from('staff_profiles').select('*').eq('id', session.user.id).single();
+            const { data: prof } = await supabase.from('staff_profiles').select('*, stores(subscription_plan)').eq('id', session.user.id).single();
             if (!prof) {
                 toast.error("Akses ditolak.");
                 router.push('/pos');
@@ -1735,16 +1735,24 @@ export default function AdminDashboard() {
                 {/* Horizontal Scroll on Mobile, Vertical on Desktop */}
                 <div className="flex-1 overflow-y-auto overflow-x-auto md:overflow-x-hidden p-4 flex flex-row md:flex-col gap-2 no-scrollbar">
                     {[
-                        { id: "reconciliation", label: "Laporan Rekonsiliasi", icon: AlertTriangle },
-                        { id: "history", label: "Riwayat Transaksi", icon: FileText },
-                        { id: "cash_sessions", label: "Riwayat Shift", icon: Wallet },
-                        { id: "inventory", label: "Produk & Stok", icon: Package },
-                        { id: "raw_materials", label: "Bahan Baku", icon: Package },
-                        { id: "expenses", label: "Pengeluaran", icon: FileText },
-                        { id: "staff", label: "Manajemen Staf", icon: Users },
-                        { id: "audit", label: "Security Log", icon: ShieldCheck },
-                        { id: "settings", label: "Pengaturan Toko", icon: Settings },
-                    ].filter(tab => profile?.role === 'owner' || ['reconciliation', 'history', 'cash_sessions', 'raw_materials', 'inventory', 'expenses'].includes(tab.id)).map((tab) => (
+                        { id: "reconciliation", label: "Laporan Rekonsiliasi", icon: AlertTriangle, minPlan: 2 },
+                        { id: "history", label: "Riwayat Transaksi", icon: FileText, minPlan: 1 },
+                        { id: "cash_sessions", label: "Riwayat Shift", icon: Wallet, minPlan: 1 },
+                        { id: "inventory", label: "Produk & Stok", icon: Package, minPlan: 1 },
+                        { id: "raw_materials", label: "Bahan Baku", icon: Package, minPlan: 2 },
+                        { id: "expenses", label: "Pengeluaran", icon: FileText, minPlan: 2 },
+                        { id: "staff", label: "Manajemen Staf", icon: Users, minPlan: 3 },
+                        { id: "audit", label: "Security Log", icon: ShieldCheck, minPlan: 3 },
+                        { id: "settings", label: "Pengaturan Toko", icon: Settings, minPlan: 1 },
+                    ].filter(tab => {
+                        // Check Role
+                        if (profile?.role !== 'owner' && !['reconciliation', 'history', 'cash_sessions', 'raw_materials', 'inventory', 'expenses'].includes(tab.id)) return false;
+                        
+                        // Check Subscription Plan Gating
+                        const userPlan = (profile?.stores?.subscription_plan || 'pro').toLowerCase();
+                        const planLevel = userPlan === 'enterprise' ? 3 : userPlan === 'pro' ? 2 : 1;
+                        return planLevel >= tab.minPlan;
+                    }).map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
@@ -1752,6 +1760,7 @@ export default function AdminDashboard() {
                         >
                             <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? "text-white" : "text-gray-500"}`} /> 
                             <span className="whitespace-nowrap">{tab.label}</span>
+                            {/* Locked Badge (If we wanted to show locked instead of hiding, we could, but hiding is cleaner) */}
                         </button>
                     ))}
                 </div>

@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Store, Mail, User, Phone, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 
 function SignupContent() {
@@ -18,7 +19,8 @@ function SignupContent() {
         ownerName: "",
         storeName: "",
         email: "",
-        phone: ""
+        phone: "",
+        password: ""
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,12 +30,36 @@ function SignupContent() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        // Simulate API call for subscription registration
-        setTimeout(() => {
-            setLoading(false);
+        
+        try {
+            // 1. Register to Supabase Auth
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: formData.email,
+                password: formData.password
+            });
+
+            if (authError) throw authError;
+            if (!authData.user) throw new Error("Gagal membuat akun.");
+
+            // 2. Call RPC to create store & staff_profile
+            const { error: rpcError } = await supabase.rpc('register_new_tenant', {
+                p_owner_name: formData.ownerName,
+                p_store_name: formData.storeName,
+                p_email: formData.email,
+                p_phone: formData.phone,
+                p_plan: plan,
+                p_user_id: authData.user.id
+            });
+
+            if (rpcError) throw rpcError;
+
             setSuccess(true);
-            toast.success("Pendaftaran berhasil! Tim kami akan segera menghubungi Anda.");
-        }, 1500);
+        } catch (err: any) {
+            console.error(err);
+            toast.error(err.message || "Terjadi kesalahan saat pendaftaran");
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (success) {
@@ -131,6 +157,23 @@ function SignupContent() {
                                     className="w-full bg-[#131B2C] pl-12 pr-4 py-4 border border-gray-800 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-white transition-all"
                                     placeholder="081234567890"
                                     required
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-gray-300 mb-2">Password</label>
+                            <div className="relative group">
+                                <User className="absolute left-4 top-4 w-5 h-5 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
+                                <input 
+                                    type="password"
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#131B2C] pl-12 pr-4 py-4 border border-gray-800 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-white transition-all"
+                                    placeholder="Min. 6 karakter"
+                                    required
+                                    minLength={6}
                                 />
                             </div>
                         </div>

@@ -15,6 +15,9 @@ export default function SuperAdminPage() {
     const [loading, setLoading] = useState(true);
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [stores, setStores] = useState<any[]>([]);
+    const [selectedStore, setSelectedStore] = useState<any | null>(null);
+    const [editForm, setEditForm] = useState({ plan: 'pro', status: 'active' });
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         checkSuperAdmin();
@@ -58,6 +61,35 @@ export default function SuperAdminPage() {
             setStores(data || []);
         }
         setLoading(false);
+    };
+
+    const openModal = (store: any) => {
+        setSelectedStore(store);
+        setEditForm({ plan: store.subscription_plan || 'pro', status: store.status || 'active' });
+    };
+
+    const handleUpdateStore = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedStore) return;
+        
+        setSaving(true);
+        const { error } = await supabase
+            .from('stores')
+            .update({ 
+                subscription_plan: editForm.plan, 
+                status: editForm.status 
+            })
+            .eq('id', selectedStore.id);
+
+        if (error) {
+            console.error(error);
+            toast.error("Gagal memperbarui toko");
+        } else {
+            toast.success("Berhasil memperbarui langganan tenant!");
+            setSelectedStore(null);
+            fetchStores();
+        }
+        setSaving(false);
     };
 
     const handleLogout = async () => {
@@ -137,7 +169,10 @@ export default function SuperAdminPage() {
                         <h2 className="text-lg font-bold text-white flex items-center gap-2">
                             <Users className="w-5 h-5 text-blue-400" /> Database Pelanggan SaaS
                         </h2>
-                        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-900/20">
+                        <button 
+                            onClick={() => toast.info("Gunakan halaman /signup untuk registrasi tenant baru. Fitur input manual akan segera datang.")}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-900/20"
+                        >
                             + Tambah Tenant Manual
                         </button>
                     </div>
@@ -179,7 +214,10 @@ export default function SuperAdminPage() {
                                             {new Date(store.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                                         </td>
                                         <td className="p-4 text-right">
-                                            <button className="text-sm font-bold text-blue-500 hover:text-blue-400 transition-colors">
+                                            <button 
+                                                onClick={() => openModal(store)}
+                                                className="text-sm font-bold text-blue-500 hover:text-blue-400 transition-colors"
+                                            >
                                                 Kelola
                                             </button>
                                         </td>
@@ -199,6 +237,53 @@ export default function SuperAdminPage() {
                 </div>
                 
             </div>
+
+            {/* Modal Edit */}
+            {selectedStore && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+                    <div className="bg-[#131B2C] border border-gray-800 rounded-3xl p-6 max-w-md w-full shadow-2xl">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-white">Kelola Tenant</h2>
+                            <button onClick={() => setSelectedStore(null)} className="text-gray-500 hover:text-white">✕</button>
+                        </div>
+                        <p className="text-sm text-gray-400 mb-6">Ubah paket dan status untuk toko <strong className="text-white">{selectedStore.name}</strong></p>
+                        
+                        <form onSubmit={handleUpdateStore} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-400 mb-2">Paket Berlangganan</label>
+                                <select 
+                                    value={editForm.plan} 
+                                    onChange={(e) => setEditForm({...editForm, plan: e.target.value})}
+                                    className="w-full bg-[#080B12] border border-gray-800 text-white p-3 rounded-xl focus:border-blue-500 focus:outline-none"
+                                >
+                                    <option value="starter">Starter</option>
+                                    <option value="pro">Pro</option>
+                                    <option value="enterprise">Enterprise</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-400 mb-2">Status Akun</label>
+                                <select 
+                                    value={editForm.status} 
+                                    onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                                    className="w-full bg-[#080B12] border border-gray-800 text-white p-3 rounded-xl focus:border-blue-500 focus:outline-none"
+                                >
+                                    <option value="active">Aktif</option>
+                                    <option value="suspended">Suspend (Diblokir)</option>
+                                    <option value="pending_payment">Menunggu Pembayaran</option>
+                                </select>
+                            </div>
+                            
+                            <div className="flex gap-4 mt-8 pt-4 border-t border-gray-800">
+                                <button type="button" onClick={() => setSelectedStore(null)} className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl transition-colors">Batal</button>
+                                <button type="submit" disabled={saving} className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors disabled:opacity-50">
+                                    {saving ? "Menyimpan..." : "Simpan Perubahan"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
