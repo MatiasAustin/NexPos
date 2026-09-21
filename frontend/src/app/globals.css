@@ -12,8 +12,8 @@
   --border-soft: #E4E4E7;
   --border-glass: rgba(0, 0, 0, 0.05);
   /* Darkened accent for better contrast with white text */
-  --accent: #84CC16;
-  --accent-hover: #65A30D;
+  --accent: #97e100;
+  --accent-hover: #7dbd00;
   --accent-fg: #FFFFFF;
   --shadow-soft: 0 8px 30px rgba(0,0,0,0.04);
   
@@ -32,8 +32,8 @@
   --border-soft: #27272A;
   --border-glass: rgba(255, 255, 255, 0.08);
   /* Darkened accent for better contrast with white text */
-  --accent: #84CC16;
-  --accent-hover: #65A30D;
+  --accent: #97e100;
+  --accent-hover: #7dbd00;
   --accent-fg: #FFFFFF;
   --shadow-soft: 0 8px 30px rgba(0,0,0,0.4);
 }
