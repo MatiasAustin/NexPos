@@ -10,6 +10,7 @@ import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
 import { LoadingSpinner } from "@/components/Loading";
 import { parseExpenseQtyAndUnit, formatExpenseDescription, cleanExpenseDescription } from "@/lib/expenseHelpers";
+import { useSaasSettings } from "@/contexts/SaasSettingsContext";
 
 export default function PosPage() {
     const [hasSession, setHasSession] = useState(false);
@@ -110,7 +111,7 @@ export default function PosPage() {
     };
     const [isCheckingSession, setIsCheckingSession] = useState(true);
     const [storeSettings, setStoreSettings] = useState<any>(null);
-    const [saasSettings, setSaasSettings] = useState({ app_name: 'NexPos', app_logo: '' });
+    const saasSettings = useSaasSettings();
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -123,11 +124,6 @@ export default function PosPage() {
                     setStoreSettings(data);
                     localStorage.setItem("nexpos_store_settings", JSON.stringify(data));
                 }
-            } catch(e) {}
-
-            try {
-                const { data: saas } = await supabase.from('saas_settings').select('app_name, app_logo, maintenance_mode').limit(1).maybeSingle();
-                if (saas) setSaasSettings(saas);
             } catch(e) {}
         };
         loadSettings();

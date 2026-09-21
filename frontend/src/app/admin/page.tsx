@@ -12,6 +12,7 @@ import { useConfirm } from "@/components/ConfirmModal";
 import { LoadingSpinner, SkeletonCard, SkeletonTable } from "@/components/Loading";
 import ProductOptionsEditor from "@/components/ProductOptionsEditor";
 import { parseExpenseQtyAndUnit, formatExpenseDescription, cleanExpenseDescription } from "@/lib/expenseHelpers";
+import { useSaasSettings } from "@/contexts/SaasSettingsContext";
 
 const CategoryDropdown = ({ value, onChange, categories, onAdd, onRemove }: { value: string, onChange: (v: string) => void, categories: string[], onAdd: (v: string) => void, onRemove: (v: string) => void }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -247,7 +248,7 @@ export default function AdminDashboard() {
         categories: ["Makanan", "Minuman", "Snack"]
     });
 
-    const [saasSettings, setSaasSettings] = useState({ app_name: 'NexPos', app_logo: '' });
+    const saasSettings = useSaasSettings();
 
     const [products, setProducts] = useState<any[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
@@ -293,11 +294,6 @@ export default function AdminDashboard() {
                 return;
             }
             setProfile(prof);
-
-            try {
-                const { data: saas } = await supabase.from('saas_settings').select('app_name, app_logo').limit(1).maybeSingle();
-                if (saas) setSaasSettings(saas);
-            } catch (e) {}
 
             // Fetch current store settings
             const { data: storeData } = await supabase.from('stores').select('*').eq('id', prof.store_id).single();
@@ -1785,8 +1781,8 @@ export default function AdminDashboard() {
                         <ArrowLeft className="w-5 h-5" /> Kembali ke Menu Utama
                     </Link>
                     <p className="text-center text-[10px] text-gray-700 mt-3 leading-relaxed">
-                        &copy; {new Date().getFullYear()} {saasSettings.app_name}<br />
-                        <span className="font-medium">SaaS Platform</span>
+                        &copy; {new Date().getFullYear()} {saasSettings.app_name || 'NexPos'}<br />
+                        <span className="font-medium">Developed by Matias Austin</span>
                     </p>
                 </div>
             </div>

@@ -5,23 +5,19 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Lock, User, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/components/Toast";
+import { useSaasSettings } from "@/contexts/SaasSettingsContext";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [saasSettings, setSaasSettings] = useState({ app_name: 'NexPos App', app_logo: '' });
+    const saasSettings = useSaasSettings();
     const router = useRouter();
     const toast = useToast();
 
     useEffect(() => {
         const checkExistingSession = async () => {
-            try {
-                const { data: saas } = await supabase.from('saas_settings').select('app_name, app_logo').limit(1).maybeSingle();
-                if (saas) setSaasSettings(saas);
-            } catch(e) {}
-
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
                 const { data: superAdmin } = await supabase.from('super_admins').select('user_id').eq('user_id', session.user.id).maybeSingle();
