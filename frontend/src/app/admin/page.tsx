@@ -375,7 +375,7 @@ export default function AdminDashboard() {
                 setRawMaterials(matRes.data || []);
                 setMaterialStockLogs(logRes.data || []);
             } else if (activeTab === "cash_sessions") {
-                const { data, error } = await supabase.from('cash_sessions').select('*, staff_profiles(full_name)').order('created_at', { ascending: false });
+                const { data, error } = await supabase.from('cash_sessions').select('*, staff_profiles(full_name)').order('opened_at', { ascending: false });
                 if (error) {
                     console.error("CASH SESSIONS ERROR:", error);
                     toast.error("Gagal memuat riwayat shift: " + error.message);
