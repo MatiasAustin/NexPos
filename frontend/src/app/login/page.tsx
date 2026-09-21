@@ -18,7 +18,13 @@ export default function LoginPage() {
         const checkExistingSession = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
-                const { data: profile } = await supabase.from('staff_profiles').select('role').eq('id', session.user.id).single();
+                const { data: superAdmin } = await supabase.from('super_admins').select('user_id').eq('user_id', session.user.id).maybeSingle();
+                if (superAdmin) {
+                    router.push('/superadmin');
+                    return;
+                }
+
+                const { data: profile } = await supabase.from('staff_profiles').select('role').eq('id', session.user.id).maybeSingle();
                 if (profile?.role === 'owner') router.push('/admin');
                 else if (profile) router.push('/pos');
             }
@@ -38,7 +44,19 @@ export default function LoginPage() {
 
             if (authError) throw authError;
 
-            // Fetch role
+            // Check if super_admin first
+            const { data: superAdmin } = await supabase
+                .from('super_admins')
+                .select('user_id')
+                .eq('user_id', data.user.id)
+                .maybeSingle();
+
+            if (superAdmin) {
+                router.push('/superadmin');
+                return;
+            }
+
+            // Fetch role for normal staff
             const { data: profile, error: profileError } = await supabase
                 .from('staff_profiles')
                 .select('role')
