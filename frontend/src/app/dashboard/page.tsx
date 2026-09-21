@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { ShoppingCart, LayoutDashboard, MonitorSmartphone, Power } from "lucide-react";
 import { useSaasSettings } from "@/contexts/SaasSettingsContext";
 import ThemeToggle from "@/components/ThemeToggle";
+import AppLogo from "@/components/AppLogo";
 
 export default function Home() {
   const router = useRouter();
@@ -46,15 +47,13 @@ export default function Home() {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-[100px] pointer-events-none"></div>
 
         <div className="text-center mb-16 relative z-10">
-          {saasSettings.app_logo ? (
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-surface border border-border rounded-3xl shadow-soft mb-8 p-3">
-              <img src={saasSettings.app_logo} alt="App Logo" className="max-w-full max-h-full object-contain" />
-            </div>
-          ) : (
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-accent rounded-3xl shadow-soft mb-8">
-              <span className="text-4xl font-bold text-accent-fg">{saasSettings.app_name ? saasSettings.app_name.charAt(0).toUpperCase() : 'N'}</span>
-            </div>
-          )}
+          <AppLogo
+            logoUrl={saasSettings.app_logo}
+            showBackground={saasSettings.logo_show_background}
+            fallbackLetter={saasSettings.app_name ? saasSettings.app_name.charAt(0) : 'N'}
+            size={24}
+            className="mx-auto mb-8"
+          />
           <h1 className="text-4xl md:text-5xl font-bold text-text-primary mb-4 tracking-tight">{saasSettings.app_name || 'NexPos'}</h1>
           <p className="text-text-muted text-lg">Pilih modul aplikasi untuk melanjutkan</p>
         </div>

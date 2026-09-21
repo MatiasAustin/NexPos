@@ -5,6 +5,7 @@ import { createContext, useContext } from "react";
 export interface SaasSettings {
     app_name: string;
     app_logo: string;
+    logo_show_background?: boolean;
     support_email?: string;
     support_phone?: string;
     maintenance_mode?: boolean;
@@ -16,6 +17,7 @@ export interface SaasSettings {
 const defaultSettings: SaasSettings = {
     app_name: '',
     app_logo: '',
+    logo_show_background: false,
 };
 
 export const SaasSettingsContext = createContext<SaasSettings>(defaultSettings);

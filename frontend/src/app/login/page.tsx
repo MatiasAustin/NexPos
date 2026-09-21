@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Lock, User, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { useSaasSettings } from "@/contexts/SaasSettingsContext";
+import AppLogo from "@/components/AppLogo";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -90,15 +91,13 @@ export default function LoginPage() {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[80px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
                 
                 <div className="text-center mb-10 relative z-10">
-                    {saasSettings.app_logo ? (
-                        <div className="w-16 h-16 rounded-3xl mx-auto mb-6 p-2 bg-surface border border-border shadow-soft flex items-center justify-center">
-                            <img src={saasSettings.app_logo} alt="Logo" className="max-w-full max-h-full object-contain" />
-                        </div>
-                    ) : (
-                        <div className="w-16 h-16 rounded-3xl bg-accent flex items-center justify-center text-accent-fg text-3xl font-bold mx-auto mb-6 shadow-soft">
-                            {saasSettings.app_name.charAt(0).toUpperCase()}
-                        </div>
-                    )}
+                    <AppLogo
+                        logoUrl={saasSettings.app_logo}
+                        showBackground={saasSettings.logo_show_background}
+                        fallbackLetter={saasSettings.app_name?.charAt(0) || 'N'}
+                        size={16}
+                        className="mx-auto mb-6"
+                    />
                     <h1 className="text-3xl font-bold text-text-primary tracking-tight">{saasSettings.app_name}</h1>
                     <p className="text-text-muted mt-3 text-sm">Masuk dengan akun Staff atau Admin Anda.</p>
                 </div>

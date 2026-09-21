@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { getReconciliationReport, getAuditLogs } from "@/lib/api";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
+import AppLogo from "@/components/AppLogo";
 import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload, Loader2, Maximize, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -1729,11 +1730,12 @@ export default function AdminDashboard() {
                 <div className="p-2 md:p-4 md:p-6 border-b border-border flex items-center justify-between">
                     <div>
                         <h1 className="text-xl md:text-lg font-semibold tracking-tight text-text-primary flex items-center gap-3">
-                            {saasSettings.app_logo ? (
-                                <img src={saasSettings.app_logo} alt="Logo" className="w-8 h-8 object-contain rounded-lg border border-border shadow-soft" />
-                            ) : (
-                                <span className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center text-accent-fg font-bold text-lg shadow-soft">{saasSettings.app_name.charAt(0).toUpperCase()}</span>
-                            )}
+                            <AppLogo
+                                logoUrl={saasSettings.app_logo}
+                                showBackground={saasSettings.logo_show_background}
+                                fallbackLetter={saasSettings.app_name?.charAt(0) || 'N'}
+                                size={8}
+                            />
                             {saasSettings.app_name}
                         </h1>
                         <p className="text-text-muted text-xs font-semibold uppercase tracking-wider mt-2">Control Center</p>
@@ -1773,11 +1775,10 @@ export default function AdminDashboard() {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex-shrink-0 md:w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold transition-all ${activeTab === tab.id ? "bg-accent text-white shadow-soft shadow-soft" : "text-white hover:text-text-primary hover:bg-gray-800/40"}`}
+                            className={`flex-shrink-0 md:w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold transition-all ${activeTab === tab.id ? "bg-accent text-white shadow-soft" : "text-text-secondary hover:text-text-primary hover:bg-surface-hover"}`}
                         >
-                            <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? "text-text-primary" : "text-text-muted"}`} /> 
+                            <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? "text-white" : "text-text-muted"}`} /> 
                             <span className="whitespace-nowrap">{tab.label}</span>
-                            {/* Locked Badge (If we wanted to show locked instead of hiding, we could, but hiding is cleaner) */}
                         </button>
                     ))}
                 </div>
@@ -1874,14 +1875,14 @@ export default function AdminDashboard() {
                                             </div>
                                             {reconciliationPeriod !== 'custom' && (
                                                 <div className="flex bg-surface-hover rounded-lg overflow-hidden border border-border h-10">
-                                                    <button onClick={() => shiftReconciliationDate(-1)} className="px-4 py-2 hover:bg-gray-800 text-white hover:text-white transition-colors flex items-center justify-center w-12">&lt;</button>
+                                                    <button onClick={() => shiftReconciliationDate(-1)} className="px-4 py-2 hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors flex items-center justify-center w-12">&lt;</button>
                                                     <div className="px-4 py-2 text-sm font-bold text-white border-l border-r border-border bg-gray-800/30 flex items-center justify-center">
                                                         {reconciliationPeriod === 'daily' ? reconciliationDate.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) :
                                                          reconciliationPeriod === 'weekly' ? 'Minggu ' + Math.ceil(reconciliationDate.getDate()/7) :
                                                          reconciliationPeriod === 'monthly' ? reconciliationDate.toLocaleDateString('id-ID', {month:'long', year:'numeric'}) :
                                                          reconciliationDate.getFullYear()}
                                                     </div>
-                                                    <button onClick={() => shiftReconciliationDate(1)} className="px-4 py-2 hover:bg-gray-800 text-white hover:text-white transition-colors flex items-center justify-center w-12">&gt;</button>
+                                                    <button onClick={() => shiftReconciliationDate(1)} className="px-4 py-2 hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors flex items-center justify-center w-12">&gt;</button>
                                                 </div>
                                             )}
                                         </div>
@@ -2070,14 +2071,14 @@ export default function AdminDashboard() {
                                                     )}
                                                     {historyFilterType !== 'custom' && (
                                                         <div className="flex bg-surface-hover rounded-lg overflow-hidden border border-border mr-2 h-10 w-full sm:w-auto">
-                                                            <button onClick={() => shiftHistoryDate(-1)} className="px-4 py-2 hover:bg-gray-800 text-white hover:text-white transition-colors flex items-center justify-center w-12">&lt;</button>
+                                                            <button onClick={() => shiftHistoryDate(-1)} className="px-4 py-2 hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors flex items-center justify-center w-12">&lt;</button>
                                                             <div className="px-4 py-2 text-sm font-bold text-white border-l border-r border-border bg-gray-800/30 flex items-center justify-center flex-1 sm:flex-none">
                                                                 {historyFilterType === 'daily' ? historyDate.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) :
                                                                  historyFilterType === 'weekly' ? 'Minggu ' + Math.ceil(historyDate.getDate()/7) :
                                                                  historyFilterType === 'monthly' ? historyDate.toLocaleDateString('id-ID', {month:'long', year:'numeric'}) :
                                                                  historyDate.getFullYear()}
                                                             </div>
-                                                            <button onClick={() => shiftHistoryDate(1)} className="px-4 py-2 hover:bg-gray-800 text-white hover:text-white transition-colors flex items-center justify-center w-12">&gt;</button>
+                                                            <button onClick={() => shiftHistoryDate(1)} className="px-4 py-2 hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors flex items-center justify-center w-12">&gt;</button>
                                                         </div>
                                                     )}
                                                     <div className="flex flex-wrap bg-surface-hover rounded-xl p-1 border border-border w-full md:w-fit">
@@ -2093,8 +2094,8 @@ export default function AdminDashboard() {
                                             <div>
                                                 <h3 className="font-bold text-text-primary mb-2">Urutkan Waktu</h3>
                                                 <div className="flex bg-surface-hover rounded-xl p-1 border border-border">
-                                                    <button onClick={() => setHistorySortOrder('desc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'desc' ? 'bg-gray-700 text-white' : 'text-white hover:text-text-primary'}`}>Terbaru</button>
-                                                    <button onClick={() => setHistorySortOrder('asc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'asc' ? 'bg-gray-700 text-white' : 'text-white hover:text-text-primary'}`}>Terlama</button>
+                                                    <button onClick={() => setHistorySortOrder('desc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'desc' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}>Terbaru</button>
+                                                    <button onClick={() => setHistorySortOrder('asc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'asc' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}>Terlama</button>
                                                 </div>
                                             </div>
                                             <span className="text-text-muted text-sm">{filteredTransactions.length} transaksi ditemukan</span>

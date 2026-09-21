@@ -2,12 +2,14 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2, LayoutDashboard, MonitorSmartphone, ShoppingCart, Zap, TrendingUp, Shield } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import ThemeToggle from "@/components/ThemeToggle";
+import AppLogo from "@/components/AppLogo";
 
 export default async function LandingPage() {
     // Fetch saas_settings for dynamic branding and pricing
     const { data: saasSettings } = await supabase.from('saas_settings').select('*').limit(1).maybeSingle();
     const appName = saasSettings?.app_name || 'NexPos';
     const appLogo = saasSettings?.app_logo || '';
+    const logoShowBackground = saasSettings?.logo_show_background || false;
     
     return (
         <div className="min-h-screen bg-background text-text-primary font-sans selection:bg-accent/30">
@@ -15,13 +17,12 @@ export default async function LandingPage() {
             <nav className="fixed w-full z-50 bg-background/80 backdrop-blur-xl border-b border-border">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        {appLogo ? (
-                            <img src={appLogo} alt="Logo" className="w-10 h-10 object-contain rounded-xl" />
-                        ) : (
-                            <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center shadow-soft">
-                                <span className="text-xl font-bold text-accent-fg">{appName.charAt(0).toUpperCase()}</span>
-                            </div>
-                        )}
+                        <AppLogo
+                            logoUrl={appLogo}
+                            showBackground={logoShowBackground}
+                            fallbackLetter={appName.charAt(0) || 'N'}
+                            size={10}
+                        />
                         <span className="text-2xl font-bold text-text-primary tracking-tight">{appName}</span>
                     </div>
                     <div className="hidden md:flex items-center gap-8 text-sm font-medium text-text-muted">
@@ -255,13 +256,12 @@ export default async function LandingPage() {
                 <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-8 mb-8">
                     <div className="col-span-1 md:col-span-2">
                         <div className="flex items-center gap-2 mb-4">
-                            {appLogo ? (
-                                <img src={appLogo} alt="Logo" className="w-8 h-8 object-contain rounded-lg" />
-                            ) : (
-                                <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-                                    <span className="text-lg font-bold text-accent-fg">{appName.charAt(0).toUpperCase()}</span>
-                                </div>
-                            )}
+                            <AppLogo
+                                logoUrl={appLogo}
+                                showBackground={logoShowBackground}
+                                fallbackLetter={appName.charAt(0) || 'N'}
+                                size={8}
+                            />
                             <span className="text-xl font-bold text-text-primary tracking-tight">{appName}</span>
                         </div>
                         <p className="text-text-muted text-sm max-w-sm mb-4 leading-relaxed">

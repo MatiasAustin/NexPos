@@ -11,9 +11,10 @@
   --text-muted: #71717A;
   --border-soft: #E4E4E7;
   --border-glass: rgba(0, 0, 0, 0.05);
-  --accent: #C7FF3D;
-  --accent-hover: #b3eb2b;
-  --accent-fg: #18181B;
+  /* Darkened accent for better contrast with white text */
+  --accent: #84CC16;
+  --accent-hover: #65A30D;
+  --accent-fg: #FFFFFF;
   --shadow-soft: 0 8px 30px rgba(0,0,0,0.04);
   
   --font-funnel: 'Funnel Display', sans-serif;
@@ -25,13 +26,15 @@
   --surface-hover: #18181B;
   --surface-glass: rgba(24, 24, 27, 0.6);
   --text-primary: #FAFAFA;
-  --text-secondary: #D4D4D8;
-  --text-muted: #A1A1AA;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+  --border: #27272A;
   --border-soft: #27272A;
   --border-glass: rgba(255, 255, 255, 0.08);
-  --accent: #C7FF3D;
-  --accent-hover: #b3eb2b;
-  --accent-fg: #18181B;
+  /* Darkened accent for better contrast with white text */
+  --accent: #84CC16;
+  --accent-hover: #65A30D;
+  --accent-fg: #FFFFFF;
   --shadow-soft: 0 8px 30px rgba(0,0,0,0.4);
 }
 

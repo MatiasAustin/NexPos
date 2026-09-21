@@ -21,15 +21,24 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Fetch once on the server — no flash, no extra client round-trip
   const { data: saasSettings } = await supabase
     .from('saas_settings')
-    .select('app_name, app_logo, support_email, support_phone, maintenance_mode, plan_starter_price, plan_pro_price, plan_enterprise_price')
+    .select('app_name, app_logo, logo_show_background, support_email, support_phone, maintenance_mode, plan_starter_price, plan_pro_price, plan_enterprise_price')
     .limit(1)
     .maybeSingle();
 
-  const settings = saasSettings || { app_name: '', app_logo: '' };
+  const settings = saasSettings || { app_name: '', app_logo: '', logo_show_background: false };
+  const faviconUrl = settings.app_logo || null;
+  const pageTitle = settings.app_name ? `${settings.app_name}` : 'NexPos System';
 
   return (
     <html lang="en" className="h-full antialiased print:h-auto">
       <head>
+        {/* Dynamic favicon — uses the app logo set by super admin */}
+        {faviconUrl ? (
+          <link rel="icon" href={faviconUrl} type="image/png" />
+        ) : (
+          <link rel="icon" href="/favicon.ico" />
+        )}
+        <title>{pageTitle}</title>
         <style dangerouslySetInnerHTML={{ __html: `
           @page {
             size: 58mm 210mm;

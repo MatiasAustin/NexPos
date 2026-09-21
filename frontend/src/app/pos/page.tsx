@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import ThemeToggle from "@/components/ThemeToggle";
+import AppLogo from "@/components/AppLogo";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
 import { LoadingSpinner } from "@/components/Loading";
@@ -1074,7 +1075,7 @@ export default function PosPage() {
                             <button 
                                 onClick={handleUsePreviousCash}
                                 type="button"
-                                className="text-[10px] bg-gray-800 hover:bg-gray-600 text-white px-3 py-1.5 whitespace-nowrap rounded border border-border"
+                                className="text-[10px] bg-surface-hover hover:bg-border text-text-primary px-3 py-1.5 whitespace-nowrap rounded border border-border"
                             >
                                 Gunakan Saldo Kasir Terakhir
                             </button>
@@ -1114,11 +1115,12 @@ export default function PosPage() {
             <div className="flex-1 flex flex-col overflow-y-auto print:hidden">
                 <div className="p-4 md:p-6 border-b border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface">
                     <div className="flex items-center gap-3">
-                        {saasSettings.app_logo ? (
-                            <img src={saasSettings.app_logo} alt="Logo" className="w-10 h-10 object-contain rounded-xl border border-border shadow-soft bg-surface" />
-                        ) : (
-                            <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center text-accent-fg text-xl font-bold">{saasSettings.app_name.charAt(0).toUpperCase()}</div>
-                        )}
+                        <AppLogo
+                            logoUrl={saasSettings.app_logo}
+                            showBackground={saasSettings.logo_show_background}
+                            fallbackLetter={saasSettings.app_name?.charAt(0) || 'N'}
+                            size={10}
+                        />
                         <div>
                             <h1 className="text-xl font-bold text-text-primary leading-tight">{saasSettings.app_name} Terminal</h1>
                             <span className="text-text-muted text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date().toLocaleTimeString()}</span>
@@ -1408,7 +1410,7 @@ export default function PosPage() {
                                         />
                                         <button 
                                             onClick={() => updateCartQty(itemKey, item.qty + 1)}
-                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-600 text-white rounded-lg transition-colors border border-border"
+                                            className="w-10 h-10 flex items-center justify-center bg-surface-hover hover:bg-border text-text-primary rounded-lg transition-colors border border-border"
                                         >
                                             <Plus className="w-5 h-5" />
                                         </button>
@@ -1477,7 +1479,7 @@ export default function PosPage() {
                         <button 
                             onClick={handleSaveDraft}
                             disabled={cart.length === 0}
-                            className="flex-1 bg-gray-800 hover:bg-gray-600 text-white py-3 md:py-4 rounded-xl font-bold text-sm md:text-base flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-soft border border-border"
+                            className="flex-1 bg-surface-hover hover:bg-border text-text-primary py-3 md:py-4 rounded-xl font-bold text-sm md:text-base flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-soft border border-border"
                         >
                             Bayar Nanti
                         </button>
@@ -1545,7 +1547,7 @@ export default function PosPage() {
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="mb-8 p-4 md:p-6 bg-surface-hover border border-border rounded-xl text-center text-white">
+                                    <div className="mb-8 p-4 md:p-6 bg-surface-hover border border-border rounded-xl text-center text-text-primary">
                                         Sistem akan membuka jendela pembayaran pihak ketiga untuk {selectedMethod?.name}...
                                     </div>
                                 )}
@@ -1887,11 +1889,11 @@ export default function PosPage() {
                                             return (
                                                 <>
                                                     <div className="flex gap-3 mb-2 p-1.5 sm:p-2 bg-surface-hover border border-border rounded-xl">
-                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'operasional' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'text-white hover:bg-gray-800'}`}>
+                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'operasional' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}>
                                                             <input type="radio" name="exp_category_pos" value="operasional" checked={currentCat === 'operasional'} onChange={() => setCat('operasional')} className="hidden" />
                                                             ⚙️ Operasional
                                                         </label>
-                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'bahan_baku' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'text-white hover:bg-gray-800'}`}>
+                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'bahan_baku' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}>
                                                             <input type="radio" name="exp_category_pos" value="bahan_baku" checked={currentCat === 'bahan_baku'} onChange={() => setCat('bahan_baku')} className="hidden" />
                                                             🧪 Bahan Baku
                                                         </label>
@@ -2143,9 +2145,9 @@ export default function PosPage() {
                                 <div>
                                     <label className="text-xs md:text-sm font-bold text-text-muted block mb-2">Penambahan / Pengurangan</label>
                                     <div className="flex items-center gap-2">
-                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) - 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-600 text-white rounded-xl text-xl md:text-lg font-semibold border border-border">-</button>
+                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) - 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-surface-hover hover:bg-border text-text-primary rounded-xl text-xl md:text-lg font-semibold border border-border">-</button>
                                         <input type="number" step="any" className="flex-1 min-w-0 w-full text-center bg-surface-hover border border-border rounded-xl py-2 md:py-3 text-text-primary font-bold text-base md:text-lg outline-none focus:border-accent" value={stockAdjustment.delta || ''} onChange={e => setStockAdjustment({...stockAdjustment, delta: Number(e.target.value) || 0})} placeholder="0" />
-                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) + 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-600 text-white rounded-xl text-xl md:text-lg font-semibold border border-border">+</button>
+                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) + 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-surface-hover hover:bg-border text-text-primary rounded-xl text-xl md:text-lg font-semibold border border-border">+</button>
                                         
                                         {/* UNIT SELECTOR */}
                                         <select 
@@ -2246,7 +2248,7 @@ export default function PosPage() {
                             </div>
                             <button 
                                 onClick={() => setShowOptionsModal(false)} 
-                                className="w-8 h-8 rounded-full bg-gray-800 text-white hover:text-white hover:bg-gray-700 flex items-center justify-center font-bold text-sm transition-colors"
+                                className="w-8 h-8 rounded-full bg-surface-hover text-text-primary hover:bg-border flex items-center justify-center font-bold text-sm transition-colors"
                             >
                                 ✕
                             </button>
@@ -2298,7 +2300,7 @@ export default function PosPage() {
                                                         className={`flex items-center justify-between p-3 rounded-xl cursor-pointer border transition-all select-none ${
                                                             isSelected 
                                                                 ? 'bg-accent/20 border-accent text-text-primary shadow-sm ring-1 ring-accent/30' 
-                                                                : 'bg-gray-800/60 border-border/60 text-white hover:border-gray-600 hover:bg-gray-800'
+                                                                : 'bg-surface-hover border-border text-text-secondary hover:text-text-primary hover:border-text-muted'
                                                         }`}
                                                     >
                                                         <div className="flex items-center gap-2.5">
@@ -2443,7 +2445,7 @@ export default function PosPage() {
                     {pendingOrders.length > 0 && !isMobileCartOpen && !isMobileDraftOpen && (
                         <button
                             onClick={() => setIsMobileDraftOpen(true)}
-                            className="bg-gray-800 border border-border text-white shadow-soft px-4 py-3.5 rounded-full font-bold flex items-center gap-2 transition-transform relative"
+                            className="bg-surface text-text-primary border border-border shadow-soft px-4 py-3.5 rounded-full font-bold flex items-center gap-2 transition-transform relative"
                         >
                             <span className="absolute -top-1 -right-1 flex h-3 w-3">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
