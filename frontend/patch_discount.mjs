@@ -2,6 +2,7 @@ import fs from 'fs';
 
 const filePath = 'd:\\WORK\\BUILD_APP\\NexPos\\frontend\\src\\app\\pos\\page.tsx';
 let content = fs.readFileSync(filePath, 'utf-8');
+content = content.replace(/\r\n/g, '\n'); // Normalize newlines
 
 // 2. clearCart
 content = content.replace(

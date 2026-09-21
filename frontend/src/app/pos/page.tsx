@@ -342,7 +342,8 @@ export default function PosPage() {
                 queue_number: activeQueueNumber || `Draft-${Date.now().toString().slice(-4)}`,
                 customer_name: customerName,
                 items: cart,
-                total: currentSubTotal + currentTaxAmount,
+                total: grandTotal,
+                discount_amount: calculatedDiscount,
                 status: 'draft'
             };
             
@@ -365,6 +366,12 @@ export default function PosPage() {
         setCart(order.items);
         setActiveQueueNumber(order.queue_number || null);
         setCustomerName(order.customer_name || "");
+        if (order.discount_amount) {
+            setDiscountType("nominal");
+            setDiscountValue(order.discount_amount.toString());
+        } else {
+            setDiscountValue("");
+        }
     };
 
     const handleSaveDraft = async () => {
@@ -382,15 +389,12 @@ export default function PosPage() {
             orderRef = nextNumber.toString().padStart(3, '0');
         }
         
-        const currentSubTotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
-        const currentTaxRate = storeSettings?.tax_enabled ? Number(storeSettings?.tax_rate || 0) : 0;
-        const currentTaxAmount = (currentSubTotal * currentTaxRate) / 100;
-
         const draftOrder = {
             queue_number: orderRef,
             customer_name: customerName,
             items: cart,
-            total: currentSubTotal + currentTaxAmount,
+            total: grandTotal,
+            discount_amount: calculatedDiscount,
             status: 'draft'
         };
         
@@ -417,11 +421,11 @@ export default function PosPage() {
         const printTx = {
             order_reference: orderRef,
             customer_name: customerName,
-            total: currentSubTotal + currentTaxAmount,
-            subtotal: currentSubTotal,
-            tax_amount: currentTaxAmount,
-            discount_amount: 0,
-            amount_due: currentSubTotal + currentTaxAmount,
+            total: grandTotal,
+            subtotal: subTotal,
+            tax_amount: taxAmount,
+            discount_amount: calculatedDiscount,
+            amount_due: grandTotal,
             status: 'BELUM LUNAS'
         };
 
@@ -844,6 +848,7 @@ export default function PosPage() {
         setCart([]);
         setActiveQueueNumber(null);
         setCustomerName("");
+        setDiscountValue("");
     };
 
     const updateCartQty = (key: string, newQty: number) => {
@@ -856,9 +861,11 @@ export default function PosPage() {
     };
 
     const subTotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
+    const calculatedDiscount = discountType === "percentage" ? (subTotal * (Number(discountValue) || 0)) / 100 : (Number(discountValue) || 0);
+    const discountedSubTotal = Math.max(0, subTotal - calculatedDiscount);
     const taxRate = storeSettings?.tax_enabled ? Number(storeSettings?.tax_rate || 0) : 0;
-    const taxAmount = (subTotal * taxRate) / 100;
-    const grandTotal = subTotal + taxAmount;
+    const taxAmount = (discountedSubTotal * taxRate) / 100;
+    const grandTotal = discountedSubTotal + taxAmount;
 
     const handlePayment = async () => {
         if (!selectedMethod) {
@@ -874,6 +881,7 @@ export default function PosPage() {
                 amount_due: grandTotal,
                 amount_received: Number(amountReceived) || grandTotal, // For non-cash, amount received = amount due
                 tax_amount: taxAmount,
+                discount_amount: calculatedDiscount,
                 customer_name: customerName,
                 payment_method_id: selectedMethod.id,
                 items: cart.map(item => ({
@@ -900,6 +908,7 @@ export default function PosPage() {
                     amount_received: payload.amount_received,
                     change_given,
                     tax_amount: payload.tax_amount || 0,
+                    discount_amount: payload.discount_amount || 0,
                     customer_name: payload.customer_name || null,
                     status,
                     payment_method_id: payload.payment_method_id
@@ -1609,11 +1618,17 @@ export default function PosPage() {
                     </div>
 
                     <div className="w-full border-t border-dashed border-black pt-2 mb-4">
+                        {((paymentResult.transaction?.discount_amount || 0) > 0 || (paymentResult.discount_amount || 0) > 0) && (
+                            <div className="flex justify-between text-sm mb-1">
+                                <span>Diskon</span>
+                                <span>- Rp {(paymentResult.transaction?.discount_amount || paymentResult.discount_amount || 0).toLocaleString('id-ID')}</span>
+                            </div>
+                        )}
                         {((paymentResult.transaction?.tax_amount || 0) > 0 || (paymentResult.tax_amount || 0) > 0) && (
                             <>
                                 <div className="flex justify-between text-sm mb-1">
                                     <span>Subtotal</span>
-                                    <span>Rp {((paymentResult.transaction?.amount_due || paymentResult.amount_due || 0) - (paymentResult.transaction?.tax_amount || paymentResult.tax_amount || 0)).toLocaleString('id-ID')}</span>
+                                    <span>Rp {((paymentResult.transaction?.subtotal || paymentResult.subtotal || 0)).toLocaleString('id-ID')}</span>
                                 </div>
                                 <div className="flex justify-between text-sm mb-1">
                                     <span>Pajak</span>
