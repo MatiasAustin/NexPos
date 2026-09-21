@@ -2,37 +2,78 @@
 @import "tailwindcss";
 
 :root {
-  --background: #121214;
-  --foreground: #ededed;
+  --background: #F7F7F8;
+  --surface: #FFFFFF;
+  --surface-hover: #F4F4F5;
+  --surface-glass: rgba(255, 255, 255, 0.7);
+  --text-primary: #18181B;
+  --text-secondary: #3F3F46;
+  --text-muted: #71717A;
+  --border-soft: #E4E4E7;
+  --border-glass: rgba(0, 0, 0, 0.05);
+  --accent: #C7FF3D;
+  --accent-hover: #b3eb2b;
+  --accent-fg: #18181B;
+  --shadow-soft: 0 8px 30px rgba(0,0,0,0.04);
+  
   --font-funnel: 'Funnel Display', sans-serif;
+}
+
+.dark {
+  --background: #09090B;
+  --surface: #121214;
+  --surface-hover: #18181B;
+  --surface-glass: rgba(24, 24, 27, 0.6);
+  --text-primary: #FAFAFA;
+  --text-secondary: #D4D4D8;
+  --text-muted: #A1A1AA;
+  --border-soft: #27272A;
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --accent: #C7FF3D;
+  --accent-hover: #b3eb2b;
+  --accent-fg: #18181B;
+  --shadow-soft: 0 8px 30px rgba(0,0,0,0.4);
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-glass: var(--surface-glass);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border-soft);
+  --color-border-glass: var(--border-glass);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --shadow-soft: var(--shadow-soft);
+  
   --font-sans: var(--font-funnel);
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: var(--text-primary);
   font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #121214; 
+  background: transparent; 
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2c; 
+  background: var(--border-soft); 
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a3c; 
+  background: var(--text-muted); 
 }
 
 @media print {
@@ -44,5 +85,7 @@ body {
     width: 58mm;
     margin: 0;
     padding: 0;
+    background: #FFF !important;
+    color: #000 !important;
   }
 }

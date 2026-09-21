@@ -172,20 +172,20 @@ export default function ProductOptionsEditor({
     };
 
     return (
-        <div className="p-4 md:p-5 bg-gray-900/90 border border-gray-800 rounded-2xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
+        <div className="p-4 md:p-5 bg-surface-glass border border-border rounded-2xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
                 <div>
-                    <h4 className="font-bold text-white flex items-center gap-2 text-sm sm:text-base">
-                        <Layers className="w-5 h-5 text-blue-400" /> Opsi Varian & Add-on Menu
+                    <h4 className="font-bold text-text-primary flex items-center gap-2 text-sm sm:text-base">
+                        <Layers className="w-5 h-5 text-accent" /> Opsi Varian & Add-on Menu
                     </h4>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-text-muted mt-0.5">
                         Atur varian (Ice/Hot, Level Gula) dan tambahan add-on berbayar (Oatmilk, Extra Shot, dll).
                     </p>
                 </div>
                 <button
                     type="button"
                     onClick={addCategory}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
+                    className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-text-primary rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
                 >
                     <Plus className="w-4 h-4" /> Tambah Kategori
                 </button>
@@ -193,7 +193,7 @@ export default function ProductOptionsEditor({
 
             {/* Quick Templates Bar */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-[11px] font-bold text-gray-400 flex items-center gap-1 mr-1">
+                <span className="text-[11px] font-bold text-text-muted flex items-center gap-1 mr-1">
                     <Sparkles className="w-3.5 h-3.5 text-yellow-400" /> Template Cepat:
                 </span>
                 <button
@@ -228,7 +228,7 @@ export default function ProductOptionsEditor({
 
             {/* Categories List */}
             {options.length === 0 ? (
-                <div className="py-6 px-4 text-center border-2 border-dashed border-gray-800 rounded-xl bg-gray-950/40 text-gray-500 text-xs">
+                <div className="py-6 px-4 text-center border-2 border-dashed border-border rounded-xl bg-gray-950/40 text-text-muted text-xs">
                     Belum ada opsi varian atau addon pada produk ini. Klik tombol di atas atau gunakan <strong>Template Cepat</strong>.
                 </div>
             ) : (
@@ -236,7 +236,7 @@ export default function ProductOptionsEditor({
                     {options.map((cat, catIndex) => {
                         const isMulti = cat.type === 'multiple';
                         return (
-                            <div key={cat.id || catIndex} className="p-3.5 sm:p-4 border border-gray-700/80 rounded-xl bg-[#0B0F19] shadow-md space-y-3">
+                            <div key={cat.id || catIndex} className="p-3.5 sm:p-4 border border-border/80 rounded-xl bg-background shadow-md space-y-3">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                                     <div className="flex-1 flex items-center gap-2">
                                         <input
@@ -244,19 +244,19 @@ export default function ProductOptionsEditor({
                                             placeholder="Nama Kategori (contoh: Varian Suhu / Add-on)"
                                             value={cat.name}
                                             onChange={e => updateCategory(catIndex, 'name', e.target.value)}
-                                            className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg text-white font-bold text-sm outline-none focus:border-blue-500"
+                                            className="w-full p-2 bg-gray-800 border border-border rounded-lg text-text-primary font-bold text-sm outline-none focus:border-accent"
                                             required
                                         />
                                     </div>
 
                                     <div className="flex items-center gap-2 shrink-0">
                                         {/* Type Selector: Single (Radio) vs Multiple (Add-on Checkbox) */}
-                                        <div className="flex bg-gray-800 p-0.5 rounded-lg border border-gray-700 text-xs">
+                                        <div className="flex bg-gray-800 p-0.5 rounded-lg border border-border text-xs">
                                             <button
                                                 type="button"
                                                 onClick={() => updateCategory(catIndex, 'type', 'single')}
                                                 className={`px-2.5 py-1 rounded-md font-bold transition-all ${
-                                                    !isMulti ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400 hover:text-white'
+                                                    !isMulti ? 'bg-accent text-text-primary shadow-sm' : 'text-text-muted hover:text-text-primary'
                                                 }`}
                                                 title="Hanya bisa pilih 1 (Radio)"
                                             >
@@ -266,7 +266,7 @@ export default function ProductOptionsEditor({
                                                 type="button"
                                                 onClick={() => updateCategory(catIndex, 'type', 'multiple')}
                                                 className={`px-2.5 py-1 rounded-md font-bold transition-all ${
-                                                    isMulti ? 'bg-green-600 text-white shadow-sm' : 'text-gray-400 hover:text-white'
+                                                    isMulti ? 'bg-green-600 text-text-primary shadow-sm' : 'text-text-muted hover:text-text-primary'
                                                 }`}
                                                 title="Bisa pilih lebih dari satu (Add-on)"
                                             >
@@ -276,12 +276,12 @@ export default function ProductOptionsEditor({
 
                                         {/* Required toggle (only relevant for single selection) */}
                                         {!isMulti && (
-                                            <label className="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer px-2 py-1 bg-gray-800/80 border border-gray-700 rounded-lg">
+                                            <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer px-2 py-1 bg-gray-800/80 border border-border rounded-lg">
                                                 <input
                                                     type="checkbox"
                                                     checked={!!cat.is_required}
                                                     onChange={e => updateCategory(catIndex, 'is_required', e.target.checked)}
-                                                    className="rounded text-blue-500"
+                                                    className="rounded text-accent"
                                                 />
                                                 <span>Wajib</span>
                                             </label>
@@ -299,10 +299,10 @@ export default function ProductOptionsEditor({
                                 </div>
 
                                 {/* Choices */}
-                                <div className="pl-3 sm:pl-4 border-l-2 border-gray-700/80 space-y-2">
+                                <div className="pl-3 sm:pl-4 border-l-2 border-border/80 space-y-2">
                                     {(cat.choices || []).map((choice, choiceIndex) => (
                                         <div key={choice.id || choiceIndex} className="flex items-center gap-2">
-                                            <span className="text-xs text-gray-500 shrink-0 w-4 text-center">
+                                            <span className="text-xs text-text-muted shrink-0 w-4 text-center">
                                                 {isMulti ? '☑' : '●'}
                                             </span>
                                             <input
@@ -310,24 +310,24 @@ export default function ProductOptionsEditor({
                                                 placeholder="Nama Pilihan (cth: Hot, Ice, Oatmilk)"
                                                 value={choice.name}
                                                 onChange={e => updateChoice(catIndex, choiceIndex, 'name', e.target.value)}
-                                                className="flex-1 p-2 bg-gray-800/90 border border-gray-700 rounded-lg text-white text-xs sm:text-sm outline-none focus:border-blue-500"
+                                                className="flex-1 p-2 bg-gray-800/90 border border-border rounded-lg text-text-primary text-xs sm:text-sm outline-none focus:border-accent"
                                                 required
                                             />
                                             <div className="flex items-center gap-1 shrink-0">
-                                                <span className="text-xs text-gray-400">+Rp</span>
+                                                <span className="text-xs text-text-muted">+Rp</span>
                                                 <input
                                                     type="number"
                                                     step="any"
                                                     placeholder="0"
                                                     value={choice.price_adjustment === 0 ? '0' : (choice.price_adjustment || '')}
                                                     onChange={e => updateChoice(catIndex, choiceIndex, 'price_adjustment', Number(e.target.value))}
-                                                    className="w-24 sm:w-28 p-2 bg-gray-800/90 border border-gray-700 rounded-lg text-white text-xs sm:text-sm outline-none focus:border-blue-500 text-right"
+                                                    className="w-24 sm:w-28 p-2 bg-gray-800/90 border border-border rounded-lg text-text-primary text-xs sm:text-sm outline-none focus:border-accent text-right"
                                                 />
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={() => removeChoice(catIndex, choiceIndex)}
-                                                className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg text-xs transition-colors shrink-0"
+                                                className="p-1.5 text-text-muted hover:text-red-400 hover:bg-red-500/10 rounded-lg text-xs transition-colors shrink-0"
                                                 title="Hapus pilihan"
                                             >
                                                 ✕
@@ -338,7 +338,7 @@ export default function ProductOptionsEditor({
                                     <button
                                         type="button"
                                         onClick={() => addChoice(catIndex)}
-                                        className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 font-semibold pt-1 transition-colors"
+                                        className="inline-flex items-center gap-1 text-xs text-accent hover:text-blue-300 font-semibold pt-1 transition-colors"
                                     >
                                         <Plus className="w-3.5 h-3.5" /> Tambah Pilihan / Add-on
                                     </button>

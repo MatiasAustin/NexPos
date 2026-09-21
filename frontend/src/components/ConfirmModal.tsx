@@ -29,17 +29,17 @@ export function ConfirmModal({
         danger: {
             icon: '🗑️',
             iconBg: 'bg-red-500/10 border border-red-500/20',
-            btn: 'bg-red-600 hover:bg-red-500 text-white',
+            btn: 'bg-red-600 hover:bg-red-500 text-text-primary',
         },
         warning: {
             icon: '⚠️',
             iconBg: 'bg-yellow-500/10 border border-yellow-500/20',
-            btn: 'bg-yellow-600 hover:bg-yellow-500 text-white',
+            btn: 'bg-yellow-600 hover:bg-yellow-500 text-text-primary',
         },
         info: {
             icon: 'ℹ️',
-            iconBg: 'bg-blue-500/10 border border-blue-500/20',
-            btn: 'bg-blue-600 hover:bg-blue-500 text-white',
+            iconBg: 'bg-accent/10 border border-accent/20',
+            btn: 'bg-accent hover:bg-accent-hover text-text-primary',
         },
     };
 
@@ -47,16 +47,16 @@ export function ConfirmModal({
 
     return (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9998] p-4 backdrop-blur-sm">
-            <div className="bg-[#131B2C] border border-gray-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="bg-surface border border-border rounded-3xl p-6 w-full max-w-sm shadow-2xl">
                 <div className={`w-14 h-14 ${s.iconBg} rounded-2xl flex items-center justify-center text-2xl mb-4 mx-auto`}>
                     {s.icon}
                 </div>
-                <h3 className="font-bold text-xl text-white text-center mb-2">{title}</h3>
-                <p className="text-gray-400 text-sm text-center mb-6 leading-relaxed">{message}</p>
+                <h3 className="font-bold text-xl text-text-primary text-center mb-2">{title}</h3>
+                <p className="text-text-muted text-sm text-center mb-6 leading-relaxed">{message}</p>
                 <div className="flex gap-3">
                     <button
                         onClick={onCancel}
-                        className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-colors"
+                        className="flex-1 py-3 bg-gray-800 text-text-secondary rounded-xl font-bold hover:bg-gray-700 transition-colors"
                     >
                         {cancelText}
                     </button>

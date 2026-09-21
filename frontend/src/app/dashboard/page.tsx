@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ShoppingCart, LayoutDashboard, MonitorSmartphone, Power } from "lucide-react";
 import { useSaasSettings } from "@/contexts/SaasSettingsContext";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Home() {
   const router = useRouter();
@@ -25,74 +26,78 @@ export default function Home() {
   }, [router]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
+      await supabase.auth.signOut();
+      router.push('/login');
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#0B0F19] text-gray-500">Memuat modul...</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-background text-text-muted font-medium">Memuat modul...</div>;
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0B0F19] text-gray-200">
+    <div className="flex flex-col min-h-screen bg-background text-text-primary">
+      <div className="absolute top-6 right-6 z-50">
+        <ThemeToggle />
+      </div>
+
       <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
         {/* Decorative Blurs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-[100px] pointer-events-none"></div>
 
-        <div className="text-center mb-12 relative z-10">
+        <div className="text-center mb-16 relative z-10">
           {saasSettings.app_logo ? (
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-white/5 rounded-2xl shadow-xl shadow-blue-900/20 mb-6 p-2">
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-surface border border-border rounded-3xl shadow-soft mb-8 p-3">
               <img src={saasSettings.app_logo} alt="App Logo" className="max-w-full max-h-full object-contain" />
             </div>
           ) : (
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-xl shadow-blue-900/20 mb-6">
-              <span className="text-4xl font-black text-white">{saasSettings.app_name ? saasSettings.app_name.charAt(0).toUpperCase() : 'N'}</span>
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-accent rounded-3xl shadow-soft mb-8">
+              <span className="text-4xl font-bold text-accent-fg">{saasSettings.app_name ? saasSettings.app_name.charAt(0).toUpperCase() : 'N'}</span>
             </div>
           )}
-          <h1 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">{saasSettings.app_name || 'NexPos'}</h1>
-          <p className="text-gray-400 text-lg">Pilih modul aplikasi untuk melanjutkan</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-text-primary mb-4 tracking-tight">{saasSettings.app_name || 'NexPos'}</h1>
+          <p className="text-text-muted text-lg">Pilih modul aplikasi untuk melanjutkan</p>
         </div>
-
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl relative z-10">
-          <Link
-            href="/pos"
-            className="group p-8 bg-[#131B2C] border border-gray-800/60 rounded-3xl hover:border-blue-500/50 hover:bg-[#1A233A] transition-all flex flex-col items-center text-center shadow-lg hover:shadow-blue-900/20"
+          <Link 
+              href="/pos"
+              className="group p-10 bg-surface border border-border rounded-[2rem] hover:border-accent/50 hover:bg-surface-hover transition-all flex flex-col items-center text-center shadow-soft"
           >
-            <div className="w-16 h-16 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <ShoppingCart className="w-8 h-8" />
-            </div>
-            <h2 className="text-xl font-bold text-white mb-2">Kasir (POS)</h2>
-            <p className="text-gray-500 text-sm">Masuk ke mode transaksi dan kelola pesanan pelanggan.</p>
+              <div className="w-16 h-16 bg-accent/10 text-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <ShoppingCart className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-bold text-text-primary mb-3">Kasir (POS)</h2>
+              <p className="text-text-muted text-sm leading-relaxed">Masuk ke mode transaksi dan kelola pesanan pelanggan.</p>
           </Link>
-          <Link
-            href="/admin"
-            className="group p-8 bg-[#131B2C] border border-gray-800/60 rounded-3xl hover:border-purple-500/50 hover:bg-[#1A233A] transition-all flex flex-col items-center text-center shadow-lg hover:shadow-purple-900/20"
+          <Link 
+              href="/admin"
+              className="group p-10 bg-surface border border-border rounded-[2rem] hover:border-accent/50 hover:bg-surface-hover transition-all flex flex-col items-center text-center shadow-soft"
           >
-            <div className="w-16 h-16 bg-purple-500/10 text-purple-400 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <LayoutDashboard className="w-8 h-8" />
-            </div>
-            <h2 className="text-xl font-bold text-white mb-2">Admin Dashboard</h2>
-            <p className="text-gray-500 text-sm">Kelola staf, laporan penjualan, produk, dan pengaturan.</p>
+              <div className="w-16 h-16 bg-accent/10 text-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <LayoutDashboard className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-bold text-text-primary mb-3">Admin Dashboard</h2>
+              <p className="text-text-muted text-sm leading-relaxed">Kelola staf, laporan penjualan, produk, dan pengaturan.</p>
           </Link>
-          <Link
-            href="/customer"
-            className="group p-8 bg-[#131B2C] border border-gray-800/60 rounded-3xl hover:border-orange-500/50 hover:bg-[#1A233A] transition-all flex flex-col items-center text-center shadow-lg hover:shadow-orange-900/20"
+          <Link 
+              href="/customer"
+              className="group p-10 bg-surface border border-border rounded-[2rem] hover:border-accent/50 hover:bg-surface-hover transition-all flex flex-col items-center text-center shadow-soft"
           >
-            <div className="w-16 h-16 bg-orange-500/10 text-orange-400 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <MonitorSmartphone className="w-8 h-8" />
-            </div>
-            <h2 className="text-xl font-bold text-white mb-2">Customer Kiosk</h2>
-            <p className="text-gray-500 text-sm">Layar self-service untuk pelanggan memesan sendiri.</p>
+              <div className="w-16 h-16 bg-accent/10 text-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <MonitorSmartphone className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-bold text-text-primary mb-3">Customer Kiosk</h2>
+              <p className="text-text-muted text-sm leading-relaxed">Layar self-service untuk pelanggan memesan sendiri.</p>
           </Link>
         </div>
 
-        <button onClick={handleLogout} className="mt-12 flex items-center gap-2 text-gray-500 hover:text-red-400 transition-colors relative z-10 px-4 py-2">
-          <Power className="w-4 h-4" /> Keluar dari Akun
+        <button onClick={handleLogout} className="mt-16 flex items-center gap-2 text-text-muted hover:text-red-500 font-medium transition-colors relative z-10 px-6 py-3 rounded-full hover:bg-red-500/10">
+            <Power className="w-4 h-4" /> Keluar dari Akun
         </button>
       </div>
 
-      <footer className="py-6 text-center text-gray-600 text-sm border-t border-gray-800/30 relative z-10">
+      <footer className="py-8 text-center text-text-muted text-sm border-t border-border relative z-10">
         &copy; {new Date().getFullYear()} {saasSettings.app_name || 'NexPos'} System. All rights reserved.
       </footer>
     </div>

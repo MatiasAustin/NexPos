@@ -16,26 +16,26 @@ const CategoryDropdown = ({ value, onChange, categories, onAdd, onRemove }: { va
     const [newCat, setNewCat] = useState('');
     return (
         <div className="relative">
-            <div onClick={() => setIsOpen(!isOpen)} className="p-3 bg-gray-900 border border-gray-800 rounded-xl text-white cursor-pointer flex justify-between items-center outline-none focus:border-blue-500">
+            <div onClick={() => setIsOpen(!isOpen)} className="p-3 bg-surface-hover border border-border rounded-xl text-text-primary cursor-pointer flex justify-between items-center outline-none focus:border-accent">
                 {value || "Pilih Kategori"}
-                <span className="text-gray-500 text-xs">Γû╝</span>
+                <span className="text-text-muted text-xs">Γû╝</span>
             </div>
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
-                    <div className="absolute top-full mt-2 w-full bg-[#131B2C] border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden max-h-72 flex flex-col">
+                    <div className="absolute top-full mt-2 w-full bg-surface border border-border rounded-xl shadow-2xl z-50 overflow-hidden max-h-72 flex flex-col">
                         <div className="overflow-y-auto max-h-48 py-1">
                             {categories.map((cat: string) => (
-                                <div key={cat} className="flex justify-between items-center px-4 py-3 hover:bg-gray-800 cursor-pointer text-sm text-white transition-colors group">
+                                <div key={cat} className="flex justify-between items-center px-4 py-3 hover:bg-gray-800 cursor-pointer text-sm text-text-primary transition-colors group">
                                     <span onClick={() => { onChange(cat); setIsOpen(false); }} className="flex-1 font-bold">{cat}</span>
-                                    <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(cat); }} className="text-gray-500 hover:text-red-400 opacity-50 group-hover:opacity-100 transition-opacity">Γ£ò</button>
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(cat); }} className="text-text-muted hover:text-red-400 opacity-50 group-hover:opacity-100 transition-opacity">Γ£ò</button>
                                 </div>
                             ))}
-                            {categories.length === 0 && <div className="p-2 md:p-4 text-center text-gray-500 text-xs">Belum ada kategori</div>}
+                            {categories.length === 0 && <div className="p-2 md:p-4 text-center text-text-muted text-xs">Belum ada kategori</div>}
                         </div>
-                        <div className="p-3 border-t border-gray-800 bg-gray-900 flex gap-2">
-                            <input type="text" value={newCat} onChange={e=>setNewCat(e.target.value)} placeholder="Kategori Baru..." className="flex-1 bg-[#0B0F19] rounded-lg px-3 py-2 text-sm text-white outline-none border border-gray-700 focus:border-blue-500 transition-colors" onKeyDown={e => { if(e.key==='Enter') { e.preventDefault(); onAdd(newCat); setNewCat(''); }}} />
-                            <button type="button" onClick={() => { onAdd(newCat); setNewCat(''); }} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-blue-500">+</button>
+                        <div className="p-3 border-t border-border bg-surface-hover flex gap-2">
+                            <input type="text" value={newCat} onChange={e=>setNewCat(e.target.value)} placeholder="Kategori Baru..." className="flex-1 bg-background rounded-lg px-3 py-2 text-sm text-text-primary outline-none border border-border focus:border-accent transition-colors" onKeyDown={e => { if(e.key==='Enter') { e.preventDefault(); onAdd(newCat); setNewCat(''); }}} />
+                            <button type="button" onClick={() => { onAdd(newCat); setNewCat(''); }} className="bg-accent text-text-primary px-3 py-2 rounded-lg text-sm font-bold hover:bg-accent-hover">+</button>
                         </div>
                     </div>
                 </>
@@ -1239,22 +1239,22 @@ export default function AdminDashboard() {
                 .print-receipt { position: absolute; left: 0; top: 0; width: 100%; max-width: 80mm; padding: 10px; font-family: monospace; color: #000; background: #fff; }
             }
         `}} />
-        <div className="min-h-screen bg-[#0B0F19] text-gray-100 flex flex-col sm:flex-row font-sans selection:bg-blue-500/30 print:hidden text-sm md:text-base">
+        <div className="min-h-screen bg-background text-text-primary flex flex-col sm:flex-row font-sans selection:bg-accent/30 print:hidden text-sm md:text-base">
             {/* Sidebar */}
-            <div className="w-full sm:w-[240px] md:w-[280px] bg-[#131B2C] border-b sm:border-b-0 sm:border-r border-gray-800/60 flex flex-col shrink-0 z-20">
-                <div className="p-2 md:p-4 md:p-6 border-b border-gray-800/60 flex items-center justify-between">
+            <div className="w-full sm:w-[240px] md:w-[280px] bg-surface border-b sm:border-b-0 sm:border-r border-border flex flex-col shrink-0 z-20">
+                <div className="p-2 md:p-4 md:p-6 border-b border-border flex items-center justify-between">
                     <div>
-                        <h1 className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-3">
-                            <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-lg shadow-lg shadow-blue-900/20">N</span>
+                        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-text-primary flex items-center gap-3">
+                            <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-text-primary text-lg shadow-soft shadow-soft">N</span>
                             Dashbrd X
                         </h1>
-                        <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mt-2">NexPos Control Center</p>
+                        <p className="text-text-muted text-xs font-semibold uppercase tracking-wider mt-2">NexPos Control Center</p>
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={toggleFullscreen} className="p-2 text-gray-400 hover:text-white bg-gray-800/50 rounded-xl" title="Toggle Fullscreen">
+                        <button onClick={toggleFullscreen} className="p-2 text-text-muted hover:text-text-primary bg-gray-800/50 rounded-xl" title="Toggle Fullscreen">
                             <Maximize className="w-5 h-5" />
                         </button>
-                        <Link href="/" className="md:hidden p-2 text-gray-400 hover:text-white bg-gray-800/50 rounded-xl">
+                        <Link href="/" className="md:hidden p-2 text-text-muted hover:text-text-primary bg-gray-800/50 rounded-xl">
                             <ArrowLeft className="w-5 h-5" />
                         </Link>
                     </div>
@@ -1275,16 +1275,16 @@ export default function AdminDashboard() {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex-shrink-0 md:w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold transition-all ${activeTab === tab.id ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" : "text-gray-400 hover:text-white hover:bg-gray-800/40"}`}
+                            className={`flex-shrink-0 md:w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold transition-all ${activeTab === tab.id ? "bg-accent text-text-primary shadow-soft shadow-soft" : "text-text-muted hover:text-text-primary hover:bg-gray-800/40"}`}
                         >
-                            <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? "text-white" : "text-gray-500"}`} /> 
+                            <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? "text-text-primary" : "text-text-muted"}`} /> 
                             <span className="whitespace-nowrap">{tab.label}</span>
                         </button>
                     ))}
                 </div>
                 
-                <div className="p-2 md:p-4 border-t border-gray-800/60 hidden md:block">
-                    <Link href="/" className="hidden md:flex items-center gap-2 text-gray-500 hover:text-gray-300 transition-colors w-full px-4 py-2 font-medium">
+                <div className="p-2 md:p-4 border-t border-border hidden md:block">
+                    <Link href="/" className="hidden md:flex items-center gap-2 text-text-muted hover:text-text-secondary transition-colors w-full px-4 py-2 font-medium">
                         <ArrowLeft className="w-4 h-4" /> Kembali ke Home
                     </Link>
                     <p className="text-center text-[10px] text-gray-700 mt-3 leading-relaxed">
@@ -1297,28 +1297,28 @@ export default function AdminDashboard() {
             {/* Main Content */}
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
                 {/* Top Header */}
-                <div className="h-20 border-b border-gray-800/60 px-6 md:px-8 flex items-center justify-between shrink-0 bg-[#0B0F19]">
+                <div className="h-20 border-b border-border px-6 md:px-8 flex items-center justify-between shrink-0 bg-background">
                     <div className="flex items-center gap-4">
-                        <h2 className="text-xl md:text-2xl font-bold text-white capitalize">
+                        <h2 className="text-xl md:text-2xl font-bold text-text-primary capitalize">
                             {activeTab.replace('reconciliation', 'Rekonsiliasi').replace('history', 'Riwayat Transaksi')}
                         </h2>
                         <button 
                             onClick={fetchData}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-800/40 text-gray-300 rounded-full text-sm font-semibold hover:bg-gray-700/50 transition-colors border border-gray-800"
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-800/40 text-text-secondary rounded-full text-sm font-semibold hover:bg-gray-700/50 transition-colors border border-border"
                         >
-                            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-blue-400" : ""}`} /> 
+                            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-accent" : ""}`} /> 
                             <span className="hidden md:inline">Refresh</span>
                         </button>
                     </div>
 
                     {/* Staff / Admin Profile Badge */}
-                    <div className="flex items-center gap-3 bg-[#131B2C] border border-gray-800/60 px-4 py-2 rounded-full">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-bold text-white shadow-sm">
+                    <div className="flex items-center gap-3 bg-surface border border-border px-4 py-2 rounded-full">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-bold text-text-primary shadow-sm">
                             {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : 'A'}
                         </div>
                         <div className="flex flex-col hidden sm:flex">
-                            <span className="text-sm font-bold leading-tight text-white">{profile?.full_name || 'Admin System'}</span>
-                            <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">{profile?.role || 'Owner Access'}</span>
+                            <span className="text-sm font-bold leading-tight text-text-primary">{profile?.full_name || 'Admin System'}</span>
+                            <span className="text-[10px] text-accent font-bold uppercase tracking-wider">{profile?.role || 'Owner Access'}</span>
                         </div>
                     </div>
                 </div>
@@ -1326,28 +1326,28 @@ export default function AdminDashboard() {
                 {/* Content Scrollable Area */}
                 <div className="flex-1 overflow-y-auto p-4 md:p-8">
                     {loading ? (
-                        <div className="flex items-center justify-center h-full text-gray-500">Memuat data dari server...</div>
+                        <div className="flex items-center justify-center h-full text-text-muted">Memuat data dari server...</div>
                     ) : (
                         <div className="space-y-6">
                             {/* Refund Modal */}
                             {refundTarget && (
                                 <div className="fixed inset-0 bg-black/70 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-sm">
-                                    <div className="bg-[#131B2C] border border-gray-800 rounded-3xl p-4 md:p-6 w-full max-w-md shadow-2xl my-auto flex-shrink-0">
-                                        <h3 className="font-bold text-xl text-white mb-1">Proses Refund</h3>
-                                        <p className="text-gray-400 text-sm mb-5">Transaksi: <span className="text-white font-semibold">{refundTarget.order_reference}</span></p>
+                                    <div className="bg-surface border border-border rounded-3xl p-4 md:p-6 w-full max-w-md shadow-2xl my-auto flex-shrink-0">
+                                        <h3 className="font-bold text-xl text-text-primary mb-1">Proses Refund</h3>
+                                        <p className="text-text-muted text-sm mb-5">Transaksi: <span className="text-text-primary font-semibold">{refundTarget.order_reference}</span></p>
                                         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 mb-5">
                                             <p className="text-yellow-400 text-sm font-semibold">Nominal Refund: Rp {Number(refundTarget.amount_received || 0).toLocaleString('id-ID')}</p>
                                         </div>
-                                        <label className="text-sm text-gray-400 font-semibold block mb-2">Alasan Refund *</label>
+                                        <label className="text-sm text-text-muted font-semibold block mb-2">Alasan Refund *</label>
                                         <textarea
                                             value={refundReason}
                                             onChange={e => setRefundReason(e.target.value)}
                                             placeholder="Masukkan alasan refund..."
-                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-yellow-500 resize-none h-24 mb-5"
+                                            className="w-full p-3 bg-surface-hover border border-border rounded-xl text-text-primary outline-none focus:border-yellow-500 resize-none h-24 mb-5"
                                         />
                                         <div className="flex gap-3">
-                                            <button onClick={() => setRefundTarget(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
-                                            <button onClick={handleConfirmRefund} className="flex-1 py-3 bg-yellow-600 text-white rounded-xl font-bold hover:bg-yellow-500">Proses Refund</button>
+                                            <button onClick={() => setRefundTarget(null)} className="flex-1 py-3 bg-gray-800 text-text-secondary rounded-xl font-bold hover:bg-gray-700">Batal</button>
+                                            <button onClick={handleConfirmRefund} className="flex-1 py-3 bg-yellow-600 text-text-primary rounded-xl font-bold hover:bg-yellow-500">Proses Refund</button>
                                         </div>
                                     </div>
                                 </div>
@@ -1358,7 +1358,7 @@ export default function AdminDashboard() {
                                 <div className="space-y-4">
                                     <SkeletonTable rows={3} cols={4} />
                                     <div className="grid grid-cols-3 gap-4">
-                                        {[1,2,3].map(i => <div key={i} className="h-24 bg-[#131B2C] border border-gray-800 rounded-2xl animate-pulse" />)}
+                                        {[1,2,3].map(i => <div key={i} className="h-24 bg-surface border border-border rounded-2xl animate-pulse" />)}
                                     </div>
                                 </div>
                             ) : (<>
@@ -1367,57 +1367,57 @@ export default function AdminDashboard() {
                             {activeTab === "reconciliation" && (
                                 <div className="space-y-6">
                                     {/* Global Tab Filter */}
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between bg-[#131B2C] p-4 rounded-2xl border border-gray-800/60 shadow-sm gap-4">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between bg-surface p-4 rounded-2xl border border-border shadow-sm gap-4">
                                         <div className="flex items-center gap-4">
                                             <div>
-                                                <h3 className="font-bold text-white">Laporan Keuangan</h3>
-                                                <p className="text-xs text-gray-500">Pilih periode untuk semua metrik di bawah</p>
+                                                <h3 className="font-bold text-text-primary">Laporan Keuangan</h3>
+                                                <p className="text-xs text-text-muted">Pilih periode untuk semua metrik di bawah</p>
                                             </div>
                                             {reconciliationPeriod !== 'custom' && (
-                                                <div className="flex bg-gray-900 rounded-lg overflow-hidden border border-gray-800 h-10">
-                                                    <button onClick={() => shiftReconciliationDate(-1)} className="px-4 py-2 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors flex items-center justify-center w-12">&lt;</button>
-                                                    <div className="px-4 py-2 text-sm font-bold text-white border-l border-r border-gray-800 bg-gray-800/30 flex items-center justify-center">
+                                                <div className="flex bg-surface-hover rounded-lg overflow-hidden border border-border h-10">
+                                                    <button onClick={() => shiftReconciliationDate(-1)} className="px-4 py-2 hover:bg-gray-800 text-text-muted hover:text-text-primary transition-colors flex items-center justify-center w-12">&lt;</button>
+                                                    <div className="px-4 py-2 text-sm font-bold text-text-primary border-l border-r border-border bg-gray-800/30 flex items-center justify-center">
                                                         {reconciliationPeriod === 'daily' ? reconciliationDate.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) :
                                                          reconciliationPeriod === 'weekly' ? 'Minggu ' + Math.ceil(reconciliationDate.getDate()/7) :
                                                          reconciliationPeriod === 'monthly' ? reconciliationDate.toLocaleDateString('id-ID', {month:'long', year:'numeric'}) :
                                                          reconciliationDate.getFullYear()}
                                                     </div>
-                                                    <button onClick={() => shiftReconciliationDate(1)} className="px-4 py-2 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors flex items-center justify-center w-12">&gt;</button>
+                                                    <button onClick={() => shiftReconciliationDate(1)} className="px-4 py-2 hover:bg-gray-800 text-text-muted hover:text-text-primary transition-colors flex items-center justify-center w-12">&gt;</button>
                                                 </div>
                                             )}
                                         </div>
                                         <div className="flex flex-col sm:flex-row items-center gap-3">
                                             {reconciliationPeriod === 'custom' && (
-                                                <div className="flex flex-col sm:flex-row items-center gap-2 bg-gray-900 p-1.5 rounded-xl border border-gray-800">
+                                                <div className="flex flex-col sm:flex-row items-center gap-2 bg-surface-hover p-1.5 rounded-xl border border-border">
                                                     <input 
                                                         type="date" 
                                                         value={customDateStart}
                                                         onChange={(e) => setCustomDateStart(e.target.value)}
-                                                        className="bg-[#121214] text-white text-sm rounded-lg px-3 py-2 border border-gray-700 outline-none w-full sm:w-auto min-h-[40px]" 
+                                                        className="bg-background text-text-primary text-sm rounded-lg px-3 py-2 border border-border outline-none w-full sm:w-auto min-h-[40px]" 
                                                     />
-                                                    <span className="text-gray-500 hidden sm:block">-</span>
+                                                    <span className="text-text-muted hidden sm:block">-</span>
                                                     <input 
                                                         type="date" 
                                                         value={customDateEnd}
                                                         onChange={(e) => setCustomDateEnd(e.target.value)}
-                                                        className="bg-[#121214] text-white text-sm rounded-lg px-3 py-2 border border-gray-700 outline-none w-full sm:w-auto min-h-[40px]" 
+                                                        className="bg-background text-text-primary text-sm rounded-lg px-3 py-2 border border-border outline-none w-full sm:w-auto min-h-[40px]" 
                                                     />
                                                     <button 
                                                         onClick={() => { if (customDateStart && customDateEnd) fetchReconciliation('custom', customDateStart, customDateEnd); }}
-                                                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm w-full sm:w-auto min-h-[40px]"
+                                                        className="bg-accent hover:bg-blue-700 text-text-primary font-bold py-2 px-4 rounded-lg text-sm w-full sm:w-auto min-h-[40px]"
                                                     >
                                                         Terapkan
                                                     </button>
                                                 </div>
                                             )}
-                                            <div className="flex flex-wrap bg-gray-900 rounded-xl p-1 border border-gray-800 w-full md:w-fit">
+                                            <div className="flex flex-wrap bg-surface-hover rounded-xl p-1 border border-border w-full md:w-fit">
                                                 {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'},{k:'yearly',l:'Tahunan'},{k:'custom',l:'Kustom'}].map(f => (
                                                     <button key={f.k} onClick={() => {
                                                         setReconciliationPeriod(f.k as any);
                                                         if (f.k !== 'custom') fetchReconciliation(f.k as any);
                                                         else if (customDateStart && customDateEnd) fetchReconciliation('custom', customDateStart, customDateEnd);
                                                     }}
-                                                        className={`flex-1 md:flex-none text-center px-2 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${reconciliationPeriod === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                                                        className={`flex-1 md:flex-none text-center px-2 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${reconciliationPeriod === f.k ? 'bg-accent text-text-primary' : 'text-text-muted hover:text-text-primary'}`}>
                                                         {f.l}
                                                     </button>
                                                 ))}
@@ -1428,36 +1428,36 @@ export default function AdminDashboard() {
                                     <ReportChart period={reconciliationPeriod} customStartDate={customDateStart} customEndDate={customDateEnd} referenceDate={reconciliationDate} />
 
                                     {/* Data Penjualan Produk (Requested Feature) */}
-                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                        <div className="p-2 md:p-4 md:p-6 border-b border-gray-800">
-                                            <h3 className="font-bold text-xl text-white">Ringkasan Penjualan Produk (Terlaris)</h3>
-                                            <p className="text-gray-400 text-sm mt-1">Data penjualan, HPP, dan pendapatan bersih berdasarkan periode yang dipilih.</p>
+                                    <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
+                                        <div className="p-2 md:p-4 md:p-6 border-b border-border">
+                                            <h3 className="font-bold text-xl text-text-primary">Ringkasan Penjualan Produk (Terlaris)</h3>
+                                            <p className="text-text-muted text-sm mt-1">Data penjualan, HPP, dan pendapatan bersih berdasarkan periode yang dipilih.</p>
                                         </div>
                                         {productSalesData.length === 0 ? (
-                                            <p className="p-8 text-gray-500 text-center">Belum ada penjualan di periode ini.</p>
+                                            <p className="p-8 text-text-muted text-center">Belum ada penjualan di periode ini.</p>
                                         ) : (
                                             <div className="overflow-x-auto">
                                                 <table className="w-full text-left border-collapse text-xs md:text-sm">
                                                     <thead>
-                                                        <tr className="bg-gray-800/50 border-b border-gray-800">
-                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400">Produk</th>
-                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-center">Terjual</th>
-                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Penghasilan Kotor</th>
-                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Total HPP</th>
-                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Laba Bersih</th>
+                                                        <tr className="bg-gray-800/50 border-b border-border">
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted">Produk</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-center">Terjual</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Penghasilan Kotor</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Total HPP</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Laba Bersih</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         {productSalesData.map((row, idx) => (
-                                                            <tr key={idx} className="border-b border-gray-800 hover:bg-gray-800/30">
+                                                            <tr key={idx} className="border-b border-border hover:bg-gray-800/30">
                                                                 <td className="p-2 md:p-4">
-                                                                    <div className="font-bold text-gray-200">{row.name}</div>
-                                                                    <div className="text-xs text-gray-500">{row.category}</div>
+                                                                    <div className="font-bold text-text-secondary">{row.name}</div>
+                                                                    <div className="text-xs text-text-muted">{row.category}</div>
                                                                 </td>
                                                                 <td className="p-2 md:p-4 text-center">
-                                                                    <span className="px-3 py-1 bg-gray-800 text-gray-300 font-bold rounded-full text-sm">{row.terjual}</span>
+                                                                    <span className="px-3 py-1 bg-gray-800 text-text-secondary font-bold rounded-full text-sm">{row.terjual}</span>
                                                                 </td>
-                                                                <td className="p-2 md:p-4 text-right font-medium text-blue-400">Rp {row.kotor.toLocaleString('id-ID')}</td>
+                                                                <td className="p-2 md:p-4 text-right font-medium text-accent">Rp {row.kotor.toLocaleString('id-ID')}</td>
                                                                 <td className="p-2 md:p-4 text-right font-medium text-red-400">- Rp {row.hpp_total.toLocaleString('id-ID')}</td>
                                                                 <td className="p-2 md:p-4 text-right font-bold text-green-400">Rp {row.bersih.toLocaleString('id-ID')}</td>
                                                             </tr>
@@ -1470,61 +1470,61 @@ export default function AdminDashboard() {
 
                                     {/* QRIS & Cash Summary */}
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
+                                        <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
                                             <div>
-                                                <p className="text-gray-400 text-sm font-medium">Total Tunai (Cash)</p>
+                                                <p className="text-text-muted text-sm font-medium">Total Tunai (Cash)</p>
                                                 <h4 className="text-2xl font-bold text-green-400 mt-1">Rp {reconciliation.filter(r => r.method_name.toLowerCase().includes('cash') || r.method_name.toLowerCase().includes('tunai')).reduce((s, r) => s + r.pos_total, 0).toLocaleString('id-ID')}</h4>
                                             </div>
                                             <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center text-green-400">
                                                 <Wallet size={24} />
                                             </div>
                                         </div>
-                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
+                                        <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
                                             <div>
-                                                <p className="text-gray-400 text-sm font-medium">Total QRIS</p>
-                                                <h4 className="text-2xl font-bold text-blue-400 mt-1">Rp {reconciliation.filter(r => r.method_name.toLowerCase().includes('qris')).reduce((s, r) => s + r.pos_total, 0).toLocaleString('id-ID')}</h4>
+                                                <p className="text-text-muted text-sm font-medium">Total QRIS</p>
+                                                <h4 className="text-2xl font-bold text-accent mt-1">Rp {reconciliation.filter(r => r.method_name.toLowerCase().includes('qris')).reduce((s, r) => s + r.pos_total, 0).toLocaleString('id-ID')}</h4>
                                             </div>
-                                            <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-400">
+                                            <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center text-accent">
                                                 <Maximize size={24} />
                                             </div>
                                         </div>
-                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
+                                        <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
                                             <div>
-                                                <p className="text-gray-400 text-sm font-medium">Total Keseluruhan</p>
-                                                <h4 className="text-2xl font-bold text-white mt-1">Rp {reconciliation.reduce((s, r) => s + r.pos_total, 0).toLocaleString('id-ID')}</h4>
+                                                <p className="text-text-muted text-sm font-medium">Total Keseluruhan</p>
+                                                <h4 className="text-2xl font-bold text-text-primary mt-1">Rp {reconciliation.reduce((s, r) => s + r.pos_total, 0).toLocaleString('id-ID')}</h4>
                                             </div>
-                                            <div className="w-12 h-12 bg-gray-500/10 rounded-full flex items-center justify-center text-white">
+                                            <div className="w-12 h-12 bg-gray-500/10 rounded-full flex items-center justify-center text-text-primary">
                                                 <FileText size={24} />
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Rekonsiliasi Pembayaran */}
-                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                        <div className="p-2 md:p-4 md:p-6 border-b border-gray-800">
-                                            <h3 className="font-bold text-xl text-white">Rekonsiliasi Metode Pembayaran</h3>
+                                    <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
+                                        <div className="p-2 md:p-4 md:p-6 border-b border-border">
+                                            <h3 className="font-bold text-xl text-text-primary">Rekonsiliasi Metode Pembayaran</h3>
                                         </div>
                                         {reconciliation.length === 0 ? (
-                                            <p className="p-8 text-gray-500 text-center">Belum ada transaksi di periode ini.</p>
+                                            <p className="p-8 text-text-muted text-center">Belum ada transaksi di periode ini.</p>
                                         ) : (
                                             <div className="overflow-x-auto">
                                             <table className="w-full text-left border-collapse text-xs md:text-sm">
                                                 <thead>
-                                                    <tr className="bg-gray-800/50 border-b border-gray-800">
-                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400">Metode</th>
-                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400">Trx</th>
-                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">POS Total</th>
-                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Provider Total</th>
-                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Selisih</th>
+                                                    <tr className="bg-gray-800/50 border-b border-border">
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted">Metode</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted">Trx</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">POS Total</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Provider Total</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Selisih</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {reconciliation.map((row, idx) => (
-                                                        <tr key={idx} className="border-b border-gray-800 hover:bg-gray-800/30">
-                                                            <td className="p-2 md:p-4 font-medium text-gray-200">{row.method_name}</td>
-                                                            <td className="p-2 md:p-4 text-gray-400">{row.transaction_count}</td>
-                                                            <td className="p-2 md:p-4 text-right font-bold text-blue-400">{row.pos_total.toLocaleString('id-ID')}</td>
-                                                            <td className="p-2 md:p-4 text-right text-gray-400">{row.pos_total.toLocaleString('id-ID')}</td>
+                                                        <tr key={idx} className="border-b border-border hover:bg-gray-800/30">
+                                                            <td className="p-2 md:p-4 font-medium text-text-secondary">{row.method_name}</td>
+                                                            <td className="p-2 md:p-4 text-text-muted">{row.transaction_count}</td>
+                                                            <td className="p-2 md:p-4 text-right font-bold text-accent">{row.pos_total.toLocaleString('id-ID')}</td>
+                                                            <td className="p-2 md:p-4 text-right text-text-muted">{row.pos_total.toLocaleString('id-ID')}</td>
                                                             <td className="p-2 md:p-4 text-right font-bold text-green-400">0</td>
                                                         </tr>
                                                     ))}
@@ -1542,49 +1542,49 @@ export default function AdminDashboard() {
 
                                 return (
                                     <div className="space-y-6">
-                                        <div className="bg-[#131B2C] p-4 md:p-5 rounded-2xl border border-gray-800/60 shadow-lg flex flex-col md:flex-row gap-4 md:items-center justify-between">
+                                        <div className="bg-surface p-4 md:p-5 rounded-2xl border border-border shadow-soft flex flex-col md:flex-row gap-4 md:items-center justify-between">
                                             <div>
-                                                <h3 className="font-bold text-white mb-2">Filter Periode Transaksi</h3>
+                                                <h3 className="font-bold text-text-primary mb-2">Filter Periode Transaksi</h3>
                                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                                                     {historyFilterType === 'custom' && (
-                                                        <div className="flex flex-col sm:flex-row items-center gap-2 bg-gray-900 p-1.5 rounded-xl border border-gray-800">
+                                                        <div className="flex flex-col sm:flex-row items-center gap-2 bg-surface-hover p-1.5 rounded-xl border border-border">
                                                             <input 
                                                                 type="date" 
                                                                 value={customDateStart}
                                                                 onChange={(e) => setCustomDateStart(e.target.value)}
-                                                                className="bg-[#121214] text-white text-sm rounded-lg px-3 py-2 border border-gray-700 outline-none w-full sm:w-auto min-h-[40px]" 
+                                                                className="bg-background text-text-primary text-sm rounded-lg px-3 py-2 border border-border outline-none w-full sm:w-auto min-h-[40px]" 
                                                             />
-                                                            <span className="text-gray-500 hidden sm:block">-</span>
+                                                            <span className="text-text-muted hidden sm:block">-</span>
                                                             <input 
                                                                 type="date" 
                                                                 value={customDateEnd}
                                                                 onChange={(e) => setCustomDateEnd(e.target.value)}
-                                                                className="bg-[#121214] text-white text-sm rounded-lg px-3 py-2 border border-gray-700 outline-none w-full sm:w-auto min-h-[40px]" 
+                                                                className="bg-background text-text-primary text-sm rounded-lg px-3 py-2 border border-border outline-none w-full sm:w-auto min-h-[40px]" 
                                                             />
                                                             <button 
                                                                 onClick={() => { if (customDateStart && customDateEnd) fetchTransactions('custom'); }}
-                                                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm w-full sm:w-auto min-h-[40px]"
+                                                                className="bg-accent hover:bg-blue-700 text-text-primary font-bold py-2 px-4 rounded-lg text-sm w-full sm:w-auto min-h-[40px]"
                                                             >
                                                                 Terapkan
                                                             </button>
                                                         </div>
                                                     )}
                                                     {historyFilterType !== 'custom' && (
-                                                        <div className="flex bg-gray-900 rounded-lg overflow-hidden border border-gray-800 mr-2 h-10 w-full sm:w-auto">
-                                                            <button onClick={() => shiftHistoryDate(-1)} className="px-4 py-2 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors flex items-center justify-center w-12">&lt;</button>
-                                                            <div className="px-4 py-2 text-sm font-bold text-white border-l border-r border-gray-800 bg-gray-800/30 flex items-center justify-center flex-1 sm:flex-none">
+                                                        <div className="flex bg-surface-hover rounded-lg overflow-hidden border border-border mr-2 h-10 w-full sm:w-auto">
+                                                            <button onClick={() => shiftHistoryDate(-1)} className="px-4 py-2 hover:bg-gray-800 text-text-muted hover:text-text-primary transition-colors flex items-center justify-center w-12">&lt;</button>
+                                                            <div className="px-4 py-2 text-sm font-bold text-text-primary border-l border-r border-border bg-gray-800/30 flex items-center justify-center flex-1 sm:flex-none">
                                                                 {historyFilterType === 'daily' ? historyDate.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) :
                                                                  historyFilterType === 'weekly' ? 'Minggu ' + Math.ceil(historyDate.getDate()/7) :
                                                                  historyFilterType === 'monthly' ? historyDate.toLocaleDateString('id-ID', {month:'long', year:'numeric'}) :
                                                                  historyDate.getFullYear()}
                                                             </div>
-                                                            <button onClick={() => shiftHistoryDate(1)} className="px-4 py-2 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors flex items-center justify-center w-12">&gt;</button>
+                                                            <button onClick={() => shiftHistoryDate(1)} className="px-4 py-2 hover:bg-gray-800 text-text-muted hover:text-text-primary transition-colors flex items-center justify-center w-12">&gt;</button>
                                                         </div>
                                                     )}
-                                                    <div className="flex flex-wrap bg-gray-900 rounded-xl p-1 border border-gray-800 w-full md:w-fit">
+                                                    <div className="flex flex-wrap bg-surface-hover rounded-xl p-1 border border-border w-full md:w-fit">
                                                         {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'},{k:'yearly',l:'Tahunan'},{k:'custom',l:'Kustom'}].map(f => (
                                                             <button key={f.k} onClick={() => setHistoryFilterType(f.k as any)}
-                                                                className={`flex-1 md:flex-none text-center px-2 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${historyFilterType === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                                                                className={`flex-1 md:flex-none text-center px-2 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${historyFilterType === f.k ? 'bg-accent text-text-primary' : 'text-text-muted hover:text-text-primary'}`}>
                                                                 {f.l}
                                                             </button>
                                                         ))}
@@ -1592,48 +1592,48 @@ export default function AdminDashboard() {
                                                 </div>
                                             </div>
                                             <div>
-                                                <h3 className="font-bold text-white mb-2">Urutkan Waktu</h3>
-                                                <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-800">
-                                                    <button onClick={() => setHistorySortOrder('desc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'desc' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}>Terbaru</button>
-                                                    <button onClick={() => setHistorySortOrder('asc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'asc' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}>Terlama</button>
+                                                <h3 className="font-bold text-text-primary mb-2">Urutkan Waktu</h3>
+                                                <div className="flex bg-surface-hover rounded-xl p-1 border border-border">
+                                                    <button onClick={() => setHistorySortOrder('desc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'desc' ? 'bg-gray-700 text-text-primary' : 'text-text-muted hover:text-text-primary'}`}>Terbaru</button>
+                                                    <button onClick={() => setHistorySortOrder('asc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'asc' ? 'bg-gray-700 text-text-primary' : 'text-text-muted hover:text-text-primary'}`}>Terlama</button>
                                                 </div>
                                             </div>
-                                            <span className="text-gray-500 text-sm">{filteredTransactions.length} transaksi ditemukan</span>
+                                            <span className="text-text-muted text-sm">{filteredTransactions.length} transaksi ditemukan</span>
                                         </div>
 
                                         <div className="space-y-4">
                                             {filteredTransactions.length === 0 ? (
-                                                <p className="p-8 text-gray-500 text-center bg-[#131B2C] rounded-2xl border border-gray-800/60 shadow-lg">Belum ada transaksi pada periode ini.</p>
+                                                <p className="p-8 text-text-muted text-center bg-surface rounded-2xl border border-border shadow-soft">Belum ada transaksi pada periode ini.</p>
                                             ) : (
                                                 filteredTransactions.map((trx: any) => {
                                                 const itemCogs = trx.order_items?.reduce((sum: number, item: any) => sum + ((item.cogs_at_time || 0) * item.quantity), 0) || 0;
                                                 const subTotal = trx.amount_due - (trx.tax_amount || 0);
                                                 const netProfit = subTotal - itemCogs;
                                                 return (
-                                                    <div key={trx.id} className="p-2 md:p-4 md:p-5 bg-[#131B2C] rounded-2xl border border-gray-800/60 shadow-lg flex flex-col md:flex-row gap-4 justify-between transition-colors hover:border-blue-500/30">
+                                                    <div key={trx.id} className="p-2 md:p-4 md:p-5 bg-surface rounded-2xl border border-border shadow-soft flex flex-col md:flex-row gap-4 justify-between transition-colors hover:border-accent/30">
                                                         <div className="flex-1">
                                                             <div className="flex items-center gap-3 mb-2">
-                                                                <span className="font-bold text-white text-lg">{trx.order_reference}</span>
-                                                                <span className={`px-2.5 py-1 text-xs font-bold rounded-lg ${trx.status === 'Paid' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : trx.status === 'Refunded' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-gray-300'}`}>
+                                                                <span className="font-bold text-text-primary text-lg">{trx.order_reference}</span>
+                                                                <span className={`px-2.5 py-1 text-xs font-bold rounded-lg ${trx.status === 'Paid' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : trx.status === 'Refunded' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-text-secondary'}`}>
                                                                     {trx.status}
                                                                 </span>
                                                             </div>
-                                                            <p className="text-sm text-gray-400 mb-2">Metode: <span className="text-gray-200">{trx.payment_methods?.name || 'Unknown'}</span> | {new Date(trx.created_at).toLocaleString('id-ID')}</p>
+                                                            <p className="text-sm text-text-muted mb-2">Metode: <span className="text-text-secondary">{trx.payment_methods?.name || 'Unknown'}</span> | {new Date(trx.created_at).toLocaleString('id-ID')}</p>
                                                             {trx.customer_name && (
-                                                                <p className="text-sm text-gray-400 mb-3">Pelanggan: <span className="text-gray-200 font-bold">{trx.customer_name}</span></p>
+                                                                <p className="text-sm text-text-muted mb-3">Pelanggan: <span className="text-text-secondary font-bold">{trx.customer_name}</span></p>
                                                             )}
                                                     
                                                             {trx.order_items && trx.order_items.length > 0 && (
-                                                                <div className="bg-gray-800/30 p-3 rounded-xl border border-gray-800 mb-3">
-                                                                    <ul className="text-sm space-y-1.5 border-b border-gray-800/50 pb-2 mb-2">
+                                                                <div className="bg-gray-800/30 p-3 rounded-xl border border-border mb-3">
+                                                                    <ul className="text-sm space-y-1.5 border-b border-border/50 pb-2 mb-2">
                                                                         {trx.order_items.map((item: any, idx: number) => (
-                                                                            <li key={idx} className="flex justify-between text-gray-300">
-                                                                                <span><span className="text-gray-500 mr-2">{item.quantity}x</span> {item.product_name}</span>
-                                                                                <span className="text-gray-400">Rp {(item.quantity * item.price_at_time).toLocaleString('id-ID')}</span>
+                                                                            <li key={idx} className="flex justify-between text-text-secondary">
+                                                                                <span><span className="text-text-muted mr-2">{item.quantity}x</span> {item.product_name}</span>
+                                                                                <span className="text-text-muted">Rp {(item.quantity * item.price_at_time).toLocaleString('id-ID')}</span>
                                                                             </li>
                                                                         ))}
                                                                     </ul>
-                                                                    <div className="text-xs text-gray-400 space-y-1">
+                                                                    <div className="text-xs text-text-muted space-y-1">
                                                                         {(trx.tax_amount || 0) > 0 && (
                                                                             <div className="flex justify-between">
                                                                                 <span>Pajak</span>
@@ -1645,7 +1645,7 @@ export default function AdminDashboard() {
                                                                             <span>Rp {Number(trx.amount_received).toLocaleString('id-ID')}</span>
                                                                         </div>
                                                                         {(trx.change_given || 0) > 0 && (
-                                                                            <div className="flex justify-between font-bold text-gray-300">
+                                                                            <div className="flex justify-between font-bold text-text-secondary">
                                                                                 <span>Kembalian</span>
                                                                                 <span>Rp {Number(trx.change_given).toLocaleString('id-ID')}</span>
                                                                             </div>
@@ -1656,12 +1656,12 @@ export default function AdminDashboard() {
 
                                                             <div className="flex gap-4 text-xs font-bold bg-blue-900/10 p-3 rounded-xl border border-blue-900/30 inline-flex">
                                                                 <div>
-                                                                    <p className="text-gray-500 mb-1">HPP</p>
+                                                                    <p className="text-text-muted mb-1">HPP</p>
                                                                     <p className="text-orange-400">Rp {itemCogs.toLocaleString('id-ID')}</p>
                                                                 </div>
                                                                 <div className="w-px bg-gray-800"></div>
                                                                 <div>
-                                                                    <p className="text-gray-500 mb-1">Laba Bersih</p>
+                                                                    <p className="text-text-muted mb-1">Laba Bersih</p>
                                                                     <p className="text-green-400">Rp {netProfit.toLocaleString('id-ID')}</p>
                                                                 </div>
                                                             </div>
@@ -1669,8 +1669,8 @@ export default function AdminDashboard() {
                                                         
                                                         <div className="text-right min-w-[150px] flex flex-col justify-between items-end">
                                                             <div className="w-full">
-                                                                <p className="text-sm text-gray-500 mb-1">Total</p>
-                                                                <p className="font-bold text-lg md:text-2xl text-white">Rp {trx.amount_due.toLocaleString('id-ID')}</p>
+                                                                <p className="text-sm text-text-muted mb-1">Total</p>
+                                                                <p className="font-bold text-lg md:text-2xl text-text-primary">Rp {trx.amount_due.toLocaleString('id-ID')}</p>
                                                             </div>
                                                             
                                                             <div className="flex flex-col gap-2 mt-4 w-full">
@@ -1688,7 +1688,7 @@ export default function AdminDashboard() {
                                                                                 setPrintTransaction(trx);
                                                                                 setTimeout(() => window.print(), 100);
                                                                             }}
-                                                                            className="w-full px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl text-sm font-bold hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-2"
+                                                                            className="w-full px-4 py-2 bg-accent/10 text-accent border border-accent/20 rounded-xl text-sm font-bold hover:bg-accent-hover/20 transition-colors flex items-center justify-center gap-2"
                                                                         >
                                                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                                                             Cetak Desain (Web)
@@ -1698,7 +1698,7 @@ export default function AdminDashboard() {
                                                                 {profile?.role === 'owner' && (
                                                                     <button 
                                                                         onClick={() => handleDeleteTransaction(trx)}
-                                                                        className="w-full px-4 py-2 bg-gray-800 text-gray-400 border border-gray-700 rounded-xl text-sm font-bold hover:bg-gray-700 hover:text-white transition-colors"
+                                                                        className="w-full px-4 py-2 bg-gray-800 text-text-muted border border-border rounded-xl text-sm font-bold hover:bg-gray-700 hover:text-text-primary transition-colors"
                                                                     >
                                                                         Hapus
                                                                     </button>
@@ -1717,21 +1717,21 @@ export default function AdminDashboard() {
                                                         {/* CASH SESSIONS TAB */}
                             {activeTab === "cash_sessions" && (
                                 <div className="space-y-4">
-                                    <h3 className="font-bold text-xl text-white border-b border-gray-800 pb-3 mb-4">Riwayat Shift Kasir (Arus Kas Laci)</h3>
+                                    <h3 className="font-bold text-xl text-text-primary border-b border-border pb-3 mb-4">Riwayat Shift Kasir (Arus Kas Laci)</h3>
                                     {cashSessions.length === 0 ? (
-                                        <p className="p-8 text-center text-gray-500 bg-[#131B2C] rounded-2xl border border-gray-800">Belum ada riwayat shift kasir.</p>
+                                        <p className="p-8 text-center text-text-muted bg-surface rounded-2xl border border-border">Belum ada riwayat shift kasir.</p>
                                     ) : (
                                         cashSessions.map((session: any) => (
-                                            <div key={session.id} className="p-4 bg-[#131B2C] rounded-2xl border border-gray-800 flex flex-col md:flex-row justify-between gap-4">
+                                            <div key={session.id} className="p-4 bg-surface rounded-2xl border border-border flex flex-col md:flex-row justify-between gap-4">
                                                 <div>
-                                                    <p className="text-gray-300 font-bold mb-1">
+                                                    <p className="text-text-secondary font-bold mb-1">
                                                         Shift ID: {session.id.substring(0, 8)} 
-                                                        <span className={`ml-3 text-xs px-2 py-1 rounded-full ${session.status === 'open' ? 'bg-green-500/20 text-green-400' : 'bg-gray-800 text-gray-400'}`}>
+                                                        <span className={`ml-3 text-xs px-2 py-1 rounded-full ${session.status === 'open' ? 'bg-green-500/20 text-green-400' : 'bg-gray-800 text-text-muted'}`}>
                                                             {session.status.toUpperCase()}
                                                         </span>
                                                     </p>
-                                                    <p className="text-sm text-gray-400 mb-1">Kasir ID: {session.staff_id || 'Unknown'}</p>
-                                                    <p className="text-xs text-gray-500">
+                                                    <p className="text-sm text-text-muted mb-1">Kasir ID: {session.staff_id || 'Unknown'}</p>
+                                                    <p className="text-xs text-text-muted">
                                                         Buka: {new Date(session.opened_at).toLocaleString('id-ID')}
                                                         {session.closed_at && ` | Tutup: ${new Date(session.closed_at).toLocaleString('id-ID')}`}
                                                     </p>
@@ -1739,16 +1739,16 @@ export default function AdminDashboard() {
                                                         <button onClick={() => handleDeleteSession(session.id)} disabled={loading} className="mt-2 text-[10px] uppercase font-bold tracking-wider px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full hover:bg-red-500/20 w-fit transition-colors">Hapus Shift</button>
                                                     )}
 </div>
-                                                <div className="flex flex-col gap-1 text-sm bg-gray-900/50 p-3 rounded-xl border border-gray-800 min-w-[200px]">
-                                                    <div className="flex justify-between text-gray-400"><span>Modal Awal (Buka)</span><span>Rp {Number(session.opening_cash).toLocaleString('id-ID')}</span></div>
+                                                <div className="flex flex-col gap-1 text-sm bg-surface-hover/50 p-3 rounded-xl border border-border min-w-[200px]">
+                                                    <div className="flex justify-between text-text-muted"><span>Modal Awal (Buka)</span><span>Rp {Number(session.opening_cash).toLocaleString('id-ID')}</span></div>
                                                     <div className="flex justify-between text-green-400"><span>Pendapatan (Cash)</span><span>+Rp {Number(session.expected_cash - session.opening_cash + (session.total_expense || 0) + (session.total_refund || 0)).toLocaleString('id-ID')}</span></div>
                                                     <div className="flex justify-between text-red-400"><span>Pengeluaran (Cash)</span><span>-Rp {Number(session.total_expense || 0).toLocaleString('id-ID')}</span></div>
                                                     <div className="flex justify-between text-yellow-400"><span>Refund</span><span>-Rp {Number(session.total_refund || 0).toLocaleString('id-ID')}</span></div>
-                                                    <div className="flex justify-between text-blue-400"><span>Sisa/Target (Sistem)</span><span>Rp {Number(session.expected_cash).toLocaleString('id-ID')}</span></div>
+                                                    <div className="flex justify-between text-accent"><span>Sisa/Target (Sistem)</span><span>Rp {Number(session.expected_cash).toLocaleString('id-ID')}</span></div>
                                                     {session.status === 'closed' && (
                                                         <>
-                                                            <div className="flex justify-between text-green-400 font-bold border-t border-gray-700 mt-1 pt-1"><span>Aktual di Laci (Tutup)</span><span>Rp {Number(session.actual_cash).toLocaleString('id-ID')}</span></div>
-                                                            <div className={`flex justify-between font-bold ${Number(session.difference) < 0 ? 'text-red-400' : 'text-gray-300'}`}>
+                                                            <div className="flex justify-between text-green-400 font-bold border-t border-border mt-1 pt-1"><span>Aktual di Laci (Tutup)</span><span>Rp {Number(session.actual_cash).toLocaleString('id-ID')}</span></div>
+                                                            <div className={`flex justify-between font-bold ${Number(session.difference) < 0 ? 'text-red-400' : 'text-text-secondary'}`}>
                                                                 <span>Selisih</span><span>Rp {Number(session.difference).toLocaleString('id-ID')}</span>
                                                             </div>
                                                             {session.discrepancy_reason && <p className="text-xs text-red-400 mt-1 italic">"{session.discrepancy_reason}"</p>}
@@ -1764,31 +1764,31 @@ export default function AdminDashboard() {
                             {/* INVENTORY TAB */}
                             {activeTab === "inventory" && (
                                 <div className="space-y-6">
-                                    <form onSubmit={handleCreateProduct} className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
-                                        <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Produk Baru</h3>
+                                    <form onSubmit={handleCreateProduct} className="p-2 md:p-4 md:p-8 bg-surface rounded-2xl border border-border shadow-xl">
+                                        <h3 className="font-bold text-lg mb-6 text-text-primary border-b border-border pb-3">Tambah Produk Baru</h3>
                                         
                                         {/* Upload Gambar */}
                                         <div className="flex items-center gap-4 md:p-6 mb-6">
-                                            <div className="w-24 h-24 rounded-2xl bg-gray-900 border-2 border-dashed border-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                            <div className="w-24 h-24 rounded-2xl bg-surface-hover border-2 border-dashed border-border flex items-center justify-center overflow-hidden flex-shrink-0">
                                                 {newProduct.image_url 
                                                     ? <img src={newProduct.image_url} alt="preview" className="w-full h-full object-cover" />
                                                     : <span className="text-2xl md:text-4xl">{newProduct.image_icon || '≡ƒôª'}</span>
                                                 }
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-bold text-gray-300 mb-2">Foto Menu</label>
-                                                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition-colors border border-gray-700">
+                                                <label className="block text-sm font-bold text-text-secondary mb-2">Foto Menu</label>
+                                                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-text-primary rounded-xl text-sm font-bold transition-colors border border-border">
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                                     Upload & Compress
                                                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleProductImageUpload(e, false)} />
                                                 </label>
-                                                <p className="text-xs text-gray-500 mt-1">Gambar otomatis dikompres ke WebP Γëñ 30KB</p>
+                                                <p className="text-xs text-text-muted mt-1">Gambar otomatis dikompres ke WebP Γëñ 30KB</p>
                                                 {newProduct.image_url && <button type="button" onClick={() => setNewProduct(p => ({...p, image_url: ''}))} className="text-xs text-red-400 mt-1 hover:underline">Hapus foto</button>}
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:p-5 mb-6">
-                                            <input type="text" placeholder="Nama Produk" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
+                                            <input type="text" placeholder="Nama Produk" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="p-3 bg-surface-hover border border-border rounded-xl focus:border-accent focus:outline-none text-text-primary" />
                                             <CategoryDropdown
                                                 value={newProduct.category}
                                                 onChange={(v) => setNewProduct({...newProduct, category: v})}
@@ -1796,23 +1796,23 @@ export default function AdminDashboard() {
                                                 onAdd={handleAddCategory}
                                                 onRemove={handleRemoveCategory}
                                             />
-                                            <input type="text" placeholder="Icon Emoji (opsional)" value={newProduct.image_icon} onChange={e => setNewProduct({...newProduct, image_icon: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
-                                            <div><label className="text-xs text-gray-500 mb-2 block">Harga Jual (Rp)</label><input type="number" placeholder="0" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
-                                            <div><label className="text-xs text-gray-500 mb-2 block">HPP / Modal (Rp)</label><input type="number" placeholder="0" required value={newProduct.cogs} onChange={e => setNewProduct({...newProduct, cogs: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
-                                            <div><label className="text-xs text-gray-500 mb-2 block">Stok Awal</label><input type="number" placeholder="0" required value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" /></div>
+                                            <input type="text" placeholder="Icon Emoji (opsional)" value={newProduct.image_icon} onChange={e => setNewProduct({...newProduct, image_icon: e.target.value})} className="p-3 bg-surface-hover border border-border rounded-xl focus:border-accent focus:outline-none text-text-primary" />
+                                            <div><label className="text-xs text-text-muted mb-2 block">Harga Jual (Rp)</label><input type="number" placeholder="0" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent focus:outline-none text-text-primary" /></div>
+                                            <div><label className="text-xs text-text-muted mb-2 block">HPP / Modal (Rp)</label><input type="number" placeholder="0" required value={newProduct.cogs} onChange={e => setNewProduct({...newProduct, cogs: Number(e.target.value)})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent focus:outline-none text-text-primary" /></div>
+                                            <div><label className="text-xs text-text-muted mb-2 block">Stok Awal</label><input type="number" placeholder="0" required value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent focus:outline-none text-text-primary" /></div>
                                         </div>
                                         
-                                        <div className="mb-6 p-4 md:p-5 bg-gray-900 border border-gray-800 rounded-xl">
+                                        <div className="mb-6 p-4 md:p-5 bg-surface-hover border border-border rounded-xl">
                                             <div className="flex justify-between items-center mb-4">
-                                                <h4 className="font-bold text-gray-300">Bahan Baku (Opsional)</h4>
-                                                <button type="button" onClick={addIngredient} className="text-sm px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold rounded-lg hover:bg-blue-500/20">+ Tambah</button>
+                                                <h4 className="font-bold text-text-secondary">Bahan Baku (Opsional)</h4>
+                                                <button type="button" onClick={addIngredient} className="text-sm px-3 py-1.5 bg-accent/10 text-accent border border-accent/20 font-bold rounded-lg hover:bg-accent-hover/20">+ Tambah</button>
                                             </div>
                                             {newProduct.ingredients.map((ing, i) => (
                                                 <div key={i} className="flex gap-2 items-center mb-3 flex-wrap">
                                                     <select
                                                         value={ing.raw_material_id || (ing as any).id || ''}
                                                         onChange={(e) => updateIngredient(i, 'raw_material_id', e.target.value)}
-                                                        className="flex-1 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none"
+                                                        className="flex-1 p-2 bg-background border border-border rounded-lg text-text-primary outline-none"
                                                     >
                                                         <option value="">-- Manual (Ketik Nama) --</option>
                                                         {rawMaterials.map(m => (
@@ -1820,73 +1820,73 @@ export default function AdminDashboard() {
                                                         ))}
                                                     </select>
                                                     {!ing.raw_material_id && (
-                                                        <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredient(i, 'name', e.target.value)} className="w-1/3 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                        <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredient(i, 'name', e.target.value)} className="w-1/3 p-2 bg-background border border-border rounded-lg text-text-primary outline-none" required />
                                                     )}
                                                     {ing.raw_material_id && (
-                                                        <input type="number" placeholder="Qty/Porsi" value={ing.qty || ''} onChange={(e) => updateIngredient(i, 'qty', Number(e.target.value))} className="w-24 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required step="any" />
+                                                        <input type="number" placeholder="Qty/Porsi" value={ing.qty || ''} onChange={(e) => updateIngredient(i, 'qty', Number(e.target.value))} className="w-24 p-2 bg-background border border-border rounded-lg text-text-primary outline-none" required step="any" />
                                                     )}
-                                                    <input type="number" placeholder="Biaya (Rp)" value={ing.cost || ''} onChange={(e) => updateIngredient(i, 'cost', Number(e.target.value))} className="w-28 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                    <input type="number" placeholder="Biaya (Rp)" value={ing.cost || ''} onChange={(e) => updateIngredient(i, 'cost', Number(e.target.value))} className="w-28 p-2 bg-background border border-border rounded-lg text-text-primary outline-none" required />
                                                     <button type="button" onClick={() => removeIngredient(i)} className="text-red-400 p-2 hover:bg-red-500/10 rounded-lg">Hapus</button>
                                                 </div>
                                             ))}
-                                            {newProduct.ingredients.length > 0 && <div className="mt-4 pt-4 border-t border-gray-800 text-right font-bold text-blue-400">Total HPP Otomatis: Rp {newProduct.ingredients.reduce((sum, item) => sum + item.cost, 0).toLocaleString('id-ID')}</div>}
+                                            {newProduct.ingredients.length > 0 && <div className="mt-4 pt-4 border-t border-border text-right font-bold text-accent">Total HPP Otomatis: Rp {newProduct.ingredients.reduce((sum, item) => sum + item.cost, 0).toLocaleString('id-ID')}</div>}
                                         </div>
-                                        <button type="submit" disabled={loading} className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors">
+                                        <button type="submit" disabled={loading} className="w-full md:w-auto px-8 py-3 bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover transition-colors">
                                             {loading ? 'Menyimpan...' : 'Simpan Produk'}
                                         </button>
                                     </form>
 
-                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                    <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
                                         <div className="overflow-x-auto">
                                             <table className="w-full text-left border-collapse text-xs md:text-sm">
                                                 <thead>
-                                                    <tr className="bg-gray-800/50 border-b border-gray-800">
-                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400">Produk</th>
-                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Harga Jual</th>
-                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-right">Profit</th>
-                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-center">Stok</th>
-<th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-center">Status</th>
-<th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-gray-400 text-center">Aksi</th>
+                                                    <tr className="bg-gray-800/50 border-b border-border">
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted">Produk</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Harga Jual</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Profit</th>
+                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-center">Stok</th>
+<th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-center">Status</th>
+<th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-center">Aksi</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
 
                                                     {products.map((p: any) => (
-                                                        <tr key={p.id} className="border-b border-gray-800 hover:bg-gray-800/30">
+                                                        <tr key={p.id} className="border-b border-border hover:bg-gray-800/30">
                                                             <td className="p-2 md:p-4 flex items-center gap-4">
-                                                                <div className="w-14 h-14 bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
+                                                                <div className="w-14 h-14 bg-surface-hover border border-border rounded-xl flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
                                                                     {p.image_url 
                                                                         ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
                                                                         : <span>{p.image_icon || '≡ƒôª'}</span>
                                                                     }
                                                                 </div>
                                                                 <div>
-                                                                    <p className="font-bold text-white text-base">{p.name}</p>
-                                                                    <p className="text-xs text-gray-500">{p.category}</p>
+                                                                    <p className="font-bold text-text-primary text-base">{p.name}</p>
+                                                                    <p className="text-xs text-text-muted">{p.category}</p>
                                                                 </div>
                                                             </td>
                                                             <td className="p-2 md:p-4 text-right">
-                                                                <p className="font-bold text-gray-200">Rp {p.price.toLocaleString('id-ID')}</p>
-                                                                <p className="text-xs text-gray-500">
+                                                                <p className="font-bold text-text-secondary">Rp {p.price.toLocaleString('id-ID')}</p>
+                                                                <p className="text-xs text-text-muted">
                                                                     HPP: Rp {p.cogs.toLocaleString('id-ID')}
                                                                     {p.ingredients && p.ingredients.length > 0 && ` (${p.ingredients.length} Bahan)`}
                                                                 </p>
                                                             </td>
                                                             <td className="p-2 md:p-4 text-right font-bold text-green-400">Rp {(p.price - p.cogs).toLocaleString('id-ID')}</td>
                                                             <td className="p-2 md:p-4 text-center">
-                                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-gray-300'}`}>{p.stock}</span>
+                                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-text-secondary'}`}>{p.stock}</span>
                                                             </td>
 <td className="p-2 md:p-4 text-center">
-    <button onClick={() => toggleProductStatus(p)} disabled={loading} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors border ${p.is_active ? 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20' : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'}`}>
+    <button onClick={() => toggleProductStatus(p)} disabled={loading} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors border ${p.is_active ? 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20' : 'bg-gray-800 text-text-muted border-border hover:bg-gray-700'}`}>
         {p.is_active ? 'Tersedia' : 'Habis/Off'}
     </button>
 </td>
 <td className="p-2 md:p-4 text-center">
                                                                 <div className="flex flex-wrap gap-2 justify-center">
-                                                                    <button onClick={() => setAdjustingProductStock(p)} className="px-2 py-1 text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-600 hover:text-white transition-colors">+/- Stok</button>
-                                                                    <button onClick={() => handleViewProductHistory(p)} className="px-2 py-1 text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-600 hover:text-white transition-colors">Riwayat</button>
-                                                                    <button onClick={() => setEditingProduct(p)} className="px-2 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
-                                                                    <button onClick={() => handleDeleteProduct(p)} className="px-2 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Hapus</button>
+                                                                    <button onClick={() => setAdjustingProductStock(p)} className="px-2 py-1 text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-600 hover:text-text-primary transition-colors">+/- Stok</button>
+                                                                    <button onClick={() => handleViewProductHistory(p)} className="px-2 py-1 text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-600 hover:text-text-primary transition-colors">Riwayat</button>
+                                                                    <button onClick={() => setEditingProduct(p)} className="px-2 py-1 text-xs font-bold bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent hover:text-text-primary transition-colors">Edit</button>
+                                                                    <button onClick={() => handleDeleteProduct(p)} className="px-2 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-text-primary transition-colors">Hapus</button>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -1899,19 +1899,19 @@ export default function AdminDashboard() {
                                     {/* Edit Product Modal */}
                                     {editingProduct && (
                                         <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md overflow-y-auto">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-[540px] shadow-2xl my-auto flex-shrink-0">
-                                                <h3 className="font-bold text-xl text-white mb-6">Edit Produk: {editingProduct.name}</h3>
+                                            <div className="bg-surface border border-border p-4 md:p-8 rounded-3xl w-full max-w-[540px] shadow-2xl my-auto flex-shrink-0">
+                                                <h3 className="font-bold text-xl text-text-primary mb-6">Edit Produk: {editingProduct.name}</h3>
                                                 <form onSubmit={handleUpdateProduct} className="space-y-4">
                                                     {/* Image Upload Edit */}
                                                     <div className="flex items-center gap-4 md:p-5 mb-2">
-                                                        <div className="w-20 h-20 rounded-xl bg-gray-900 border-2 border-dashed border-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                                        <div className="w-20 h-20 rounded-xl bg-surface-hover border-2 border-dashed border-border flex items-center justify-center overflow-hidden flex-shrink-0">
                                                             {editingProduct.image_url 
                                                                 ? <img src={editingProduct.image_url} alt={editingProduct.name} className="w-full h-full object-cover" />
                                                                 : <span className="text-2xl md:text-3xl">{editingProduct.image_icon || '≡ƒôª'}</span>
                                                             }
                                                         </div>
                                                         <div>
-                                                            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition-colors border border-gray-700">
+                                                            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-text-primary rounded-xl text-sm font-bold transition-colors border border-border">
                                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                                                 Ganti Foto
                                                                 <input type="file" accept="image/*" className="hidden" onChange={(e) => handleProductImageUpload(e, true)} />
@@ -1920,11 +1920,11 @@ export default function AdminDashboard() {
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <label className="text-sm font-bold text-gray-400 block mb-2">Nama Produk</label>
-                                                        <input type="text" value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                        <label className="text-sm font-bold text-text-muted block mb-2">Nama Produk</label>
+                                                        <input type="text" value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full p-3 bg-surface-hover border border-border rounded-xl text-text-primary outline-none focus:border-accent" required />
                                                     </div>
                                                     <div>
-                                                        <label className="text-sm font-bold text-gray-400 block mb-2">Kategori</label>
+                                                        <label className="text-sm font-bold text-text-muted block mb-2">Kategori</label>
                                                         <CategoryDropdown
                                                             value={editingProduct.category}
                                                             onChange={(v) => setEditingProduct({...editingProduct, category: v})}
@@ -1935,26 +1935,26 @@ export default function AdminDashboard() {
                                                     </div>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         <div>
-                                                            <label className="text-sm font-bold text-gray-400 block mb-2">Harga Jual</label>
-                                                            <input type="number" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                            <label className="text-sm font-bold text-text-muted block mb-2">Harga Jual</label>
+                                                            <input type="number" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: e.target.value})} className="w-full p-3 bg-surface-hover border border-border rounded-xl text-text-primary outline-none focus:border-accent" required />
                                                         </div>
                                                         <div>
-                                                            <label className="text-sm font-bold text-gray-400 block mb-2">HPP Dasar</label>
-                                                            <input type="number" value={editingProduct.cogs} onChange={e => setEditingProduct({...editingProduct, cogs: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                            <label className="text-sm font-bold text-text-muted block mb-2">HPP Dasar</label>
+                                                            <input type="number" value={editingProduct.cogs} onChange={e => setEditingProduct({...editingProduct, cogs: e.target.value})} className="w-full p-3 bg-surface-hover border border-border rounded-xl text-text-primary outline-none focus:border-accent" required />
                                                         </div>
                                                     </div>
 
-                                                    <div className="mb-6 p-4 md:p-5 bg-gray-900 border border-gray-800 rounded-xl">
+                                                    <div className="mb-6 p-4 md:p-5 bg-surface-hover border border-border rounded-xl">
                                                         <div className="flex justify-between items-center mb-4">
-                                                            <h4 className="font-bold text-gray-300">Bahan Baku (Opsional)</h4>
-                                                            <button type="button" onClick={addIngredientEdit} className="text-sm px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold rounded-lg hover:bg-blue-500/20">+ Tambah</button>
+                                                            <h4 className="font-bold text-text-secondary">Bahan Baku (Opsional)</h4>
+                                                            <button type="button" onClick={addIngredientEdit} className="text-sm px-3 py-1.5 bg-accent/10 text-accent border border-accent/20 font-bold rounded-lg hover:bg-accent-hover/20">+ Tambah</button>
                                                         </div>
                                                         {(editingProduct.ingredients || []).map((ing: any, i: number) => (
                                                             <div key={i} className="flex gap-2 items-center mb-3 flex-wrap">
                                                                 <select
                                                                     value={ing.raw_material_id || (ing as any).id || ''}
                                                                     onChange={(e) => updateIngredientEdit(i, 'raw_material_id', e.target.value)}
-                                                                    className="flex-1 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none"
+                                                                    className="flex-1 p-2 bg-background border border-border rounded-lg text-text-primary outline-none"
                                                                 >
                                                                     <option value="">-- Manual (Ketik Nama) --</option>
                                                                     {rawMaterials.map(m => (
@@ -1962,20 +1962,20 @@ export default function AdminDashboard() {
                                                                     ))}
                                                                 </select>
                                                                 {!ing.raw_material_id && (
-                                                                    <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredientEdit(i, 'name', e.target.value)} className="w-1/3 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                                    <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredientEdit(i, 'name', e.target.value)} className="w-1/3 p-2 bg-background border border-border rounded-lg text-text-primary outline-none" required />
                                                                 )}
                                                                 {ing.raw_material_id && (
-                                                                    <input type="number" placeholder="Qty/Porsi" value={ing.qty || ''} onChange={(e) => updateIngredientEdit(i, 'qty', Number(e.target.value))} className="w-24 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required step="any" />
+                                                                    <input type="number" placeholder="Qty/Porsi" value={ing.qty || ''} onChange={(e) => updateIngredientEdit(i, 'qty', Number(e.target.value))} className="w-24 p-2 bg-background border border-border rounded-lg text-text-primary outline-none" required step="any" />
                                                                 )}
-                                                                <input type="number" placeholder="Biaya (Rp)" value={ing.cost || ''} onChange={(e) => updateIngredientEdit(i, 'cost', Number(e.target.value))} className="w-28 p-2 bg-[#0B0F19] border border-gray-800 rounded-lg text-white outline-none" required />
+                                                                <input type="number" placeholder="Biaya (Rp)" value={ing.cost || ''} onChange={(e) => updateIngredientEdit(i, 'cost', Number(e.target.value))} className="w-28 p-2 bg-background border border-border rounded-lg text-text-primary outline-none" required />
                                                                 <button type="button" onClick={() => removeIngredientEdit(i)} className="text-red-400 p-2 hover:bg-red-500/10 rounded-lg">Hapus</button>
                                                             </div>
                                                         ))}
                                                     </div>
 
                                                     <div className="flex gap-4 mt-6">
-                                                        <button type="button" onClick={() => setEditingProduct(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
-                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Perubahan</button>
+                                                        <button type="button" onClick={() => setEditingProduct(null)} className="flex-1 py-3 bg-gray-800 text-text-secondary rounded-xl font-bold hover:bg-gray-700">Batal</button>
+                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover">Simpan Perubahan</button>
                                                     </div>
                                                 </form>
                                             </div>
@@ -1985,22 +1985,22 @@ export default function AdminDashboard() {
                                       {/* Adjust Product Stock Modal */}
                                     {adjustingProductStock && (
                                         <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md overflow-y-auto">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-sm shadow-2xl my-auto flex-shrink-0">
-                                                <h3 className="font-bold text-xl text-white mb-2">Update Stok</h3>
-                                                <p className="text-gray-400 mb-6 font-bold">{adjustingProductStock.name}</p>
+                                            <div className="bg-surface border border-border p-4 md:p-8 rounded-3xl w-full max-w-sm shadow-2xl my-auto flex-shrink-0">
+                                                <h3 className="font-bold text-xl text-text-primary mb-2">Update Stok</h3>
+                                                <p className="text-text-muted mb-6 font-bold">{adjustingProductStock.name}</p>
                                                 <form onSubmit={handleUpdateProductStock} className="space-y-4">
                                                     <div>
-                                                        <label className="text-sm font-bold text-gray-400 block mb-2">Stok Saat Ini: {adjustingProductStock.stock}</label>
+                                                        <label className="text-sm font-bold text-text-muted block mb-2">Stok Saat Ini: {adjustingProductStock.stock}</label>
                                                         <div className="flex items-center gap-3">
-                                                            <button type="button" onClick={() => setProductStockDelta(productStockDelta - 1)} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">-</button>
-                                                            <input type="number" className="flex-1 text-center bg-gray-900 border border-gray-800 rounded-xl py-3 text-white font-bold text-lg outline-none focus:border-blue-500" value={productStockDelta || ""} onChange={e => setProductStockDelta(Number(e.target.value) || 0)} />
-                                                            <button type="button" onClick={() => setProductStockDelta(productStockDelta + 1)} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-2xl font-black border border-gray-700">+</button>
+                                                            <button type="button" onClick={() => setProductStockDelta(productStockDelta - 1)} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-text-primary rounded-xl text-2xl font-bold border border-border">-</button>
+                                                            <input type="number" className="flex-1 text-center bg-surface-hover border border-border rounded-xl py-3 text-text-primary font-bold text-lg outline-none focus:border-accent" value={productStockDelta || ""} onChange={e => setProductStockDelta(Number(e.target.value) || 0)} />
+                                                            <button type="button" onClick={() => setProductStockDelta(productStockDelta + 1)} className="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-text-primary rounded-xl text-2xl font-bold border border-border">+</button>
                                                         </div>
-                                                        <p className="text-xs text-gray-500 mt-2">Gunakan tombol - untuk mengurangi stok.</p>
+                                                        <p className="text-xs text-text-muted mt-2">Gunakan tombol - untuk mengurangi stok.</p>
                                                     </div>
                                                     <div className="flex gap-4 mt-6">
-                                                        <button type="button" onClick={() => { setAdjustingProductStock(null); setProductStockDelta(0); }} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
-                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Update</button>
+                                                        <button type="button" onClick={() => { setAdjustingProductStock(null); setProductStockDelta(0); }} className="flex-1 py-3 bg-gray-800 text-text-secondary rounded-xl font-bold hover:bg-gray-700">Batal</button>
+                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover">Update</button>
                                                     </div>
                                                 </form>
                                             </div>
@@ -2010,29 +2010,29 @@ export default function AdminDashboard() {
                                     {/* Product History Modal */}
                                     {viewingProductHistory && (
                                         <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md overflow-y-auto">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl my-auto flex-shrink-0">
-                                                <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
+                                            <div className="bg-surface border border-border p-4 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl my-auto flex-shrink-0">
+                                                <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
                                                     <div>
-                                                        <h3 className="font-bold text-xl text-white">Riwayat Terjual</h3>
-                                                        <p className="text-gray-400 font-bold">{viewingProductHistory.name}</p>
+                                                        <h3 className="font-bold text-xl text-text-primary">Riwayat Terjual</h3>
+                                                        <p className="text-text-muted font-bold">{viewingProductHistory.name}</p>
                                                     </div>
-                                                    <button onClick={() => setViewingProductHistory(null)} className="w-10 h-10 rounded-full bg-gray-800 text-gray-400 flex items-center justify-center hover:bg-gray-700 hover:text-white transition-colors">X</button>
+                                                    <button onClick={() => setViewingProductHistory(null)} className="w-10 h-10 rounded-full bg-gray-800 text-text-muted flex items-center justify-center hover:bg-gray-700 hover:text-text-primary transition-colors">X</button>
                                                 </div>
                                                 
                                                 <div className="max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
                                                     {productHistoryData.length === 0 ? (
-                                                        <div className="text-center py-8 text-gray-500">Belum ada data penjualan untuk produk ini.</div>
+                                                        <div className="text-center py-8 text-text-muted">Belum ada data penjualan untuk produk ini.</div>
                                                     ) : (
                                                         <div className="space-y-3">
                                                             {productHistoryData.map((hist: any, idx: number) => (
-                                                                <div key={idx} className="bg-gray-900 border border-gray-800 p-4 rounded-2xl flex justify-between items-center">
+                                                                <div key={idx} className="bg-surface-hover border border-border p-4 rounded-2xl flex justify-between items-center">
                                                                     <div>
-                                                                        <div className="font-bold text-white mb-1">Terjual: {hist.quantity} porsi</div>
-                                                                        <div className="text-xs text-gray-500">{new Date(hist.created_at).toLocaleString('id-ID')}</div>
+                                                                        <div className="font-bold text-text-primary mb-1">Terjual: {hist.quantity} porsi</div>
+                                                                        <div className="text-xs text-text-muted">{new Date(hist.created_at).toLocaleString('id-ID')}</div>
                                                                     </div>
                                                                     <div className="text-right">
                                                                         <div className="text-sm font-bold text-green-400 mb-1">Rp {hist.price_at_time.toLocaleString('id-ID')}</div>
-                                                                        <div className="text-[10px] bg-gray-800 px-2 py-1 rounded text-gray-400 inline-block">Order: {hist.transaction?.order_reference || 'N/A'}</div>
+                                                                        <div className="text-[10px] bg-gray-800 px-2 py-1 rounded text-text-muted inline-block">Order: {hist.transaction?.order_reference || 'N/A'}</div>
                                                                     </div>
                                                                 </div>
                                                             ))}
@@ -2051,47 +2051,47 @@ export default function AdminDashboard() {
                                     {/* INPUTS ROW */}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                         {/* Bahan Baku */}
-                                        <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
-                                            <div className="flex items-center gap-2 mb-6 border-b border-gray-800 pb-3">
-                                                <button onClick={() => setMaterialMode('add')} className={`pb-2 px-2 text-lg font-bold border-b-2 transition-colors ${materialMode === 'add' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-400 hover:text-white'}`}>Tambah Bahan</button>
+                                        <div className="p-2 md:p-4 md:p-8 bg-surface rounded-2xl border border-border shadow-xl">
+                                            <div className="flex items-center gap-2 mb-6 border-b border-border pb-3">
+                                                <button onClick={() => setMaterialMode('add')} className={`pb-2 px-2 text-lg font-bold border-b-2 transition-colors ${materialMode === 'add' ? 'border-accent text-accent' : 'border-transparent text-text-muted hover:text-text-primary'}`}>Tambah Bahan</button>
                                                 
                                             </div>
                                             
                                             <form onSubmit={handleCreateMaterial} className="space-y-4">
-                                                    <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                    <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary" />
                                                     <div className="grid grid-cols-3 gap-4">
-                                                        <input type="text" placeholder="Unit (kg/lt)" required value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                        <input type="number" placeholder="Stok" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                        <input type="number" placeholder="Harga/Unit" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                        <input type="text" placeholder="Unit (kg/lt)" required value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary" />
+                                                        <input type="number" placeholder="Stok" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary" />
+                                                        <input type="number" placeholder="Harga/Unit" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary" />
                                                     </div>
-                                                    <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Bahan</button>
+                                                    <button type="submit" disabled={loading} className="w-full py-3 bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover">Simpan Bahan</button>
                                                 </form>
                                         </div>
 
                                         {/* Pengeluaran */}
-                                        <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
-                                            <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Catat Pengeluaran</h3>
+                                        <div className="p-2 md:p-4 md:p-8 bg-surface rounded-2xl border border-border shadow-xl">
+                                            <h3 className="font-bold text-lg mb-6 text-text-primary border-b border-border pb-3">Catat Pengeluaran</h3>
                                             <form onSubmit={handleCreateExpense} className="space-y-4">
                                                 <div className="flex gap-4 mb-2">
-                                                    <label className="flex items-center gap-2 text-white cursor-pointer text-sm">
+                                                    <label className="flex items-center gap-2 text-text-primary cursor-pointer text-sm">
                                                         <input type="radio" name="admin_payment_method" value="CASH" checked={newExpense.payment_method === 'CASH'} onChange={e => setNewExpense({...newExpense, payment_method: e.target.value})} className="w-4 h-4" />
                                                         <span>Uang Kasir (Cash)</span>
                                                     </label>
-                                                    <label className="flex items-center gap-2 text-white cursor-pointer text-sm">
+                                                    <label className="flex items-center gap-2 text-text-primary cursor-pointer text-sm">
                                                         <input type="radio" name="admin_payment_method" value="QRIS" checked={newExpense.payment_method === 'QRIS'} onChange={e => setNewExpense({...newExpense, payment_method: e.target.value})} className="w-4 h-4" />
                                                         <span>Saldo Rek (QRIS)</span>
                                                     </label>
                                                 </div>
-                                                <input type="text" placeholder="Deskripsi Pengeluaran" required value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
-                                                <input type="number" placeholder="Nominal (Rp)" required value={newExpense.amount || ''} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                <input type="text" placeholder="Deskripsi Pengeluaran" required value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary" />
+                                                <input type="number" placeholder="Nominal (Rp)" required value={newExpense.amount || ''} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary" />
                                                 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="text-xs text-gray-500 mb-1 block">Bahan Baku (Opsional)</label>
+                                                        <label className="text-xs text-text-muted mb-1 block">Bahan Baku (Opsional)</label>
                                                         <select 
                                                             value={newExpense.material_id || ''} 
                                                             onChange={e => setNewExpense({...newExpense, material_id: e.target.value})}
-                                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white"
+                                                            className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary"
                                                         >
                                                             <option value="">Pilih Bahan Baku...</option>
                                                             {rawMaterials.map(m => (
@@ -2101,13 +2101,13 @@ export default function AdminDashboard() {
                                                     </div>
                                                     {newExpense.material_id && (
                                                         <div>
-                                                            <label className="text-xs text-gray-500 mb-1 block">Kuantitas Tambahan</label>
+                                                            <label className="text-xs text-text-muted mb-1 block">Kuantitas Tambahan</label>
                                                             <input 
                                                                 type="number" 
                                                                 placeholder="Jml" 
                                                                 value={newExpense.quantity || ''} 
                                                                 onChange={e => setNewExpense({...newExpense, quantity: Number(e.target.value)})}
-                                                                className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white"
+                                                                className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary"
                                                             />
                                                         </div>
                                                     )}
@@ -2120,25 +2120,25 @@ export default function AdminDashboard() {
 
                                     {/* TABLES ROW */}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                            <h3 className="p-2 md:p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Daftar Bahan Baku</h3>
+                                        <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
+                                            <h3 className="p-2 md:p-4 bg-gray-800/30 font-bold text-text-secondary border-b border-border">Daftar Bahan Baku</h3>
                                             {rawMaterials.length === 0 ? (
-                                                <p className="p-2 md:p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada bahan baku.</p>
+                                                <p className="p-2 md:p-4 md:p-6 text-text-muted text-center text-sm">Belum ada bahan baku.</p>
                                             ) : (
                                                 <table className="w-full text-left text-xs md:text-sm">
                                                     <tbody>
                                                         {rawMaterials.map((mat: any) => (
-                                                            <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
+                                                            <tr key={mat.id} className="border-b border-border hover:bg-gray-800/20 group">
                                                                 <td className="p-2 md:p-4">
-                                                                    <div className="font-bold text-white">{mat.name}</div>
-                                                                    {mat.updated_by_name && <div className="text-[10px] text-blue-400 mt-1">Oleh: {mat.updated_by_name}</div>}
+                                                                    <div className="font-bold text-text-primary">{mat.name}</div>
+                                                                    {mat.updated_by_name && <div className="text-[10px] text-accent mt-1">Oleh: {mat.updated_by_name}</div>}
                                                                 </td>
                                                                 <td className="p-2 md:p-4 text-center"><span className="px-3 py-1 bg-gray-800 rounded-lg text-sm">{mat.current_stock} {mat.unit}</span></td>
-                                                                <td className="p-2 md:p-4 text-right text-gray-400 text-sm">Rp {mat.last_price_per_unit.toLocaleString('id-ID')}/{mat.unit}</td>
+                                                                <td className="p-2 md:p-4 text-right text-text-muted text-sm">Rp {mat.last_price_per_unit.toLocaleString('id-ID')}/{mat.unit}</td>
                                                                 <td className="p-3 text-right">
                                                                     <div className="flex gap-1 justify-end">
-                                                                        <button onClick={() => { setSelectedMaterial({...mat}); setMaterialMode('update'); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
-                                                                        <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                        <button onClick={() => { setSelectedMaterial({...mat}); setMaterialMode('update'); }} className="px-2 py-1 text-xs bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent hover:text-text-primary font-bold transition-colors">+/- Stok</button>
+                                                                        <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-text-primary font-bold transition-colors">Hapus</button>
                                                                     </div>
                                                                 </td>
                                                             </tr>
@@ -2148,20 +2148,20 @@ export default function AdminDashboard() {
                                             )}
                                         </div>
                                         {/* Pengeluaran */}
-                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                                            <div className="p-2 md:p-4 bg-gray-800/30 border-b border-gray-800 flex flex-col md:flex-row gap-3 justify-between md:items-center">
-                                                <h3 className="font-bold text-gray-300">Riwayat Pengeluaran</h3>
+                                        <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
+                                            <div className="p-2 md:p-4 bg-gray-800/30 border-b border-border flex flex-col md:flex-row gap-3 justify-between md:items-center">
+                                                <h3 className="font-bold text-text-secondary">Riwayat Pengeluaran</h3>
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <div className="flex flex-wrap bg-gray-900 rounded-lg p-1 border border-gray-700 w-full md:w-fit">
+                                                    <div className="flex flex-wrap bg-surface-hover rounded-lg p-1 border border-border w-full md:w-fit">
                                                         {[{k:'all',l:'Semua'},{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'},{k:'yearly',l:'Tahunan'}].map(f => (
                                                             <button key={f.k} onClick={() => setExpensePeriod(f.k as any)}
-                                                                className={`flex-1 md:flex-none text-center px-2 py-1.5 md:px-3 md:py-1 rounded-md text-[10px] md:text-xs font-bold transition-all ${expensePeriod === f.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                                                                className={`flex-1 md:flex-none text-center px-2 py-1.5 md:px-3 md:py-1 rounded-md text-[10px] md:text-xs font-bold transition-all ${expensePeriod === f.k ? 'bg-accent text-text-primary' : 'text-text-muted hover:text-text-primary'}`}>
                                                                 {f.l}
                                                             </button>
                                                         ))}
                                                     </div>
                                                     <button onClick={() => setExpenseSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-                                                        className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-md text-white border border-gray-700 h-full">
+                                                        className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-md text-text-primary border border-border h-full">
                                                         Sort: {expenseSortOrder === 'desc' ? 'Terbaru' : 'Terlama'}
                                                     </button>
                                                 </div>
@@ -2169,29 +2169,29 @@ export default function AdminDashboard() {
                                             {(() => {
                                                 const filteredExpenses = getFilteredExpenses();
                                                 return filteredExpenses.length === 0 ? (
-                                                    <p className="p-2 md:p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran pada periode ini.</p>
+                                                    <p className="p-2 md:p-4 md:p-6 text-text-muted text-center text-sm">Belum ada pengeluaran pada periode ini.</p>
                                                 ) : (
                                                     <div className="overflow-x-auto max-h-[600px]">
                                                         <table className="w-full text-left text-xs md:text-sm">
                                                             <tbody>
                                                                 {filteredExpenses.map((exp: any) => (
-                                                                    <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20">
+                                                                    <tr key={exp.id} className="border-b border-border hover:bg-gray-800/20">
                                                                         <td className="p-2 md:p-4">
-                                                                            <p className="font-bold text-white">{exp.description}</p>
-                                                                            <p className="text-xs text-gray-500">{new Date(exp.expense_date || exp.created_at).toLocaleString('id-ID')}</p>
+                                                                            <p className="font-bold text-text-primary">{exp.description}</p>
+                                                                            <p className="text-xs text-text-muted">{new Date(exp.expense_date || exp.created_at).toLocaleString('id-ID')}</p>
                                                                         </td>
                                                                         <td className="p-2 md:p-4 text-center">
                                                                             {exp.staff_name ? (
-                                                                                <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{exp.staff_name}</span>
+                                                                                <span className="px-2 py-1 bg-accent/10 text-accent rounded-md text-[10px] font-bold border border-accent/20">{exp.staff_name}</span>
                                                                             ) : (
-                                                                                <span className="px-2 py-1 bg-gray-800 text-gray-400 rounded-md text-[10px] border border-gray-700">Owner</span>
+                                                                                <span className="px-2 py-1 bg-gray-800 text-text-muted rounded-md text-[10px] border border-border">Owner</span>
                                                                             )}
                                                                         </td>
                                                                         <td className="p-2 md:p-4 text-right font-bold text-red-400 whitespace-nowrap">- Rp {Number(exp.amount).toLocaleString('id-ID')}</td>
                                                                         <td className="p-3 text-right">
                                                                             <div className="flex gap-1 justify-end">
-                                                                                <button onClick={() => setEditingExpense({...exp})} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">Edit</button>
-                                                                                <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                                <button onClick={() => setEditingExpense({...exp})} className="px-2 py-1 text-xs bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent hover:text-text-primary font-bold transition-colors">Edit</button>
+                                                                                <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-text-primary font-bold transition-colors">Hapus</button>
                                                                             </div>
                                                                         </td>
                                                                     </tr>
@@ -2205,15 +2205,15 @@ export default function AdminDashboard() {
                                     </div>
                                     
                                     {/* Material Stock Logs Row */}
-                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl mt-8">
-                                        <h3 className="p-2 md:p-4 bg-gray-800/30 font-bold text-gray-300 border-b border-gray-800">Riwayat Update Stok Bahan Baku</h3>
+                                    <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl mt-8">
+                                        <h3 className="p-2 md:p-4 bg-gray-800/30 font-bold text-text-secondary border-b border-border">Riwayat Update Stok Bahan Baku</h3>
                                         {materialStockLogs.length === 0 ? (
-                                            <p className="p-2 md:p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada riwayat update stok.</p>
+                                            <p className="p-2 md:p-4 md:p-6 text-text-muted text-center text-sm">Belum ada riwayat update stok.</p>
                                         ) : (
                                             <div className="overflow-x-auto">
                                                 <table className="w-full text-left text-xs md:text-sm">
                                                     <thead>
-                                                        <tr className="bg-gray-800/50 border-b border-gray-800 text-gray-400">
+                                                        <tr className="bg-gray-800/50 border-b border-border text-text-muted">
                                                             <th className="p-2 md:p-4 text-xs md:text-sm">Waktu</th>
                                                             <th className="p-2 md:p-4 text-xs md:text-sm">Bahan Baku</th>
                                                             <th className="p-2 md:p-4 text-xs md:text-sm">Perubahan</th>
@@ -2223,20 +2223,20 @@ export default function AdminDashboard() {
                                                     </thead>
                                                     <tbody>
                                                         {materialStockLogs.map((log: any) => (
-                                                            <tr key={log.id} className="border-b border-gray-800 hover:bg-gray-800/20">
-                                                                <td className="p-2 md:p-4 text-gray-400">{new Date(log.created_at).toLocaleString('id-ID')}</td>
-                                                                <td className="p-2 md:p-4 font-bold text-white">{log.material_name}</td>
+                                                            <tr key={log.id} className="border-b border-border hover:bg-gray-800/20">
+                                                                <td className="p-2 md:p-4 text-text-muted">{new Date(log.created_at).toLocaleString('id-ID')}</td>
+                                                                <td className="p-2 md:p-4 font-bold text-text-primary">{log.material_name}</td>
                                                                 <td className="p-2 md:p-4">
                                                                     <span className={`px-2 py-1 rounded-md font-bold text-xs ${log.delta > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
                                                                         {log.delta > 0 ? '+' : ''}{log.delta}
                                                                     </span>
                                                                 </td>
-                                                                <td className="p-2 md:p-4 text-gray-400">{log.note || '-'}</td>
+                                                                <td className="p-2 md:p-4 text-text-muted">{log.note || '-'}</td>
                                                                 <td className="p-2 md:p-4">
                                                                     {log.staff_name ? (
-                                                                        <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{log.staff_name}</span>
+                                                                        <span className="px-2 py-1 bg-accent/10 text-accent rounded-md text-[10px] font-bold border border-accent/20">{log.staff_name}</span>
                                                                     ) : (
-                                                                        <span className="px-2 py-1 bg-gray-800 text-gray-400 rounded-md text-[10px] border border-gray-700">Admin</span>
+                                                                        <span className="px-2 py-1 bg-gray-800 text-text-muted rounded-md text-[10px] border border-border">Admin</span>
                                                                     )}
                                                                 </td>
                                                             </tr>
@@ -2250,19 +2250,19 @@ export default function AdminDashboard() {
                                     {/* Edit Expense Modal */}
                                     {editingExpense && (
                                         <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-6 rounded-3xl w-full max-w-md shadow-2xl my-auto flex-shrink-0">
-                                                <h3 className="font-bold text-xl text-white mb-5">Edit Pengeluaran</h3>
+                                            <div className="bg-surface border border-border p-4 md:p-6 rounded-3xl w-full max-w-md shadow-2xl my-auto flex-shrink-0">
+                                                <h3 className="font-bold text-xl text-text-primary mb-5">Edit Pengeluaran</h3>
                                                 <form onSubmit={handleUpdateExpense} className="space-y-4">
-                                                    <input type="text" placeholder="Deskripsi" value={editingExpense.description} onChange={e => setEditingExpense({...editingExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
-                                                    <input type="number" placeholder="Nominal (Rp)" value={editingExpense.amount} onChange={e => setEditingExpense({...editingExpense, amount: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                    <input type="text" placeholder="Deskripsi" value={editingExpense.description} onChange={e => setEditingExpense({...editingExpense, description: e.target.value})} className="w-full p-3 bg-surface-hover border border-border rounded-xl text-text-primary outline-none focus:border-accent" required />
+                                                    <input type="number" placeholder="Nominal (Rp)" value={editingExpense.amount} onChange={e => setEditingExpense({...editingExpense, amount: e.target.value})} className="w-full p-3 bg-surface-hover border border-border rounded-xl text-text-primary outline-none focus:border-accent" required />
                                                     
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         <div>
-                                                            <label className="text-xs text-gray-500 mb-1 block">Koreksi Stok (Opsional, minus jika berlebih)</label>
+                                                            <label className="text-xs text-text-muted mb-1 block">Koreksi Stok (Opsional, minus jika berlebih)</label>
                                                             <select 
                                                                 value={newExpense.material_id || ''} 
                                                                 onChange={e => setNewExpense({...newExpense, material_id: e.target.value})}
-                                                                className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm"
+                                                                className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-sm"
                                                             >
                                                                 <option value="">Pilih Bahan Baku...</option>
                                                                 {rawMaterials.map(m => (
@@ -2272,20 +2272,20 @@ export default function AdminDashboard() {
                                                         </div>
                                                         {newExpense.material_id && (
                                                             <div>
-                                                                <label className="text-xs text-gray-500 mb-1 block">Jml Koreksi</label>
+                                                                <label className="text-xs text-text-muted mb-1 block">Jml Koreksi</label>
                                                                 <input 
                                                                     type="number" 
                                                                     placeholder="Jml" 
                                                                     value={newExpense.quantity || ''} 
                                                                     onChange={e => setNewExpense({...newExpense, quantity: Number(e.target.value)})}
-                                                                    className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm"
+                                                                    className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-sm"
                                                                 />
                                                             </div>
                                                         )}
                                                     </div>
                                                     <div className="flex gap-3 mt-4">
-                                                        <button type="button" onClick={() => setEditingExpense(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
-                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan</button>
+                                                        <button type="button" onClick={() => setEditingExpense(null)} className="flex-1 py-3 bg-gray-800 text-text-secondary rounded-xl font-bold hover:bg-gray-700">Batal</button>
+                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover">Simpan</button>
                                                     </div>
                                                 </form>
                                             </div>
@@ -2297,39 +2297,39 @@ export default function AdminDashboard() {
                             {/* STAFF TAB */}
                             {activeTab === "staff" && (
                                 <div className="space-y-6">
-                                    <form onSubmit={handleCreateStaff} className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
-                                        <h3 className="font-bold text-lg mb-6 text-white border-b border-gray-800 pb-3">Tambah Akun Baru</h3>
+                                    <form onSubmit={handleCreateStaff} className="p-2 md:p-4 md:p-8 bg-surface rounded-2xl border border-border shadow-xl">
+                                        <h3 className="font-bold text-lg mb-6 text-text-primary border-b border-border pb-3">Tambah Akun Baru</h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                            <input type="text" placeholder="Nama Lengkap" required value={newStaff.full_name} onChange={e => setNewStaff({...newStaff, full_name: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
-                                            <input type="email" placeholder="Email" required value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
-                                            <input type="password" placeholder="Password" required minLength={6} value={newStaff.password} onChange={e => setNewStaff({...newStaff, password: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white" />
-                                            <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})} className="p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none text-white">
+                                            <input type="text" placeholder="Nama Lengkap" required value={newStaff.full_name} onChange={e => setNewStaff({...newStaff, full_name: e.target.value})} className="p-3 bg-surface-hover border border-border rounded-xl focus:border-accent focus:outline-none text-text-primary" />
+                                            <input type="email" placeholder="Email" required value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="p-3 bg-surface-hover border border-border rounded-xl focus:border-accent focus:outline-none text-text-primary" />
+                                            <input type="password" placeholder="Password" required minLength={6} value={newStaff.password} onChange={e => setNewStaff({...newStaff, password: e.target.value})} className="p-3 bg-surface-hover border border-border rounded-xl focus:border-accent focus:outline-none text-text-primary" />
+                                            <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})} className="p-3 bg-surface-hover border border-border rounded-xl focus:border-accent focus:outline-none text-text-primary">
                                                 <option value="staff">Kasir (Staff)</option>
                                                 <option value="owner">Admin (Owner)</option>
                                             </select>
                                         </div>
-                                        <button type="submit" disabled={loading} className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors">Buat Akun</button>
+                                        <button type="submit" disabled={loading} className="w-full md:w-auto px-8 py-3 bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover transition-colors">Buat Akun</button>
                                     </form>
 
-                                    <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                    <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
                                         <table className="w-full text-left border-collapse text-xs md:text-sm">
                                             <thead>
-                                                <tr className="bg-gray-800/50 border-b border-gray-800">
-                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400">Nama</th>
-                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400">Role</th>
-                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400">Status</th>
-                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-gray-400 text-right">Aksi</th>
+                                                <tr className="bg-gray-800/50 border-b border-border">
+                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-text-muted">Nama</th>
+                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-text-muted">Role</th>
+                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-text-muted">Status</th>
+                                                    <th className="p-2 md:p-4 text-xs md:text-sm text-text-muted text-right">Aksi</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {staffList.map((st: any) => (
-                                                    <tr key={st.id} className="border-b border-gray-800 hover:bg-gray-800/30">
-                                                        <td className="p-2 md:p-4 font-bold text-white">{st.full_name}<p className="text-xs text-gray-500 font-normal">{st.email}</p></td>
-                                                        <td className="p-2 md:p-4"><span className={`px-3 py-1 text-xs font-bold rounded-lg ${st.role === 'owner' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-gray-800 text-gray-300'}`}>{st.role.toUpperCase()}</span></td>
+                                                    <tr key={st.id} className="border-b border-border hover:bg-gray-800/30">
+                                                        <td className="p-2 md:p-4 font-bold text-text-primary">{st.full_name}<p className="text-xs text-text-muted font-normal">{st.email}</p></td>
+                                                        <td className="p-2 md:p-4"><span className={`px-3 py-1 text-xs font-bold rounded-lg ${st.role === 'owner' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-gray-800 text-text-secondary'}`}>{st.role.toUpperCase()}</span></td>
                                                         <td className="p-2 md:p-4"><span className="text-green-400 font-bold text-sm">Aktif</span></td>
                                                         <td className="p-2 md:p-4 text-right flex justify-end gap-2">
-                                                            <button onClick={() => setEditingStaff(st)} className="px-3 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors">Edit</button>
-                                                            <button onClick={() => handleDeleteStaff(st.id)} className="px-3 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Hapus</button>
+                                                            <button onClick={() => setEditingStaff(st)} className="px-3 py-1 text-xs font-bold bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent hover:text-text-primary transition-colors">Edit</button>
+                                                            <button onClick={() => handleDeleteStaff(st.id)} className="px-3 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-text-primary transition-colors">Hapus</button>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -2340,27 +2340,27 @@ export default function AdminDashboard() {
                                     {/* Edit Staff Modal */}
                                     {editingStaff && (
                                         <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-md">
-                                            <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl my-auto flex-shrink-0">
-                                                <h3 className="font-bold text-xl text-white mb-6">Edit Staf: {editingStaff.full_name}</h3>
+                                            <div className="bg-surface border border-border p-4 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl my-auto flex-shrink-0">
+                                                <h3 className="font-bold text-xl text-text-primary mb-6">Edit Staf: {editingStaff.full_name}</h3>
                                                 <form onSubmit={handleUpdateStaff} className="space-y-4">
                                                     <div>
-                                                        <label className="text-sm font-bold text-gray-400 block mb-2">Nama Lengkap</label>
-                                                        <input type="text" value={editingStaff.full_name} onChange={e => setEditingStaff({...editingStaff, full_name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" required />
+                                                        <label className="text-sm font-bold text-text-muted block mb-2">Nama Lengkap</label>
+                                                        <input type="text" value={editingStaff.full_name} onChange={e => setEditingStaff({...editingStaff, full_name: e.target.value})} className="w-full p-3 bg-surface-hover border border-border rounded-xl text-text-primary outline-none focus:border-accent" required />
                                                     </div>
                                                     <div>
-                                                        <label className="text-sm font-bold text-gray-400 block mb-2">Role</label>
-                                                        <select value={editingStaff.role} onChange={e => setEditingStaff({...editingStaff, role: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500">
+                                                        <label className="text-sm font-bold text-text-muted block mb-2">Role</label>
+                                                        <select value={editingStaff.role} onChange={e => setEditingStaff({...editingStaff, role: e.target.value})} className="w-full p-3 bg-surface-hover border border-border rounded-xl text-text-primary outline-none focus:border-accent">
                                                             <option value="staff">Kasir (Staff)</option>
                                                             <option value="owner">Admin (Owner)</option>
                                                         </select>
                                                     </div>
                                                     <div>
-                                                        <label className="text-sm font-bold text-gray-400 block mb-2">Password Baru (Opsional)</label>
-                                                        <input type="password" value={editingStaff.password || ''} onChange={e => setEditingStaff({...editingStaff, password: e.target.value})} placeholder="Biarkan kosong jika tidak diubah" className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl text-white outline-none focus:border-blue-500" minLength={6} />
+                                                        <label className="text-sm font-bold text-text-muted block mb-2">Password Baru (Opsional)</label>
+                                                        <input type="password" value={editingStaff.password || ''} onChange={e => setEditingStaff({...editingStaff, password: e.target.value})} placeholder="Biarkan kosong jika tidak diubah" className="w-full p-3 bg-surface-hover border border-border rounded-xl text-text-primary outline-none focus:border-accent" minLength={6} />
                                                     </div>
                                                     <div className="flex gap-4 mt-6">
-                                                        <button type="button" onClick={() => setEditingStaff(null)} className="flex-1 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700">Batal</button>
-                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Perubahan</button>
+                                                        <button type="button" onClick={() => setEditingStaff(null)} className="flex-1 py-3 bg-gray-800 text-text-secondary rounded-xl font-bold hover:bg-gray-700">Batal</button>
+                                                        <button type="submit" disabled={loading} className="flex-1 py-3 bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover">Simpan Perubahan</button>
                                                     </div>
                                                 </form>
                                             </div>
@@ -2372,30 +2372,30 @@ export default function AdminDashboard() {
                             {/* AUDIT TAB */}
                             {activeTab === "audit" && (
                                 <div className="space-y-4">
-                                    <div className="flex justify-between items-center bg-[#131B2C] p-4 rounded-2xl border border-gray-800/60">
+                                    <div className="flex justify-between items-center bg-surface p-4 rounded-2xl border border-border">
                                         <div>
-                                            <h3 className="font-bold text-white">Security Log</h3>
-                                            <p className="text-xs text-gray-500 mt-1">Rekam jejak aktivitas sistem</p>
+                                            <h3 className="font-bold text-text-primary">Security Log</h3>
+                                            <p className="text-xs text-text-muted mt-1">Rekam jejak aktivitas sistem</p>
                                         </div>
-                                        <button onClick={fetchAuditLogs} className="px-3 py-2 bg-gray-800 text-gray-300 rounded-xl text-sm font-bold hover:bg-gray-700 flex items-center gap-2">
+                                        <button onClick={fetchAuditLogs} className="px-3 py-2 bg-gray-800 text-text-secondary rounded-xl text-sm font-bold hover:bg-gray-700 flex items-center gap-2">
                                             <RefreshCw className="w-4 h-4" /> Refresh
                                         </button>
                                     </div>
                                     {auditLogs.length === 0 ? (
-                                        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl p-10 text-center">
+                                        <div className="bg-surface border border-border rounded-2xl p-10 text-center">
                                             <ShieldCheck className="w-12 h-12 text-gray-700 mx-auto mb-3" />
-                                            <p className="text-gray-400 font-semibold">Belum ada log aktivitas.</p>
+                                            <p className="text-text-muted font-semibold">Belum ada log aktivitas.</p>
                                             <p className="text-gray-600 text-sm mt-1">Log akan otomatis tercatat saat ada transaksi, refund, atau login.</p>
-                                            <p className="text-yellow-500/70 text-xs mt-3">Pastikan tabel <code className="bg-gray-900 px-1 rounded">audit_logs</code> sudah dibuat di Supabase dan RLS dinonaktifkan.</p>
+                                            <p className="text-yellow-500/70 text-xs mt-3">Pastikan tabel <code className="bg-surface-hover px-1 rounded">audit_logs</code> sudah dibuat di Supabase dan RLS dinonaktifkan.</p>
                                         </div>
                                     ) : (
                                         auditLogs.map((log: any) => (
-                                            <div key={log.id} className="p-2 md:p-4 md:p-5 rounded-2xl bg-[#131B2C] border border-gray-800 flex justify-between items-center shadow-lg">
+                                            <div key={log.id} className="p-2 md:p-4 md:p-5 rounded-2xl bg-surface border border-border flex justify-between items-center shadow-soft">
                                                 <div>
-                                                    <p className="font-bold text-white capitalize text-lg">{String(log.action || '').replace(/_/g, ' ')}</p>
-                                                    <p className="text-sm text-gray-500 mt-1">Entity: <span className="text-gray-300">{log.entity_type}</span> | Staff: <span className="text-gray-300">{log.staff_id || 'System'}</span></p>
+                                                    <p className="font-bold text-text-primary capitalize text-lg">{String(log.action || '').replace(/_/g, ' ')}</p>
+                                                    <p className="text-sm text-text-muted mt-1">Entity: <span className="text-text-secondary">{log.entity_type}</span> | Staff: <span className="text-text-secondary">{log.staff_id || 'System'}</span></p>
                                                 </div>
-                                                <div className="text-right text-sm text-gray-500 bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-800">
+                                                <div className="text-right text-sm text-text-muted bg-surface-hover px-3 py-1.5 rounded-lg border border-border">
                                                     {new Date(log.created_at).toLocaleString('id-ID')}
                                                 </div>
                                             </div>
@@ -2408,37 +2408,37 @@ export default function AdminDashboard() {
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:p-6">
                                     <div className="space-y-6">
                                         {/* Brand Settings */}
-                                        <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
-                                            <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4">Pengaturan Brand Toko</h3>
+                                        <div className="p-2 md:p-4 md:p-8 bg-surface rounded-2xl border border-border shadow-xl">
+                                            <h3 className="font-bold text-xl mb-6 text-text-primary border-b border-border pb-4">Pengaturan Brand Toko</h3>
                                             
                                             <div className="space-y-6">
                                                 <div>
-                                                    <label className="block text-sm font-bold text-gray-300 mb-2">Nama Toko (Cafe Name)</label>
+                                                    <label className="block text-sm font-bold text-text-secondary mb-2">Nama Toko (Cafe Name)</label>
                                                     <input 
                                                         type="text" 
                                                         value={storeSettings.cafe_name}
                                                         onChange={e => setStoreSettings({...storeSettings, cafe_name: e.target.value})}
-                                                        className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none font-bold"
+                                                        className="w-full bg-background border border-border rounded-xl p-4 text-text-primary focus:border-accent outline-none font-bold"
                                                         placeholder="Contoh: NexPos Cafe"
                                                     />
                                                 </div>
 
                                                 <div>
-                                                    <label className="block text-sm font-bold text-gray-300 mb-2">Logo Struk & Kiosk (Max 1MB)</label>
+                                                    <label className="block text-sm font-bold text-text-secondary mb-2">Logo Struk & Kiosk (Max 1MB)</label>
                                                     <div className="flex items-center gap-4 md:p-6">
                                                         {storeSettings.logo_base64 ? (
-                                                            <img src={storeSettings.logo_base64} alt="Logo" className="w-24 h-24 object-contain bg-white rounded-xl p-2 border border-gray-800" />
+                                                            <img src={storeSettings.logo_base64} alt="Logo" className="w-24 h-24 object-contain bg-white rounded-xl p-2 border border-border" />
                                                         ) : (
-                                                            <div className="w-24 h-24 bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center text-gray-500 text-xs text-center p-2">No Logo</div>
+                                                            <div className="w-24 h-24 bg-surface-hover border border-border rounded-xl flex items-center justify-center text-text-muted text-xs text-center p-2">No Logo</div>
                                                         )}
                                                         <div className="flex-1">
-                                                            <label className="cursor-pointer bg-blue-600/10 text-blue-500 border border-blue-500/20 px-4 py-2 rounded-lg font-bold hover:bg-blue-600 hover:text-white transition-colors inline-flex items-center gap-2 mb-3">
+                                                            <label className="cursor-pointer bg-accent/10 text-accent border border-accent/20 px-4 py-2 rounded-lg font-bold hover:bg-accent hover:text-text-primary transition-colors inline-flex items-center gap-2 mb-3">
                                                                 <Upload className="w-4 h-4" /> Upload Logo
                                                                 <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={handleLogoUpload} />
                                                             </label>
                                                             {storeSettings.logo_base64 && (
                                                                 <div>
-                                                                    <label className="text-xs text-gray-500 block mb-1 font-semibold">Ukuran Logo di Struk: {storeSettings.logo_size}px</label>
+                                                                    <label className="text-xs text-text-muted block mb-1 font-semibold">Ukuran Logo di Struk: {storeSettings.logo_size}px</label>
                                                                     <input type="range" min="30" max="150" value={storeSettings.logo_size} onChange={e => setStoreSettings({...storeSettings, logo_size: Number(e.target.value)})} className="w-full accent-blue-500" />
                                                                 </div>
                                                             )}
@@ -2449,52 +2449,52 @@ export default function AdminDashboard() {
                                         </div>
 
                                         {/* Receipt Settings */}
-                                        <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl">
-                                            <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4">Template Struk & Biaya</h3>
+                                        <div className="p-2 md:p-4 md:p-8 bg-surface rounded-2xl border border-border shadow-xl">
+                                            <h3 className="font-bold text-xl mb-6 text-text-primary border-b border-border pb-4">Template Struk & Biaya</h3>
                                             
                                             <div className="space-y-6">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="block text-sm font-bold text-gray-300 mb-2">Nama WiFi (Tampil di struk)</label>
+                                                        <label className="block text-sm font-bold text-text-secondary mb-2">Nama WiFi (Tampil di struk)</label>
                                                         <input 
                                                             type="text" 
                                                             value={storeSettings.wifi_name}
                                                             onChange={e => setStoreSettings({...storeSettings, wifi_name: e.target.value})}
-                                                            className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none"
+                                                            className="w-full bg-background border border-border rounded-xl p-4 text-text-primary focus:border-accent outline-none"
                                                             placeholder="Contoh: NexPos_Guest"
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-sm font-bold text-gray-300 mb-2">Password WiFi</label>
+                                                        <label className="block text-sm font-bold text-text-secondary mb-2">Password WiFi</label>
                                                         <input 
                                                             type="text" 
                                                             value={storeSettings.wifi_password}
                                                             onChange={e => setStoreSettings({...storeSettings, wifi_password: e.target.value})}
-                                                            className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none"
+                                                            className="w-full bg-background border border-border rounded-xl p-4 text-text-primary focus:border-accent outline-none"
                                                             placeholder="Contoh: KopiEnak123"
                                                         />
                                                     </div>
                                                 </div>
 
-                                                <div className="bg-[#0B0F19] border border-gray-800 rounded-xl p-4">
+                                                <div className="bg-background border border-border rounded-xl p-4">
                                                     <div className="flex items-center justify-between mb-4">
                                                         <div>
-                                                            <h4 className="font-bold text-white">Pajak (Tax / PB1)</h4>
-                                                            <p className="text-xs text-gray-500 mt-1">Aktifkan untuk menambahkan pajak pada total pesanan.</p>
+                                                            <h4 className="font-bold text-text-primary">Pajak (Tax / PB1)</h4>
+                                                            <p className="text-xs text-text-muted mt-1">Aktifkan untuk menambahkan pajak pada total pesanan.</p>
                                                         </div>
                                                         <label className="relative inline-flex items-center cursor-pointer">
                                                             <input type="checkbox" className="sr-only peer" checked={storeSettings.tax_enabled} onChange={e => setStoreSettings({...storeSettings, tax_enabled: e.target.checked})} />
-                                                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                                                         </label>
                                                     </div>
                                                     {storeSettings.tax_enabled && (
                                                         <div>
-                                                            <label className="block text-sm font-bold text-gray-300 mb-2">Persentase Pajak (%)</label>
+                                                            <label className="block text-sm font-bold text-text-secondary mb-2">Persentase Pajak (%)</label>
                                                             <input 
                                                                 type="number" 
                                                                 value={storeSettings.tax_rate}
                                                                 onChange={e => setStoreSettings({...storeSettings, tax_rate: Number(e.target.value)})}
-                                                                className="w-full bg-[#131B2C] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none"
+                                                                className="w-full bg-surface border border-border rounded-xl p-4 text-text-primary focus:border-accent outline-none"
                                                                 placeholder="Contoh: 11"
                                                             />
                                                         </div>
@@ -2502,31 +2502,31 @@ export default function AdminDashboard() {
                                                 </div>
 
                                                 <div>
-                                                    <label className="block text-sm font-bold text-gray-300 mb-2">Pesan Footer Struk (Spesial Message)</label>
+                                                    <label className="block text-sm font-bold text-text-secondary mb-2">Pesan Footer Struk (Spesial Message)</label>
                                                     <textarea 
                                                         value={storeSettings.receipt_footer}
                                                         onChange={e => setStoreSettings({...storeSettings, receipt_footer: e.target.value})}
-                                                        className="w-full bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-white focus:border-blue-500 outline-none h-24 resize-none"
+                                                        className="w-full bg-background border border-border rounded-xl p-4 text-text-primary focus:border-accent outline-none h-24 resize-none"
                                                         placeholder="Terima kasih atas kunjungan Anda..."
                                                     ></textarea>
                                                 </div>
 
                                                 <div>
-                                                    <label className="block text-sm font-bold text-gray-300 mb-2">QRIS Statis Toko (Opsional)</label>
+                                                    <label className="block text-sm font-bold text-text-secondary mb-2">QRIS Statis Toko (Opsional)</label>
                                                     <div className="flex items-center gap-4 md:p-6">
                                                         {storeSettings.qris_image_base64 ? (
-                                                            <img src={storeSettings.qris_image_base64} alt="QRIS" className="w-24 h-24 object-contain bg-white rounded-xl p-2 border border-gray-800" />
+                                                            <img src={storeSettings.qris_image_base64} alt="QRIS" className="w-24 h-24 object-contain bg-white rounded-xl p-2 border border-border" />
                                                         ) : (
-                                                            <div className="w-24 h-24 bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center text-gray-500 text-xs text-center p-2">Belum ada QRIS</div>
+                                                            <div className="w-24 h-24 bg-surface-hover border border-border rounded-xl flex items-center justify-center text-text-muted text-xs text-center p-2">Belum ada QRIS</div>
                                                         )}
                                                         <div className="flex-1">
-                                                            <label className="cursor-pointer bg-blue-600/10 text-blue-500 border border-blue-500/20 px-4 py-2 rounded-lg font-bold hover:bg-blue-600 hover:text-white transition-colors inline-flex items-center gap-2 mb-3">
+                                                            <label className="cursor-pointer bg-accent/10 text-accent border border-accent/20 px-4 py-2 rounded-lg font-bold hover:bg-accent hover:text-text-primary transition-colors inline-flex items-center gap-2 mb-3">
                                                                 <Upload className="w-4 h-4" /> Upload QRIS
                                                                 <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={handleQrisUpload} />
                                                             </label>
                                                             {storeSettings.qris_image_base64 && (
                                                                 <div>
-                                                                    <label className="text-xs text-gray-500 block mb-1 font-semibold">Ukuran QRIS di Struk: {storeSettings.qris_size}px</label>
+                                                                    <label className="text-xs text-text-muted block mb-1 font-semibold">Ukuran QRIS di Struk: {storeSettings.qris_size}px</label>
                                                                     <input type="range" min="60" max="200" value={storeSettings.qris_size} onChange={e => setStoreSettings({...storeSettings, qris_size: Number(e.target.value)})} className="w-full accent-blue-500" />
                                                                 </div>
                                                             )}
@@ -2534,8 +2534,8 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-6 p-4 md:p-5 bg-gray-900 border border-gray-800 rounded-xl">
-                                                    <h4 className="font-bold text-gray-300 mb-4">Kelola Metode Pembayaran</h4>
+                                                <div className="mt-6 p-4 md:p-5 bg-surface-hover border border-border rounded-xl">
+                                                    <h4 className="font-bold text-text-secondary mb-4">Kelola Metode Pembayaran</h4>
                                                     <div className="flex flex-wrap gap-2 mb-4">
                                                         {paymentMethods.map((pm: any) => (
                                                             <div key={pm.id} className="flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-300 border border-green-500/20 rounded-xl text-sm font-bold">
@@ -2549,7 +2549,7 @@ export default function AdminDashboard() {
                                                             type="text" 
                                                             id="new-payment-input"
                                                             placeholder="Nama metode (Qris, Kartu Kredit, dll)..." 
-                                                            className="flex-1 p-2.5 bg-[#0B0F19] border border-gray-700 rounded-xl text-white outline-none focus:border-blue-500 text-sm"
+                                                            className="flex-1 p-2.5 bg-background border border-border rounded-xl text-text-primary outline-none focus:border-accent text-sm"
                                                             onKeyDown={(e) => {
                                                                 if (e.key === 'Enter') {
                                                                     e.preventDefault();
@@ -2560,7 +2560,7 @@ export default function AdminDashboard() {
                                                         />
                                                         <button 
                                                             type="button" 
-                                                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500"
+                                                            className="px-4 py-2 bg-accent text-text-primary rounded-xl text-sm font-bold hover:bg-accent-hover"
                                                             onClick={() => {
                                                                 const input = document.getElementById('new-payment-input') as HTMLInputElement;
                                                                 if (input) { handleAddPaymentMethod(input.value); input.value = ''; }
@@ -2569,11 +2569,11 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-6 p-4 md:p-5 bg-gray-900 border border-gray-800 rounded-xl">
-                                                    <h4 className="font-bold text-gray-300 mb-4">Kelola Kategori Menu</h4>
+                                                <div className="mt-6 p-4 md:p-5 bg-surface-hover border border-border rounded-xl">
+                                                    <h4 className="font-bold text-text-secondary mb-4">Kelola Kategori Menu</h4>
                                                     <div className="flex flex-wrap gap-2 mb-4">
                                                         {storeSettings.categories.map((cat: string) => (
-                                                            <div key={cat} className="flex items-center gap-1 px-3 py-1.5 bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded-xl text-sm font-bold">
+                                                            <div key={cat} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 text-blue-300 border border-accent/20 rounded-xl text-sm font-bold">
                                                                 <span>{cat}</span>
                                                                 <button type="button" onClick={() => handleRemoveCategory(cat)} className="ml-1 text-red-400 hover:text-red-300 text-xs font-bold leading-none">Γ£ò</button>
                                                             </div>
@@ -2584,7 +2584,7 @@ export default function AdminDashboard() {
                                                             type="text" 
                                                             id="new-category-input"
                                                             placeholder="Nama kategori baru..." 
-                                                            className="flex-1 p-2.5 bg-[#0B0F19] border border-gray-700 rounded-xl text-white outline-none focus:border-blue-500 text-sm"
+                                                            className="flex-1 p-2.5 bg-background border border-border rounded-xl text-text-primary outline-none focus:border-accent text-sm"
                                                             onKeyDown={(e) => {
                                                                 if (e.key === 'Enter') {
                                                                     e.preventDefault();
@@ -2595,33 +2595,33 @@ export default function AdminDashboard() {
                                                         />
                                                         <button 
                                                             type="button" 
-                                                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500"
+                                                            className="px-4 py-2 bg-accent text-text-primary rounded-xl text-sm font-bold hover:bg-accent-hover"
                                                             onClick={() => {
                                                                 const input = document.getElementById('new-category-input') as HTMLInputElement;
                                                                 if (input) { handleAddCategory(input.value); input.value = ''; }
                                                             }}
                                                         >+ Tambah</button>
                                                     </div>
-                                                    <p className="text-xs text-gray-500 mt-2">Tekan Enter atau klik Tambah. Kategori tersimpan saat klik "Simpan Semua Pengaturan".</p>
+                                                    <p className="text-xs text-text-muted mt-2">Tekan Enter atau klik Tambah. Kategori tersimpan saat klik "Simpan Semua Pengaturan".</p>
                                                 </div>
 
                                                 <button 
                                                     onClick={handleSaveSettings}
                                                     disabled={loading}
-                                                    className="w-full py-3 md:py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors disabled:opacity-50 mt-4"
+                                                    className="w-full py-3 md:py-4 bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover transition-colors disabled:opacity-50 mt-4"
                                                 >
                                                     {loading ? "Menyimpan..." : "Simpan Semua Pengaturan"}
                                                 </button>
                                                 <p className="text-center text-xs text-gray-700 mt-6 leading-relaxed">
-                                                    ┬⌐ {new Date().getFullYear()} <strong className="text-gray-600">NexPos</strong> ┬╖ Developed by <strong className="text-gray-500">Matias Austin</strong>
+                                                    ┬⌐ {new Date().getFullYear()} <strong className="text-gray-600">NexPos</strong> ┬╖ Developed by <strong className="text-text-muted">Matias Austin</strong>
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Preview Section */}
-                                    <div className="p-2 md:p-4 md:p-8 bg-[#131B2C] rounded-2xl border border-gray-800 shadow-xl flex flex-col items-center">
-                                        <h3 className="font-bold text-xl mb-6 text-white border-b border-gray-800 pb-4 w-full text-left text-xs md:text-sm">Live Preview Struk</h3>
+                                    <div className="p-2 md:p-4 md:p-8 bg-surface rounded-2xl border border-border shadow-xl flex flex-col items-center">
+                                        <h3 className="font-bold text-xl mb-6 text-text-primary border-b border-border pb-4 w-full text-left text-xs md:text-sm">Live Preview Struk</h3>
                                         
                                         <div className="bg-white p-4 md:p-6 text-black font-mono text-sm w-[300px] shadow-2xl rounded-sm">
                                             {storeSettings.logo_base64 && (
@@ -2692,7 +2692,7 @@ export default function AdminDashboard() {
 
                                             <button 
                                                 onClick={handleTestPrint}
-                                                className="px-6 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                                                className="px-6 py-3 bg-gray-800 text-text-primary rounded-xl font-bold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
                                             >
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                                 Test Cetak Desain (Web/PDF)
@@ -2713,37 +2713,37 @@ export default function AdminDashboard() {
                                               {/* Adjust Material Stock Modal */}
                                       {selectedMaterial && (
                                           <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-[200] p-4 overflow-y-auto backdrop-blur-md">
-                                              <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl my-auto flex-shrink-0">
-                                                  <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
+                                              <div className="bg-surface border border-border p-4 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl my-auto flex-shrink-0">
+                                                  <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
                                                       <div>
-                                                          <h3 className="font-bold text-lg md:text-xl text-white">Update Stok Bahan</h3>
-                                                          <p className="text-gray-400 font-bold mt-1">{selectedMaterial.name}</p>
+                                                          <h3 className="font-bold text-lg md:text-xl text-text-primary">Update Stok Bahan</h3>
+                                                          <p className="text-text-muted font-bold mt-1">{selectedMaterial.name}</p>
                                                       </div>
-                                                      <span className="text-sm bg-gray-800 px-3 py-1.5 rounded-lg text-gray-300 font-bold">Stok: {selectedMaterial.current_stock} {selectedMaterial.unit}</span>
+                                                      <span className="text-sm bg-gray-800 px-3 py-1.5 rounded-lg text-text-secondary font-bold">Stok: {selectedMaterial.current_stock} {selectedMaterial.unit}</span>
                                                   </div>
                                                   <form onSubmit={handleAdjustStock} className="space-y-4 md:space-y-5">
                                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                                 <div>
-                                    <label className="text-xs md:text-sm font-bold text-gray-400 block mb-2">Penambahan / Pengurangan</label>
+                                    <label className="text-xs md:text-sm font-bold text-text-muted block mb-2">Penambahan / Pengurangan</label>
                                     <div className="flex items-center gap-2 md:gap-3">
-                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) - 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xl md:text-2xl font-black border border-gray-700">-</button>
-                                        <input type="number" className="flex-1 min-w-0 w-full text-center bg-gray-900 border border-gray-800 rounded-xl py-2 md:py-3 text-white font-bold text-base md:text-lg outline-none focus:border-blue-500" value={stockAdjustment.delta || ''} onChange={e => setStockAdjustment({...stockAdjustment, delta: Number(e.target.value) || 0})} />
-                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) + 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xl md:text-2xl font-black border border-gray-700">+</button>
+                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) - 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-text-primary rounded-xl text-xl md:text-2xl font-bold border border-border">-</button>
+                                        <input type="number" className="flex-1 min-w-0 w-full text-center bg-surface-hover border border-border rounded-xl py-2 md:py-3 text-text-primary font-bold text-base md:text-lg outline-none focus:border-accent" value={stockAdjustment.delta || ''} onChange={e => setStockAdjustment({...stockAdjustment, delta: Number(e.target.value) || 0})} />
+                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (stockAdjustment.delta || 0) + 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-text-primary rounded-xl text-xl md:text-2xl font-bold border border-border">+</button>
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="text-xs md:text-sm font-bold text-gray-400 block mb-2">Harga Beli (Opsional)</label>
-                                    <input type="number" placeholder="Bila kosong = tetap" value={stockAdjustment.price || ''} onChange={e => setStockAdjustment({...stockAdjustment, price: Number(e.target.value)})} className="w-full p-2 md:p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white h-10 md:h-12" />
+                                    <label className="text-xs md:text-sm font-bold text-text-muted block mb-2">Harga Beli (Opsional)</label>
+                                    <input type="number" placeholder="Bila kosong = tetap" value={stockAdjustment.price || ''} onChange={e => setStockAdjustment({...stockAdjustment, price: Number(e.target.value)})} className="w-full p-2 md:p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary h-10 md:h-12" />
                                 </div>
                             </div>
                                                       <div>
-                                                          <label className="text-xs md:text-sm font-bold text-gray-400 block mb-1 md:mb-2">Keterangan Aktivitas</label>
-                                                          <input type="text" placeholder="Contoh: Beli bahan baru, terpakai tester..." required value={stockAdjustment.note || ''} onChange={e => setStockAdjustment({...stockAdjustment, note: e.target.value})} className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                                          <label className="text-xs md:text-sm font-bold text-text-muted block mb-1 md:mb-2">Keterangan Aktivitas</label>
+                                                          <input type="text" placeholder="Contoh: Beli bahan baru, terpakai tester..." required value={stockAdjustment.note || ''} onChange={e => setStockAdjustment({...stockAdjustment, note: e.target.value})} className="w-full p-2 md:p-3 text-sm md:text-base bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary" />
                                                       </div>
-                                                      <p className="text-xs text-gray-500">?? <b>Tip:</b> Anda bisa langsung mengetik jumlah di kotak angka. Gunakan angka minus (-) jika bahan terpakai/dibuang.</p>
-                                                      <div className="flex gap-4 mt-6 pt-4 border-t border-gray-800">
-                                                          <button type="button" onClick={() => setSelectedMaterial(null)} className="flex-1 py-2 md:py-3 text-sm md:text-base bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-colors">Batal</button>
-                                                          <button type="submit" disabled={loading} className="flex-1 py-2 md:py-3 text-sm md:text-base bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors">Simpan Stok</button>
+                                                      <p className="text-xs text-text-muted">?? <b>Tip:</b> Anda bisa langsung mengetik jumlah di kotak angka. Gunakan angka minus (-) jika bahan terpakai/dibuang.</p>
+                                                      <div className="flex gap-4 mt-6 pt-4 border-t border-border">
+                                                          <button type="button" onClick={() => setSelectedMaterial(null)} className="flex-1 py-2 md:py-3 text-sm md:text-base bg-gray-800 text-text-secondary rounded-xl font-bold hover:bg-gray-700 transition-colors">Batal</button>
+                                                          <button type="submit" disabled={loading} className="flex-1 py-2 md:py-3 text-sm md:text-base bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover transition-colors">Simpan Stok</button>
                                                       </div>
                                                   </form>
                                               </div>

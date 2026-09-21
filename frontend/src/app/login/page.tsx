@@ -84,32 +84,35 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#121214] flex items-center justify-center p-4">
-            <div className="bg-[#1a1a1c] p-8 rounded-3xl shadow-2xl border border-gray-800 w-full max-w-md">
-                <div className="text-center mb-10">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+            <div className="bg-surface p-8 sm:p-10 rounded-3xl shadow-soft border border-border w-full max-w-md relative overflow-hidden">
+                {/* Subtle glass accent inside card */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[80px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
+                
+                <div className="text-center mb-10 relative z-10">
                     {saasSettings.app_logo ? (
-                        <div className="w-16 h-16 rounded-2xl mx-auto mb-6 p-1 bg-white/5 shadow-lg shadow-blue-900/20 flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-3xl mx-auto mb-6 p-2 bg-surface border border-border shadow-soft flex items-center justify-center">
                             <img src={saasSettings.app_logo} alt="Logo" className="max-w-full max-h-full object-contain" />
                         </div>
                     ) : (
-                        <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-3xl font-black mx-auto mb-6 shadow-lg shadow-blue-900/20">
+                        <div className="w-16 h-16 rounded-3xl bg-accent flex items-center justify-center text-accent-fg text-3xl font-bold mx-auto mb-6 shadow-soft">
                             {saasSettings.app_name.charAt(0).toUpperCase()}
                         </div>
                     )}
-                    <h1 className="text-3xl font-black text-white tracking-tight">{saasSettings.app_name}</h1>
-                    <p className="text-gray-400 mt-2 text-sm">Masuk dengan akun Staff atau Admin Anda.</p>
+                    <h1 className="text-3xl font-bold text-text-primary tracking-tight">{saasSettings.app_name}</h1>
+                    <p className="text-text-muted mt-3 text-sm">Masuk dengan akun Staff atau Admin Anda.</p>
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-6">
+                <form onSubmit={handleLogin} className="space-y-6 relative z-10">
                     <div>
-                        <label className="block text-sm font-bold text-gray-300 mb-2">Username / Email</label>
+                        <label className="block text-sm font-medium text-text-secondary mb-2">Username / Email</label>
                         <div className="relative group">
-                            <User className="absolute left-4 top-4 w-5 h-5 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors" />
                             <input 
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-[#121214] pl-12 pr-4 py-4 border border-gray-800 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-white font-bold transition-all"
+                                className="w-full bg-background pl-12 pr-4 py-4 border border-border rounded-2xl focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none text-text-primary transition-all font-medium"
                                 placeholder="budi@nexpos.local"
                                 required
                             />
@@ -117,21 +120,21 @@ export default function LoginPage() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-300 mb-2">Password</label>
+                        <label className="block text-sm font-medium text-text-secondary mb-2">Password</label>
                         <div className="relative group">
-                            <Lock className="absolute left-4 top-4 w-5 h-5 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors" />
                             <input 
                                 type={showPassword ? "text" : "password"}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-[#121214] pl-12 pr-12 py-4 border border-gray-800 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-white font-bold transition-all"
+                                className="w-full bg-background pl-12 pr-12 py-4 border border-border rounded-2xl focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none text-text-primary transition-all font-medium"
                                 placeholder="••••••••"
                                 required
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-4 text-gray-500 hover:text-white transition-colors"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
                             >
                                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
@@ -141,13 +144,13 @@ export default function LoginPage() {
                     <button 
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-500 disabled:opacity-50 transition-all shadow-lg shadow-blue-900/20 mt-8 hover:scale-[1.02] active:scale-[0.98]"
+                        className="w-full bg-accent text-accent-fg font-semibold py-4 rounded-2xl hover:bg-accent-hover disabled:opacity-50 transition-all shadow-soft mt-8"
                     >
                         {loading ? "Memverifikasi..." : "Login ke Sistem"}
                     </button>
                 </form>
-                <p className="text-center text-xs text-gray-700 mt-8">
-                    © {new Date().getFullYear()} <strong className="text-gray-600">NexPos</strong> · Developed by <strong className="text-gray-500">Matias Austin</strong>
+                <p className="text-center text-xs text-text-muted mt-8 relative z-10">
+                    © {new Date().getFullYear()} <strong className="text-text-secondary">NexPos</strong> · Developed by <strong className="text-text-primary">Matias Austin</strong>
                 </p>
             </div>
         </div>

@@ -40,14 +40,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         success: 'bg-green-500/10 border-green-500/30 text-green-400',
         error: 'bg-red-500/10 border-red-500/30 text-red-400',
         warning: 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400',
-        info: 'bg-blue-500/10 border-blue-500/30 text-blue-400',
+        info: 'bg-accent/10 border-accent/30 text-accent',
     };
 
     const iconBg: Record<ToastType, string> = {
         success: 'bg-green-500/20 text-green-400',
         error: 'bg-red-500/20 text-red-400',
         warning: 'bg-yellow-500/20 text-yellow-400',
-        info: 'bg-blue-500/20 text-blue-400',
+        info: 'bg-accent/20 text-accent',
     };
 
     const value: ToastContextValue = {
@@ -71,10 +71,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                         <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${iconBg[t.type]}`}>
                             {icons[t.type]}
                         </span>
-                        <p className="text-sm font-semibold leading-snug text-white">{t.message}</p>
+                        <p className="text-sm font-semibold leading-snug text-text-primary">{t.message}</p>
                         <button
                             onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}
-                            className="ml-auto text-gray-500 hover:text-white text-lg leading-none flex-shrink-0"
+                            className="ml-auto text-text-muted hover:text-text-primary text-lg leading-none flex-shrink-0"
                         >×</button>
                     </div>
                 ))}

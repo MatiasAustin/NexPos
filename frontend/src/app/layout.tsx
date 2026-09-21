@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/Toast";
 import { SaasSettingsProvider } from "@/contexts/SaasSettingsContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { supabase } from "@/lib/supabase";
 
 export const metadata: Metadata = {
@@ -43,12 +44,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           }
         `}} />
       </head>
-      <body className="min-h-full w-full max-w-full overflow-x-hidden flex flex-col bg-[#121214] text-gray-100 font-sans print:block print:min-h-0 print:bg-white print:w-[58mm] print:mx-auto print:overflow-visible">
-        <SaasSettingsProvider settings={settings}>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
-        </SaasSettingsProvider>
+      <body className="min-h-full w-full max-w-full overflow-x-hidden flex flex-col bg-background text-text-primary font-sans print:block print:min-h-0 print:bg-white print:w-[58mm] print:mx-auto print:overflow-visible transition-colors duration-300">
+        <ThemeProvider>
+          <SaasSettingsProvider settings={settings}>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </SaasSettingsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

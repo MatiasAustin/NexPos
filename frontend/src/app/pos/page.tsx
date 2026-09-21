@@ -6,6 +6,7 @@ import { processPayment, getPaymentMethods, getActiveProducts } from "@/lib/api"
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import ThemeToggle from "@/components/ThemeToggle";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
 import { LoadingSpinner } from "@/components/Loading";
@@ -1040,24 +1041,24 @@ export default function PosPage() {
     };
 
     if (isCheckingSession) {
-        return <div className="flex min-h-screen bg-[#121214] text-gray-400 items-center justify-center p-4"><LoadingSpinner size="lg" text="Memuat data shift kasir..." /></div>;
+        return <div className="flex min-h-screen bg-background text-text-muted items-center justify-center p-4"><LoadingSpinner size="lg" text="Memuat data shift kasir..." /></div>;
     }
 
     if (!hasSession) {
         return (
-            <div className="flex min-h-screen bg-[#121214] items-center justify-center p-4">
+            <div className="flex min-h-screen bg-background items-center justify-center p-4">
                 <ConfirmDialog />
-                <div className="bg-[#1a1a1c] p-4 md:p-8 rounded-2xl w-full max-w-[400px] shadow-2xl border border-gray-800 text-center">
-                    <Banknote className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold mb-2 text-white">Buka Shift Kasir</h2>
-                    <p className="text-gray-400 mb-6 text-sm">Pilih nama kasir dan masukkan modal uang fisik awal (Opening Cash).</p>
+                <div className="bg-surface p-4 md:p-8 rounded-2xl w-full max-w-[400px] shadow-2xl border border-border text-center">
+                    <Banknote className="w-12 h-12 text-accent mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold mb-2 text-text-primary">Buka Shift Kasir</h2>
+                    <p className="text-text-muted mb-6 text-sm">Pilih nama kasir dan masukkan modal uang fisik awal (Opening Cash).</p>
                     
                     <div className="text-left mb-4">
-                        <label className="block text-sm font-bold text-gray-300 mb-2">Kasir Bertugas</label>
+                        <label className="block text-sm font-bold text-text-secondary mb-2">Kasir Bertugas</label>
                         <select 
                             value={selectedStaffId || staff?.id || ""} 
                             onChange={(e) => setSelectedStaffId(e.target.value)}
-                            className="w-full bg-[#121214] border border-gray-800 rounded-xl p-3 text-white focus:border-blue-500 outline-none font-bold"
+                            className="w-full bg-background border border-border rounded-xl p-3 text-text-primary focus:border-accent outline-none font-bold"
                         >
                             {allStaff.length === 0 && <option value={staff?.id}>{staff?.full_name}</option>}
                             {allStaff.map(s => (
@@ -1068,11 +1069,11 @@ export default function PosPage() {
 
                     <div className="text-left mb-6">
                         <div className="flex justify-between items-center mb-2">
-                            <label className="block text-sm font-bold text-gray-300">Modal Awal (Cash)</label>
+                            <label className="block text-sm font-bold text-text-secondary">Modal Awal (Cash)</label>
                             <button 
                                 onClick={handleUsePreviousCash}
                                 type="button"
-                                className="text-[10px] bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 whitespace-nowrap rounded border border-gray-700"
+                                className="text-[10px] bg-gray-800 hover:bg-gray-700 text-text-secondary px-3 py-1.5 whitespace-nowrap rounded border border-border"
                             >
                                 Gunakan Saldo Kasir Terakhir
                             </button>
@@ -1081,7 +1082,7 @@ export default function PosPage() {
                             type="number"
                             value={openingCash}
                             onChange={(e) => setOpeningCash(e.target.value)}
-                            className="w-full bg-[#121214] border border-gray-800 rounded-xl p-4 text-xl text-white focus:border-blue-500 outline-none transition-colors font-bold"
+                            className="w-full bg-background border border-border rounded-xl p-4 text-xl text-text-primary focus:border-accent outline-none transition-colors font-bold"
                             placeholder="Rp 0"
                         />
                     </div>
@@ -1089,7 +1090,7 @@ export default function PosPage() {
                     <button 
                         onClick={handleOpenSession}
                         disabled={loading}
-                        className="w-full bg-blue-600 text-white font-bold py-3 md:py-4 rounded-xl hover:bg-blue-500 transition-colors disabled:opacity-50"
+                        className="w-full bg-accent text-text-primary font-bold py-3 md:py-4 rounded-xl hover:bg-accent-hover transition-colors disabled:opacity-50"
                     >
                         {loading ? 'Membuka...' : 'Buka Shift Sekarang'}
                     </button>
@@ -1106,55 +1107,58 @@ export default function PosPage() {
     const filteredProducts = activeCategory === "Semua" ? products : products.filter(p => (p.category || "Uncategorized") === activeCategory);
 
     return (
-        <div className="flex flex-col sm:flex-row h-screen w-full max-w-full bg-[#121214] text-gray-100 overflow-hidden print:block print:h-auto print:overflow-visible print:bg-white text-sm md:text-base">
+        <div className="flex flex-col sm:flex-row h-screen w-full max-w-full bg-background text-text-primary overflow-hidden print:block print:h-auto print:overflow-visible print:bg-white text-sm md:text-base">
             <div className="print:hidden"><ConfirmDialog /></div>
             {/* LEFT: PRODUCTS LIST */}
             <div className="flex-1 flex flex-col overflow-y-auto print:hidden">
-                <div className="p-4 md:p-6 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#1a1a1c]">
+                <div className="p-4 md:p-6 border-b border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface">
                     <div className="flex items-center gap-3">
                         {saasSettings.app_logo ? (
-                            <img src={saasSettings.app_logo} alt="Logo" className="w-10 h-10 object-contain rounded-xl" />
+                            <img src={saasSettings.app_logo} alt="Logo" className="w-10 h-10 object-contain rounded-xl border border-border shadow-soft bg-surface" />
                         ) : (
-                            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white text-xl font-black">{saasSettings.app_name.charAt(0).toUpperCase()}</div>
+                            <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center text-accent-fg text-xl font-bold">{saasSettings.app_name.charAt(0).toUpperCase()}</div>
                         )}
                         <div>
-                            <h1 className="text-xl font-bold text-white leading-tight">{saasSettings.app_name} Terminal</h1>
-                            <span className="text-gray-500 text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date().toLocaleTimeString()}</span>
+                            <h1 className="text-xl font-bold text-text-primary leading-tight">{saasSettings.app_name} Terminal</h1>
+                            <span className="text-text-muted text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date().toLocaleTimeString()}</span>
                         </div>
-                        <button onClick={toggleFullscreen} className="ml-2 p-2 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors text-gray-300" title="Toggle Fullscreen">
-                            <Maximize className="w-5 h-5" />
-                        </button>
+                        <div className="flex items-center gap-1 md:gap-2 ml-2">
+                            <ThemeToggle />
+                            <button onClick={toggleFullscreen} className="p-2 bg-surface-hover hover:bg-border rounded-xl transition-colors text-text-secondary" title="Toggle Fullscreen">
+                                <Maximize className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
                     
                     {/* Staff Profile in POS Header */}
-                    <div className="bg-[#121214] border border-gray-800 p-2 pr-4 rounded-full font-semibold flex items-center gap-3 text-sm shadow-sm overflow-x-auto whitespace-nowrap hide-scrollbar max-w-full">
-                        <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-blue-400 shrink-0">
+                    <div className="bg-background border border-border p-2 pr-4 rounded-full font-semibold flex items-center gap-3 text-sm shadow-sm overflow-x-auto whitespace-nowrap hide-scrollbar max-w-full">
+                        <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-accent shrink-0">
                             <Banknote className="w-5 h-5" />
                         </div>
                         <div className="flex flex-col shrink-0">
-                            <span className="text-gray-400 text-[10px] leading-tight">Kasir</span>
-                            <span className="text-white text-xs font-bold">{staff?.full_name}</span>
+                            <span className="text-text-muted text-[10px] leading-tight">Kasir</span>
+                            <span className="text-text-primary text-xs font-bold">{staff?.full_name}</span>
                         </div>
                         {sessionData && (
-                            <div className="flex gap-4 ml-2 pl-3 border-l border-gray-800 shrink-0 items-center bg-gray-900/50 p-2 rounded-xl border border-gray-800">
+                            <div className="flex gap-4 ml-2 pl-3 border-l border-border shrink-0 items-center bg-surface-hover/50 p-2 rounded-xl border border-border">
                                 <div className="flex flex-col">
-                                    <span className="text-gray-400 text-[10px] leading-tight">Modal Awal</span>
-                                    <span className="text-blue-400 text-xs font-bold">Rp {Number(sessionData.opening_cash || 0).toLocaleString('id-ID')}</span>
+                                    <span className="text-text-muted text-[10px] leading-tight">Modal Awal</span>
+                                    <span className="text-accent text-xs font-bold">Rp {Number(sessionData.opening_cash || 0).toLocaleString('id-ID')}</span>
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-gray-400 text-[10px] leading-tight">Pengeluaran</span>
+                                    <span className="text-text-muted text-[10px] leading-tight">Pengeluaran</span>
                                     <span className="text-red-400 text-xs font-bold">Rp {Number(sessionData.total_expense || 0).toLocaleString('id-ID')}</span>
                                 </div>
-                                <div className="flex flex-col border-l border-gray-800 pl-4">
-                                    <span className="text-gray-400 text-[10px] leading-tight">Refund</span>
+                                <div className="flex flex-col border-l border-border pl-4">
+                                    <span className="text-text-muted text-[10px] leading-tight">Refund</span>
                                     <span className="text-yellow-400 text-xs font-bold">Rp {Number(sessionData.total_refund || 0).toLocaleString('id-ID')}</span>
                                 </div>
-                                <div className="flex flex-col border-l border-gray-800 pl-4">
-                                    <span className="text-gray-400 text-[10px] leading-tight">Laci (Sistem)</span>
+                                <div className="flex flex-col border-l border-border pl-4">
+                                    <span className="text-text-muted text-[10px] leading-tight">Laci (Sistem)</span>
                                     <span className="text-green-400 text-xs font-bold">Rp {Number(sessionData.expected_cash || 0).toLocaleString('id-ID')}</span>
                                 </div>
-                                <div className="flex flex-col border-l border-gray-800 pl-4">
-                                    <span className="text-gray-400 text-[10px] leading-tight">Selisih (Penjualan Bersih)</span>
+                                <div className="flex flex-col border-l border-border pl-4">
+                                    <span className="text-text-muted text-[10px] leading-tight">Selisih (Penjualan Bersih)</span>
                                     <span className="text-purple-400 text-xs font-bold">Rp {Number((sessionData.expected_cash || 0) - (sessionData.opening_cash || 0) + (sessionData.total_expense || 0)).toLocaleString('id-ID')}</span>
                                 </div>
                             </div>
@@ -1169,13 +1173,13 @@ export default function PosPage() {
                             <Link href="/admin?tab=inventory" className="px-3 py-1 bg-green-500/10 text-green-400 rounded-full hover:bg-green-500/20 font-bold text-[10px] uppercase tracking-wider border border-green-500/20 transition-colors flex items-center gap-1">
                                 📋 Produk & Stok
                             </Link>
-                            <Link href="/admin" className="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full hover:bg-blue-500/20 font-bold text-[10px] uppercase tracking-wider border border-blue-500/20 transition-colors flex items-center justify-center">
+                            <Link href="/admin" className="px-3 py-1 bg-accent/10 text-accent rounded-full hover:bg-accent-hover/20 font-bold text-[10px] uppercase tracking-wider border border-accent/20 transition-colors flex items-center justify-center">
                                 Dashboard
                             </Link>
                             <button onClick={handleCloseSession} className="px-4 py-2 whitespace-nowrap bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20 font-bold text-[10px] uppercase tracking-wider border border-red-500/20 transition-colors">
                                 Tutup Shift
                             </button>
-                            <button onClick={handleLogout} className="px-4 py-2 whitespace-nowrap bg-gray-800 text-gray-300 rounded-full hover:bg-gray-700 font-bold text-[10px] uppercase tracking-wider transition-colors">
+                            <button onClick={handleLogout} className="px-4 py-2 whitespace-nowrap bg-gray-800 text-text-secondary rounded-full hover:bg-gray-700 font-bold text-[10px] uppercase tracking-wider transition-colors">
                                 Logout
                             </button>
                         </div>
@@ -1187,14 +1191,14 @@ export default function PosPage() {
                     <div className="hidden sm:block">
                         {/* INCOMING ORDERS NOTIFICATION */}
                         {pendingOrders.filter(o => o.status === 'pending').length > 0 && (
-                            <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl shadow-lg">
+                            <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl shadow-soft">
                                 <h3 className="font-bold text-orange-400 mb-3 flex items-center gap-2">🛒 Pesanan Baru dari Customer</h3>
                                 <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
                                     {pendingOrders.map((order: any, idx: number) => order.status === 'pending' && (
                                         <div key={order.id} className="relative group flex-shrink-0 min-w-[150px]">
                                             <button 
                                                 onClick={() => loadCustomerOrder(order, idx)}
-                                                className="w-full h-full bg-gradient-to-br from-orange-500/20 to-red-500/20 px-4 py-3 rounded-xl border border-orange-500/40 text-white font-bold hover:from-orange-500/30 hover:to-red-500/30 shadow-sm transition-all text-left flex flex-col relative overflow-hidden"
+                                                className="w-full h-full bg-gradient-to-br from-orange-500/20 to-red-500/20 px-4 py-3 rounded-xl border border-orange-500/40 text-text-primary font-bold hover:from-orange-500/30 hover:to-red-500/30 shadow-sm transition-all text-left flex flex-col relative overflow-hidden"
                                             >
                                                 <div className="absolute top-0 right-0 w-2 h-full bg-orange-500 animate-pulse"></div>
                                                 <span className="text-orange-400 text-xs mb-1">{order.queue_number || order.id}</span>
@@ -1202,7 +1206,7 @@ export default function PosPage() {
                                             </button>
                                             <button
                                                 onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
-                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-opacity z-10"
+                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-text-primary w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-soft transition-opacity z-10"
                                                 title="Tolak Pesanan"
                                             >
                                                 &#10005;
@@ -1215,21 +1219,21 @@ export default function PosPage() {
 
                         {/* DRAFT ORDERS NOTIFICATION */}
                         {pendingOrders.filter(o => o.status === 'draft').length > 0 && (
-                            <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl shadow-lg">
-                                <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">📝 Draft Pesanan (Belum Bayar)</h3>
+                            <div className="mb-6 p-4 bg-accent/10 border border-accent/20 rounded-2xl shadow-soft">
+                                <h3 className="font-bold text-accent mb-3 flex items-center gap-2">📝 Draft Pesanan (Belum Bayar)</h3>
                                 <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
                                     {pendingOrders.map((order: any, idx: number) => order.status === 'draft' && (
                                         <div key={order.id} className="relative group flex-shrink-0 min-w-[150px]">
                                             <button 
                                                 onClick={() => loadCustomerOrder(order, idx)}
-                                                className="w-full h-full bg-[#1a1a1c] px-4 py-3 rounded-xl border border-blue-500/20 text-white font-bold hover:bg-bg-gray-800 shadow-sm transition-colors text-left flex flex-col"
+                                                className="w-full h-full bg-surface px-4 py-3 rounded-xl border border-accent/20 text-text-primary font-bold hover:bg-bg-gray-800 shadow-sm transition-colors text-left flex flex-col"
                                             >
-                                                <span className="text-blue-400 text-xs mb-1">{order.queue_number || order.id}</span>
+                                                <span className="text-accent text-xs mb-1">{order.queue_number || order.id}</span>
                                                 <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
                                             </button>
                                             <button
                                                 onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
-                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-opacity z-10"
+                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-text-primary w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-soft transition-opacity z-10"
                                                 title="Hapus Draft"
                                             >
                                                 &#10005;
@@ -1250,19 +1254,19 @@ export default function PosPage() {
                                     onClick={() => setActiveCategory(cat)}
                                     className={`px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all ${
                                         activeCategory === cat 
-                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" 
-                                        : "bg-[#1a1a1c] text-gray-400 hover:text-white border border-gray-800"
+                                        ? "bg-accent text-text-primary shadow-soft shadow-soft" 
+                                        : "bg-surface text-text-muted hover:text-text-primary border border-border"
                                     }`}
                                 >
                                     {cat}
                                 </button>
                             ))}
                         </div>
-                        <div className="flex bg-[#1a1a1c] rounded-xl border border-gray-800 p-1 shrink-0">
-                            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                        <div className="flex bg-surface rounded-xl border border-border p-1 shrink-0">
+                            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-gray-800 text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}>
                                 <LayoutGrid className="w-5 h-5" />
                             </button>
-                            <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                            <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-gray-800 text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}>
                                 <List className="w-5 h-5" />
                             </button>
                         </div>
@@ -1270,13 +1274,13 @@ export default function PosPage() {
 
                     <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4" : "flex flex-col gap-3"}>
                         {filteredProducts.length === 0 ? (
-                            <div className="col-span-full text-center text-gray-500 py-10 bg-[#1a1a1c] rounded-2xl border border-gray-800">Belum ada produk di kategori ini.</div>
+                            <div className="col-span-full text-center text-text-muted py-10 bg-surface rounded-2xl border border-border">Belum ada produk di kategori ini.</div>
                         ) : (
                             filteredProducts.map((p) => (
                                 <div
                                     key={p.id}
                                     onClick={() => handleProductClick(p)}
-                                    className={`bg-[#1a1a1c] rounded-2xl border border-gray-800 cursor-pointer hover:border-blue-500/50 hover:bg-gray-800/50 transition-all shadow-lg group overflow-hidden ${
+                                    className={`bg-surface rounded-2xl border border-border cursor-pointer hover:border-accent/50 hover:bg-gray-800/50 transition-all shadow-soft group overflow-hidden ${
                                         viewMode === 'grid' 
                                         ? "p-4 flex flex-col h-full relative text-left" 
                                         : "p-3 flex items-center justify-between gap-4"
@@ -1290,24 +1294,24 @@ export default function PosPage() {
                                         )}
                                         <div>
                                             <div className="flex items-center gap-1.5 flex-wrap">
-                                                <h3 className="font-bold text-[11px] md:text-xs leading-tight mb-1 text-white">{p.name}</h3>
+                                                <h3 className="font-bold text-[11px] md:text-xs leading-tight mb-1 text-text-primary">{p.name}</h3>
                                                 {p.options_config && p.options_config.length > 0 && viewMode === 'list' && (
-                                                    <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-bold mb-1">
+                                                    <span className="text-[10px] bg-accent/20 text-blue-300 px-1.5 py-0.5 rounded font-bold mb-1">
                                                         ⚙️ {p.options_config.length} Opsi
                                                     </span>
                                                 )}
                                             </div>
-                                            {viewMode === 'list' && <p className="text-gray-500 text-xs">{p.category || 'Uncategorized'}</p>}
+                                            {viewMode === 'list' && <p className="text-text-muted text-xs">{p.category || 'Uncategorized'}</p>}
                                             {p.options_config && p.options_config.length > 0 && viewMode === 'grid' && (
                                                 <div className="mt-1 flex flex-wrap gap-1">
-                                                    <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded font-medium">
+                                                    <span className="text-[10px] bg-accent/10 text-accent border border-accent/20 px-1.5 py-0.5 rounded font-medium">
                                                         ⚙️ {p.options_config.length} Pilihan/Addon
                                                     </span>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
-                                    <p className={`text-blue-400 font-bold ${viewMode === 'grid' ? "mt-2 text-sm md:text-base" : "text-sm md:text-base shrink-0"} relative z-10`}>
+                                    <p className={`text-accent font-bold ${viewMode === 'grid' ? "mt-2 text-sm md:text-base" : "text-sm md:text-base shrink-0"} relative z-10`}>
                                         Rp {p.price.toLocaleString("id-ID")}
                                     </p>
                                     
@@ -1333,22 +1337,22 @@ export default function PosPage() {
             )}
             
             {/* RIGHT: CART */}
-            <div className={`w-full sm:w-[260px] md:w-[280px] lg:w-[320px] xl:w-[400px] h-[85vh] sm:h-screen bg-[#1a1a1c] shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sm:shadow-2xl flex flex-col sm:border-t-0 sm:border-l border-gray-800 shrink-0 print:hidden fixed sm:relative bottom-0 left-0 right-0 rounded-t-3xl sm:rounded-none z-50 sm:z-10 transition-transform duration-300 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full sm:translate-y-0"}`}>
+            <div className={`w-full sm:w-[260px] md:w-[280px] lg:w-[320px] xl:w-[400px] h-[85vh] sm:h-screen bg-surface shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sm:shadow-2xl flex flex-col sm:border-t-0 sm:border-l border-border shrink-0 print:hidden fixed sm:relative bottom-0 left-0 right-0 rounded-t-3xl sm:rounded-none z-50 sm:z-10 transition-transform duration-300 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full sm:translate-y-0"}`}>
                 
                 {/* Mobile Drag Handle */}
                 <div className="w-full flex justify-center pt-3 pb-1 sm:hidden cursor-pointer" onClick={() => setIsMobileCartOpen(false)}>
                     <div className="w-12 h-1.5 bg-gray-600 rounded-full"></div>
                 </div>
 
-                <div className="p-3 sm:p-4 md:p-5 border-b border-gray-800 flex justify-between items-center bg-[#1a1a1c] sm:pt-4 pt-1">
-                    <h2 className="text-sm sm:text-base md:text-lg font-bold flex items-center gap-2 text-white">
-                        <ShoppingCart className="w-5 h-5 text-blue-500" /> Current Order
+                <div className="p-3 sm:p-4 md:p-5 border-b border-border flex justify-between items-center bg-surface sm:pt-4 pt-1">
+                    <h2 className="text-sm sm:text-base md:text-lg font-bold flex items-center gap-2 text-text-primary">
+                        <ShoppingCart className="w-5 h-5 text-accent" /> Current Order
                     </h2>
                     <div className="flex gap-2">
                         <button onClick={clearCart} className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors border border-transparent hover:border-red-500/20">
                             <Trash2 className="w-5 h-5" />
                         </button>
-                        <button onClick={() => setIsMobileCartOpen(false)} className="sm:hidden text-gray-400 hover:text-white p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
+                        <button onClick={() => setIsMobileCartOpen(false)} className="sm:hidden text-text-muted hover:text-text-primary p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
                             &#10005;
                         </button>
                     </div>
@@ -1356,7 +1360,7 @@ export default function PosPage() {
 
                 <div className="flex-1 overflow-y-auto p-5">
                     {cart.length === 0 ? (
-                        <div className="text-center text-gray-500 mt-20 flex flex-col items-center justify-center">
+                        <div className="text-center text-text-muted mt-20 flex flex-col items-center justify-center">
                             <ShoppingCart className="w-12 h-12 mb-4 opacity-20" />
                             <p>Keranjang kosong</p>
                         </div>
@@ -1365,21 +1369,21 @@ export default function PosPage() {
                             {cart.map((item, idx) => {
                                 const itemKey = item.product.cart_key || item.product.id;
                                 return (
-                                <div key={itemKey || idx} className="flex flex-col gap-3 pb-4 border-b border-gray-800/50">
+                                <div key={itemKey || idx} className="flex flex-col gap-3 pb-4 border-b border-border/50">
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1 pr-3">
-                                            <p className="font-bold text-xs md:text-sm leading-tight text-white mb-1">{item.product.name}</p>
+                                            <p className="font-bold text-xs md:text-sm leading-tight text-text-primary mb-1">{item.product.name}</p>
                                             {item.product.variant_details && (
-                                                <div className="text-[11px] text-blue-400 font-medium mb-1.5 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20 inline-block leading-tight">
+                                                <div className="text-[11px] text-accent font-medium mb-1.5 bg-accent/10 px-2 py-0.5 rounded-md border border-accent/20 inline-block leading-tight">
                                                     {item.product.variant_details}
                                                 </div>
                                             )}
-                                            <p className="text-blue-400 font-bold text-xs md:text-sm">
+                                            <p className="text-accent font-bold text-xs md:text-sm">
                                                 Rp {item.product.price.toLocaleString("id-ID")}
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="font-bold text-sm md:text-base whitespace-nowrap text-white mb-2">
+                                            <p className="font-bold text-sm md:text-base whitespace-nowrap text-text-primary mb-2">
                                                 Rp {(item.product.price * item.qty).toLocaleString("id-ID")}
                                             </p>
                                             <button onClick={() => removeFromCart(itemKey)} className="text-red-400 hover:text-red-300 p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors inline-flex">
@@ -1391,7 +1395,7 @@ export default function PosPage() {
                                         <button 
                                             onClick={() => updateCartQty(itemKey, item.qty - 1)}
                                             disabled={item.qty <= 1}
-                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white rounded-lg transition-colors border border-gray-700"
+                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-text-primary rounded-lg transition-colors border border-border"
                                         >
                                             <Minus className="w-5 h-5" />
                                         </button>
@@ -1399,11 +1403,11 @@ export default function PosPage() {
                                             type="number" 
                                             value={item.qty}
                                             onChange={(e) => updateCartQty(itemKey, parseInt(e.target.value) || 1)}
-                                            className="w-14 h-10 bg-[#121214] text-center font-bold text-sm text-white border border-gray-800 rounded-lg outline-none focus:border-blue-500"
+                                            className="w-14 h-10 bg-background text-center font-bold text-sm text-text-primary border border-border rounded-lg outline-none focus:border-accent"
                                         />
                                         <button 
                                             onClick={() => updateCartQty(itemKey, item.qty + 1)}
-                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors border border-gray-700"
+                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-text-primary rounded-lg transition-colors border border-border"
                                         >
                                             <Plus className="w-5 h-5" />
                                         </button>
@@ -1415,28 +1419,28 @@ export default function PosPage() {
                     )}
                 </div>
 
-                <div className="p-4 md:p-6 bg-[#121214] border-t border-gray-800">
+                <div className="p-4 md:p-6 bg-background border-t border-border">
                     <div className="mb-4">
-                        <label className="text-gray-400 text-xs font-bold mb-1 block uppercase tracking-wider">Nama Pelanggan (Opsional)</label>
+                        <label className="text-text-muted text-xs font-bold mb-1 block uppercase tracking-wider">Nama Pelanggan (Opsional)</label>
                         <input 
                             type="text" 
                             value={customerName} 
                             onChange={(e) => setCustomerName(e.target.value)} 
                             placeholder="Ketik nama pelanggan..." 
-                            className="w-full bg-[#0B0F19] text-white text-sm px-4 py-2.5 rounded-xl border border-gray-800 outline-none focus:border-blue-500 transition-colors" 
+                            className="w-full bg-background text-text-primary text-sm px-4 py-2.5 rounded-xl border border-border outline-none focus:border-accent transition-colors" 
                         />
                     </div>
                     <div className="flex justify-between mb-2">
-                        <span className="text-gray-400 text-sm md:text-base">Subtotal</span>
-                        <span className="font-bold text-lg md:text-xl text-gray-200">Rp {subTotal.toLocaleString("id-ID")}</span>
+                        <span className="text-text-muted text-sm md:text-base">Subtotal</span>
+                        <span className="font-bold text-lg md:text-xl text-text-secondary">Rp {subTotal.toLocaleString("id-ID")}</span>
                     </div>
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-gray-400 text-sm md:text-base">Diskon</span>
+                        <span className="text-text-muted text-sm md:text-base">Diskon</span>
                         <div className="flex gap-2 w-1/2 justify-end">
                             <select 
                                 value={discountType} 
                                 onChange={(e: any) => { setDiscountType(e.target.value); setDiscountValue(""); }}
-                                className="bg-[#1a1a1c] border border-gray-600 text-white rounded p-1 text-sm focus:ring-blue-500 w-16"
+                                className="bg-surface border border-gray-600 text-text-primary rounded p-1 text-sm focus:ring-accent w-16"
                             >
                                 <option value="nominal">Rp</option>
                                 <option value="percentage">%</option>
@@ -1447,7 +1451,7 @@ export default function PosPage() {
                                 value={discountValue}
                                 onChange={(e) => setDiscountValue(e.target.value)}
                                 placeholder={discountType === 'percentage' ? "0-100" : "Nominal"}
-                                className="bg-[#1a1a1c] border border-gray-600 text-white rounded p-1 text-sm focus:ring-blue-500 w-full text-right"
+                                className="bg-surface border border-gray-600 text-text-primary rounded p-1 text-sm focus:ring-accent w-full text-right"
                             />
                         </div>
                     </div>
@@ -1459,27 +1463,27 @@ export default function PosPage() {
                     )}
                     {storeSettings?.tax_enabled && (
                         <div className="flex justify-between mb-2">
-                            <span className="text-gray-400 text-sm md:text-base">Pajak ({storeSettings.tax_rate}%)</span>
-                            <span className="font-bold text-lg md:text-xl text-gray-200">Rp {taxAmount.toLocaleString("id-ID")}</span>
+                            <span className="text-text-muted text-sm md:text-base">Pajak ({storeSettings.tax_rate}%)</span>
+                            <span className="font-bold text-lg md:text-xl text-text-secondary">Rp {taxAmount.toLocaleString("id-ID")}</span>
                         </div>
                     )}
-                    <div className="flex justify-between mb-4 border-t border-gray-800 pt-4">
-                        <span className="text-gray-300 font-bold text-base md:text-lg">Total</span>
-                        <span className="font-black text-2xl md:text-2xl md:text-3xl text-blue-400">Rp {grandTotal.toLocaleString("id-ID")}</span>
+                    <div className="flex justify-between mb-4 border-t border-border pt-4">
+                        <span className="text-text-secondary font-bold text-base md:text-lg">Total</span>
+                        <span className="font-bold text-2xl md:text-2xl md:text-3xl text-accent">Rp {grandTotal.toLocaleString("id-ID")}</span>
                     </div>
                     
                     <div className="flex gap-2">
                         <button 
                             onClick={handleSaveDraft}
                             disabled={cart.length === 0}
-                            className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 md:py-4 rounded-xl font-bold text-sm md:text-base flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-lg border border-gray-700"
+                            className="flex-1 bg-gray-800 hover:bg-gray-700 text-text-secondary py-3 md:py-4 rounded-xl font-bold text-sm md:text-base flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-soft border border-border"
                         >
                             Bayar Nanti
                         </button>
                         <button 
                             onClick={() => setShowPayment(true)}
                             disabled={cart.length === 0}
-                            className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white py-3 md:py-4 rounded-xl font-bold text-base md:text-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-lg shadow-blue-900/20"
+                            className="flex-[2] bg-accent hover:bg-accent-hover text-text-primary py-3 md:py-4 rounded-xl font-bold text-base md:text-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-soft shadow-soft"
                         >
                             <CreditCard className="w-5 h-5" /> Lanjut Bayar
                         </button>
@@ -1493,24 +1497,24 @@ export default function PosPage() {
             {/* PAYMENT MODAL */}
             {showPayment && (
                 <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 backdrop-blur-md overflow-y-auto print:hidden">
-                    <div className="bg-[#1a1a1c] border border-gray-800 p-4 md:p-6 md:p-4 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl mt-16 mb-16">
+                    <div className="bg-surface border border-border p-4 md:p-6 md:p-4 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl mt-16 mb-16">
                         {!paymentResult ? (
                             <>
-                                <h2 className="text-2xl font-bold mb-6 border-b border-gray-800 pb-4 text-white">Pilih Pembayaran</h2>
-                                <div className="text-center mb-8 p-4 md:p-6 bg-[#121214] rounded-2xl border border-gray-800">
-                                    <p className="text-gray-400 mb-2">Total Tagihan</p>
-                                    <p className="text-5xl font-black text-blue-400">Rp {grandTotal.toLocaleString("id-ID")}</p>
+                                <h2 className="text-2xl font-bold mb-6 border-b border-border pb-4 text-text-primary">Pilih Pembayaran</h2>
+                                <div className="text-center mb-8 p-4 md:p-6 bg-background rounded-2xl border border-border">
+                                    <p className="text-text-muted mb-2">Total Tagihan</p>
+                                    <p className="text-5xl font-bold text-accent">Rp {grandTotal.toLocaleString("id-ID")}</p>
                                 </div>
                                 
                                 {paymentMethods.length > 0 ? (
                                     <div className="mb-6">
-                                        <label className="block text-sm font-bold mb-3 text-gray-300">Metode Pembayaran</label>
+                                        <label className="block text-sm font-bold mb-3 text-text-secondary">Metode Pembayaran</label>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             {paymentMethods.map(m => (
                                                 <button
                                                     key={m.id}
                                                     onClick={() => setSelectedMethod(m)}
-                                                    className={`py-3 px-4 rounded-xl border-2 font-bold transition-all ${selectedMethod?.id === m.id ? 'border-blue-500 bg-blue-500/10 text-blue-400 shadow-lg shadow-blue-900/20' : 'border-gray-800 text-gray-400 hover:border-gray-700 hover:bg-gray-800/50'}`}
+                                                    className={`py-3 px-4 rounded-xl border-2 font-bold transition-all ${selectedMethod?.id === m.id ? 'border-accent bg-accent/10 text-accent shadow-soft shadow-soft' : 'border-border text-text-muted hover:border-border hover:bg-gray-800/50'}`}
                                                 >
                                                     {m.name}
                                                 </button>
@@ -1525,12 +1529,12 @@ export default function PosPage() {
 
                                 {selectedMethod?.type?.toLowerCase() === 'cash' ? (
                                     <div className="mb-8">
-                                        <label className="block text-sm font-bold mb-3 text-gray-300">Uang Diterima (Cash)</label>
+                                        <label className="block text-sm font-bold mb-3 text-text-secondary">Uang Diterima (Cash)</label>
                                         <input 
                                             type="number"
                                             value={amountReceived}
                                             onChange={(e) => setAmountReceived(e.target.value)}
-                                            className="w-full bg-[#121214] border border-gray-800 rounded-xl p-4 text-xl text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-bold"
+                                            className="w-full bg-background border border-border rounded-xl p-4 text-xl text-text-primary focus:border-accent focus:ring-1 focus:ring-accent outline-none font-bold"
                                             placeholder="Masukkan jumlah..."
                                         />
                                         {Number(amountReceived) >= grandTotal && (
@@ -1540,7 +1544,7 @@ export default function PosPage() {
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="mb-8 p-4 md:p-6 bg-gray-800/30 border border-gray-800 rounded-xl text-center text-gray-400">
+                                    <div className="mb-8 p-4 md:p-6 bg-gray-800/30 border border-border rounded-xl text-center text-text-muted">
                                         Sistem akan membuka jendela pembayaran pihak ketiga untuk {selectedMethod?.name}...
                                     </div>
                                 )}
@@ -1551,14 +1555,14 @@ export default function PosPage() {
                                             setShowPayment(false);
                                             setAmountReceived("");
                                         }}
-                                        className="flex-1 py-3 md:py-4 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-colors"
+                                        className="flex-1 py-3 md:py-4 bg-gray-800 text-text-secondary rounded-xl font-bold hover:bg-gray-700 transition-colors"
                                     >
                                         Batal
                                     </button>
                                     <button 
                                         onClick={handlePayment}
                                         disabled={loading || !selectedMethod || (selectedMethod?.type?.toLowerCase() === 'cash' && Number(amountReceived) < grandTotal)}
-                                        className="flex-1 py-3 md:py-4 bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-blue-500 transition-colors"
+                                        className="flex-1 py-3 md:py-4 bg-accent text-text-primary rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-accent-hover transition-colors"
                                     >
                                         {loading ? "Memproses..." : <><CreditCard className="w-5 h-5"/> Proses</>}
                                     </button>
@@ -1569,10 +1573,10 @@ export default function PosPage() {
                                 <div className="w-20 h-20 bg-green-500/10 border border-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                                 </div>
-                                <h2 className="text-2xl md:text-3xl font-black mb-1 text-white">{paymentResult?.isDraft ? "Pesanan Tersimpan!" : "Pembayaran Sukses!"}</h2>
-                                <p className="text-gray-400 mb-6 flex flex-col items-center">
+                                <h2 className="text-2xl md:text-3xl font-bold mb-1 text-text-primary">{paymentResult?.isDraft ? "Pesanan Tersimpan!" : "Pembayaran Sukses!"}</h2>
+                                <p className="text-text-muted mb-6 flex flex-col items-center">
                                     <span className="text-[10px] uppercase tracking-wider mb-1">Nomor Antrean / Order</span>
-                                    <span className="font-bold text-2xl text-white">{paymentResult.transaction?.order_reference || paymentResult.order_reference}</span>
+                                    <span className="font-bold text-2xl text-text-primary">{paymentResult.transaction?.order_reference || paymentResult.order_reference}</span>
                                 </p>
                                 <div className="flex flex-col md:flex-row gap-4">
 
@@ -1580,7 +1584,7 @@ export default function PosPage() {
                                         onClick={() => {
                                             setTimeout(() => window.print(), 100);
                                         }}
-                                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 md:py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
+                                        className="w-full bg-accent hover:bg-accent-hover text-text-primary py-3 md:py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
                                     >
                                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                         Cetak Desain (Web)
@@ -1592,7 +1596,7 @@ export default function PosPage() {
                                             setShowPayment(false);
                                             setAmountReceived("");
                                         }}
-                                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 md:py-4 rounded-xl font-bold text-lg transition-colors"
+                                        className="w-full bg-accent hover:bg-accent-hover text-text-primary py-3 md:py-4 rounded-xl font-bold text-lg transition-colors"
                                     >
                                         Selesai & Lanjut
                                     </button>
@@ -1709,28 +1713,28 @@ export default function PosPage() {
             {/* EXPENSES & RAW MATERIALS MODAL */}
                         {showCloseShiftModal && (
                 <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
-                    <div className="bg-[#131B2C] border border-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-md shadow-2xl mt-16 mb-16">
-                        <h3 className="font-bold text-xl text-white mb-2">Tutup Shift</h3>
-                        <p className="text-gray-400 text-sm mb-6">Hitung seluruh uang fisik (kertas & koin) yang ada di dalam laci kasir saat ini, lalu masukkan totalnya di bawah ini.</p>
+                    <div className="bg-surface border border-border p-6 md:p-8 rounded-3xl w-full max-w-md shadow-2xl mt-16 mb-16">
+                        <h3 className="font-bold text-xl text-text-primary mb-2">Tutup Shift</h3>
+                        <p className="text-text-muted text-sm mb-6">Hitung seluruh uang fisik (kertas & koin) yang ada di dalam laci kasir saat ini, lalu masukkan totalnya di bawah ini.</p>
                         <input 
                             type="number" 
                             placeholder="Total Uang Fisik Laci (Rp)" 
                             value={actualCashInput}
                             onChange={(e) => setActualCashInput(e.target.value)}
-                            className="w-full p-4 text-lg bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white font-bold mb-6"
+                            className="w-full p-4 text-lg bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary font-bold mb-6"
                             autoFocus
                         />
                         <div className="flex gap-3">
                             <button 
                                 onClick={() => setShowCloseShiftModal(false)}
-                                className="flex-1 py-3 md:py-4 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-colors"
+                                className="flex-1 py-3 md:py-4 bg-gray-800 text-text-secondary rounded-xl font-bold hover:bg-gray-700 transition-colors"
                             >
                                 Batal
                             </button>
                             <button 
                                 onClick={submitCloseSession}
                                 disabled={!actualCashInput || loading}
-                                className="flex-1 py-3 md:py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-500 transition-colors disabled:opacity-50"
+                                className="flex-1 py-3 md:py-4 bg-red-600 text-text-primary rounded-xl font-bold hover:bg-red-500 transition-colors disabled:opacity-50"
                             >
                                 {loading ? 'Menutup...' : 'Tutup Shift'}
                             </button>
@@ -1741,43 +1745,43 @@ export default function PosPage() {
 
             {showExpensesModal && (
                 <div className="fixed inset-0 bg-black/90 flex items-start justify-center z-[100] p-2 sm:p-4 md:p-6 backdrop-blur-sm overflow-y-auto print:hidden">
-                    <div className="bg-[#1a1a1c] border border-gray-800 rounded-2xl sm:rounded-3xl w-full max-w-[98vw] shadow-2xl p-4 sm:p-6 lg:p-8 my-2 sm:my-4 flex-shrink-0 relative">
+                    <div className="bg-surface border border-border rounded-2xl sm:rounded-3xl w-full max-w-[98vw] shadow-2xl p-4 sm:p-6 lg:p-8 my-2 sm:my-4 flex-shrink-0 relative">
                         <button 
                             onClick={() => setShowExpensesModal(false)}
-                            className="absolute top-4 right-4 sm:right-6 w-9 h-9 sm:w-10 sm:h-10 bg-gray-800 hover:bg-red-500 hover:text-white rounded-full flex items-center justify-center text-gray-400 transition-colors z-10"
+                            className="absolute top-4 right-4 sm:right-6 w-9 h-9 sm:w-10 sm:h-10 bg-gray-800 hover:bg-red-500 hover:text-text-primary rounded-full flex items-center justify-center text-text-muted transition-colors z-10"
                         >
                             ✕
                         </button>
                         
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8 pr-12">
-                            <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 sm:gap-3">
+                            <h2 className="text-xl sm:text-2xl font-bold text-text-primary flex items-center gap-2 sm:gap-3">
                                 <Banknote className="text-orange-500 w-6 h-6 shrink-0" /> Kelola Bahan Baku & Pengeluaran 
                             </h2>
-                            <span className="text-xs sm:text-sm font-normal text-gray-400 px-3 py-1 bg-gray-800/80 border border-gray-700 rounded-full w-fit">
+                            <span className="text-xs sm:text-sm font-normal text-text-muted px-3 py-1 bg-gray-800/80 border border-border rounded-full w-fit">
                                 Staff: {staff?.full_name || 'Kasir'}
                             </span>
                         </div>
 
                         <div className="flex flex-col gap-6">
                             <div className="space-y-6 sm:space-y-8">
-                                <div className="p-4 sm:p-6 bg-[#131B2C] rounded-2xl border border-gray-800 transition-all">
-                                    <div className="flex justify-between items-center mb-5 border-b border-gray-800 pb-3 cursor-pointer" onClick={() => setCollapseAddMat(!collapseAddMat)}>
-                                        <h3 className="font-bold text-base sm:text-lg text-white">
+                                <div className="p-4 sm:p-6 bg-surface rounded-2xl border border-border transition-all">
+                                    <div className="flex justify-between items-center mb-5 border-b border-border pb-3 cursor-pointer" onClick={() => setCollapseAddMat(!collapseAddMat)}>
+                                        <h3 className="font-bold text-base sm:text-lg text-text-primary">
                                             Tambah Bahan Baku Baru
                                         </h3>
-                                        <button type="button" className="text-gray-400 hover:text-white transition-colors">{collapseAddMat ? '+' : '−'}</button>
+                                        <button type="button" className="text-text-muted hover:text-text-primary transition-colors">{collapseAddMat ? '+' : '−'}</button>
                                     </div>
                                     
                                     {!collapseAddMat && (
                                     <form onSubmit={handleCreateMaterial} className="space-y-4">
                                         <div>
-                                            <label className="text-xs font-bold text-gray-400 block mb-1">Nama Bahan</label>
-                                            <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm" />
+                                            <label className="text-xs font-bold text-text-muted block mb-1">Nama Bahan</label>
+                                            <input type="text" placeholder="Nama Bahan (contoh: Susu)" required value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-sm" />
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                             <div>
-                                                <label className="text-xs font-bold text-gray-400 block mb-1">Satuan</label>
-                                                <select value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-xs sm:text-sm font-semibold">
+                                                <label className="text-xs font-bold text-text-muted block mb-1">Satuan</label>
+                                                <select value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-xs sm:text-sm font-semibold">
                                                     <option value="g">Gram (g)</option>
                                                     <option value="ml">Mililiter (ml)</option>
                                                     <option value="pcs">Pieces (pcs)</option>
@@ -1790,44 +1794,44 @@ export default function PosPage() {
                                                 </select>
                                             </div>
                                             <div>
-                                                <label className="text-xs font-bold text-gray-400 block mb-1">Stok Awal</label>
-                                                <input type="number" step="any" placeholder="0" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm" />
+                                                <label className="text-xs font-bold text-text-muted block mb-1">Stok Awal</label>
+                                                <input type="number" step="any" placeholder="0" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-sm" />
                                             </div>
                                             <div>
-                                                <label className="text-xs font-bold text-gray-400 block mb-1">Harga / Satuan</label>
-                                                <input type="number" step="any" placeholder="Rp" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm" />
+                                                <label className="text-xs font-bold text-text-muted block mb-1">Harga / Satuan</label>
+                                                <input type="number" step="any" placeholder="Rp" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-sm" />
                                             </div>
                                         </div>
-                                        <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors text-sm sm:text-base">Simpan Bahan</button>
+                                        <button type="submit" disabled={loading} className="w-full py-3 bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover transition-colors text-sm sm:text-base">Simpan Bahan</button>
                                     </form>
                                     )}
                                 </div>
 
-                                <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden">
-                                    <div className="p-4 bg-gray-800/30 border-b border-gray-800 flex justify-between items-center cursor-pointer" onClick={() => setCollapseListMat(!collapseListMat)}>
-                                        <h3 className="font-bold text-gray-300">Daftar Bahan Baku</h3>
-                                        <button type="button" className="text-gray-400 hover:text-white transition-colors">{collapseListMat ? '+' : '−'}</button>
+                                <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+                                    <div className="p-4 bg-gray-800/30 border-b border-border flex justify-between items-center cursor-pointer" onClick={() => setCollapseListMat(!collapseListMat)}>
+                                        <h3 className="font-bold text-text-secondary">Daftar Bahan Baku</h3>
+                                        <button type="button" className="text-text-muted hover:text-text-primary transition-colors">{collapseListMat ? '+' : '−'}</button>
                                     </div>
                                     {!collapseListMat && (
                                     <div className="max-h-[300px] overflow-y-auto">
                                         {rawMaterials.length === 0 ? (
-                                            <p className="p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada bahan baku.</p>
+                                            <p className="p-4 md:p-6 text-text-muted text-center text-sm">Belum ada bahan baku.</p>
                                         ) : (
                                             <div className="overflow-x-auto w-full">
                                                 <table className="w-full text-left text-xs md:text-sm whitespace-nowrap min-w-max md:min-w-0 md:whitespace-normal">
                                                     <tbody>
                                                         {rawMaterials.map((mat: any) => (
-                                                            <tr key={mat.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
+                                                            <tr key={mat.id} className="border-b border-border hover:bg-gray-800/20 group">
                                                                 <td className="p-3 sm:p-4">
-                                                                    <div className="font-bold text-white">{mat.name}</div>
-                                                                    {mat.updated_by_name && <div className="text-[10px] text-blue-400 mt-1">Oleh: {mat.updated_by_name}</div>}
+                                                                    <div className="font-bold text-text-primary">{mat.name}</div>
+                                                                    {mat.updated_by_name && <div className="text-[10px] text-accent mt-1">Oleh: {mat.updated_by_name}</div>}
                                                                 </td>
                                                                 <td className="p-3 sm:p-4 text-center"><span className="px-2.5 py-1 bg-gray-800 rounded-lg text-xs sm:text-sm font-bold">{mat.current_stock} {mat.unit}</span></td>
                                                                 <td className="p-3 sm:p-4 text-right">
                                                                     <div className="flex gap-1 justify-end">
-                                                                        <button onClick={() => { setSelectedMaterial(mat); setStockAdjustment({ delta: 0, note: '', price: mat.last_price_per_unit }); }} className="px-2 py-1 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white font-bold transition-colors">+/- Stok</button>
+                                                                        <button onClick={() => { setSelectedMaterial(mat); setStockAdjustment({ delta: 0, note: '', price: mat.last_price_per_unit }); }} className="px-2 py-1 text-xs bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent hover:text-text-primary font-bold transition-colors">+/- Stok</button>
                                                                         {canEditRecord(mat.updated_by_name) && (
-                                                                            <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                            <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-text-primary font-bold transition-colors">Hapus</button>
                                                                         )}
                                                                     </div>
                                                                 </td>
@@ -1843,27 +1847,27 @@ export default function PosPage() {
                             </div>
 
                             <div className="space-y-6 sm:space-y-8">
-                                <div className="p-4 sm:p-6 bg-[#131B2C] rounded-2xl border border-gray-800 transition-all">
-                                    <div className="flex justify-between items-center mb-5 border-b border-gray-800 pb-3 cursor-pointer" onClick={() => setCollapseAddExp(!collapseAddExp)}>
+                                <div className="p-4 sm:p-6 bg-surface rounded-2xl border border-border transition-all">
+                                    <div className="flex justify-between items-center mb-5 border-b border-border pb-3 cursor-pointer" onClick={() => setCollapseAddExp(!collapseAddExp)}>
                                         <div className="flex items-center gap-3">
-                                            <h3 className="font-bold text-base sm:text-lg text-white">
+                                            <h3 className="font-bold text-base sm:text-lg text-text-primary">
                                                 {editingExpense ? 'Edit Pengeluaran' : 'Catat Pengeluaran Operasional'}
                                             </h3>
                                             {editingExpense && (
-                                                <button onClick={(e) => { e.stopPropagation(); setEditingExpense(null); setNewExpense({description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional'}); }} className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 bg-blue-500/10 rounded-md">Batal Edit</button>
+                                                <button onClick={(e) => { e.stopPropagation(); setEditingExpense(null); setNewExpense({description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional'}); }} className="text-xs text-accent hover:text-blue-300 px-2 py-1 bg-accent/10 rounded-md">Batal Edit</button>
                                             )}
                                         </div>
-                                        <button type="button" className="text-gray-400 hover:text-white transition-colors">{collapseAddExp ? '+' : '−'}</button>
+                                        <button type="button" className="text-text-muted hover:text-text-primary transition-colors">{collapseAddExp ? '+' : '−'}</button>
                                     </div>
                                     {!collapseAddExp && (
                                     <form onSubmit={editingExpense ? handleUpdateExpense : handleCreateExpense} className="space-y-4">
                                         <div className="flex flex-wrap gap-4 mb-2">
-                                            <label className="flex items-center gap-2 text-white cursor-pointer text-xs sm:text-sm">
-                                                <input type="radio" name="payment_method_pos" value="CASH" checked={newExpense.payment_method === 'CASH'} onChange={e => setNewExpense({...newExpense, payment_method: e.target.value})} className="w-4 h-4 text-blue-500" />
+                                            <label className="flex items-center gap-2 text-text-primary cursor-pointer text-xs sm:text-sm">
+                                                <input type="radio" name="payment_method_pos" value="CASH" checked={newExpense.payment_method === 'CASH'} onChange={e => setNewExpense({...newExpense, payment_method: e.target.value})} className="w-4 h-4 text-accent" />
                                                 <span>Uang Kasir (Cash)</span>
                                             </label>
-                                            <label className="flex items-center gap-2 text-white cursor-pointer text-xs sm:text-sm">
-                                                <input type="radio" name="payment_method_pos" value="QRIS" checked={newExpense.payment_method === 'QRIS'} onChange={e => setNewExpense({...newExpense, payment_method: e.target.value})} className="w-4 h-4 text-blue-500" />
+                                            <label className="flex items-center gap-2 text-text-primary cursor-pointer text-xs sm:text-sm">
+                                                <input type="radio" name="payment_method_pos" value="QRIS" checked={newExpense.payment_method === 'QRIS'} onChange={e => setNewExpense({...newExpense, payment_method: e.target.value})} className="w-4 h-4 text-accent" />
                                                 <span>Saldo Rekening (QRIS/Trf)</span>
                                             </label>
                                         </div>
@@ -1881,25 +1885,25 @@ export default function PosPage() {
 
                                             return (
                                                 <>
-                                                    <div className="flex gap-3 mb-2 p-1.5 sm:p-2 bg-gray-900 border border-gray-800 rounded-xl">
-                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'operasional' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'text-gray-400 hover:bg-gray-800'}`}>
+                                                    <div className="flex gap-3 mb-2 p-1.5 sm:p-2 bg-surface-hover border border-border rounded-xl">
+                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'operasional' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'text-text-muted hover:bg-gray-800'}`}>
                                                             <input type="radio" name="exp_category_pos" value="operasional" checked={currentCat === 'operasional'} onChange={() => setCat('operasional')} className="hidden" />
                                                             ⚙️ Operasional
                                                         </label>
-                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'bahan_baku' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'text-gray-400 hover:bg-gray-800'}`}>
+                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'bahan_baku' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'text-text-muted hover:bg-gray-800'}`}>
                                                             <input type="radio" name="exp_category_pos" value="bahan_baku" checked={currentCat === 'bahan_baku'} onChange={() => setCat('bahan_baku')} className="hidden" />
                                                             🧪 Bahan Baku
                                                         </label>
                                                     </div>
 
                                                     <div>
-                                                        <label className="text-xs font-bold text-gray-400 block mb-1">Deskripsi Pengeluaran</label>
-                                                        <input type="text" placeholder="Contoh: Beli Es Batu, Plastik..." required value={editingExpense ? editingExpense.description : newExpense.description} onChange={e => editingExpense ? setEditingExpense({...editingExpense, description: e.target.value}) : setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm" />
+                                                        <label className="text-xs font-bold text-text-muted block mb-1">Deskripsi Pengeluaran</label>
+                                                        <input type="text" placeholder="Contoh: Beli Es Batu, Plastik..." required value={editingExpense ? editingExpense.description : newExpense.description} onChange={e => editingExpense ? setEditingExpense({...editingExpense, description: e.target.value}) : setNewExpense({...newExpense, description: e.target.value})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-sm" />
                                                     </div>
 
                                                     <div>
-                                                        <label className="text-xs font-bold text-gray-400 block mb-1">Nominal (Rp)</label>
-                                                        <input type="number" placeholder="Rp" required value={editingExpense ? editingExpense.amount || '' : newExpense.amount || ''} onChange={e => editingExpense ? setEditingExpense({...editingExpense, amount: Number(e.target.value)}) : setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm" />
+                                                        <label className="text-xs font-bold text-text-muted block mb-1">Nominal (Rp)</label>
+                                                        <input type="number" placeholder="Rp" required value={editingExpense ? editingExpense.amount || '' : newExpense.amount || ''} onChange={e => editingExpense ? setEditingExpense({...editingExpense, amount: Number(e.target.value)}) : setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-sm" />
                                                     </div>
                                                     
                                                     {currentCat === 'bahan_baku' && (
@@ -1907,15 +1911,15 @@ export default function PosPage() {
                                                             <div className="flex justify-between items-center">
                                                                 <label className="text-xs font-bold text-green-400 block">Bahan Baku (Wajib)</label>
                                                                 {!editingExpense && !showInlineAddMaterial && (
-                                                                    <button type="button" onClick={() => setShowInlineAddMaterial(true)} className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded hover:bg-blue-500/20 transition-colors">+ Tambah Jenis Baru</button>
+                                                                    <button type="button" onClick={() => setShowInlineAddMaterial(true)} className="text-[10px] font-bold text-accent bg-accent/10 px-2.5 py-1 rounded hover:bg-accent-hover/20 transition-colors">+ Tambah Jenis Baru</button>
                                                                 )}
                                                             </div>
                                                             
                                                             {!editingExpense && showInlineAddMaterial && (
-                                                                <div className="p-3 bg-blue-900/10 border border-blue-500/20 rounded-xl mb-3 space-y-2">
-                                                                    <input type="text" placeholder="Nama Bahan Baru (Cth: Susu Oat)" value={inlineNewMaterial.name} onChange={e => setInlineNewMaterial({...inlineNewMaterial, name: e.target.value})} className="w-full p-2.5 text-sm bg-[#0B0F19] border border-gray-700 rounded-lg text-white outline-none" />
+                                                                <div className="p-3 bg-blue-900/10 border border-accent/20 rounded-xl mb-3 space-y-2">
+                                                                    <input type="text" placeholder="Nama Bahan Baru (Cth: Susu Oat)" value={inlineNewMaterial.name} onChange={e => setInlineNewMaterial({...inlineNewMaterial, name: e.target.value})} className="w-full p-2.5 text-sm bg-background border border-border rounded-lg text-text-primary outline-none" />
                                                                     <div className="flex flex-col sm:flex-row gap-2">
-                                                                        <select value={inlineNewMaterial.unit} onChange={e => setInlineNewMaterial({...inlineNewMaterial, unit: e.target.value})} className="flex-1 p-2.5 text-sm bg-[#0B0F19] border border-gray-700 rounded-lg text-white outline-none font-semibold">
+                                                                        <select value={inlineNewMaterial.unit} onChange={e => setInlineNewMaterial({...inlineNewMaterial, unit: e.target.value})} className="flex-1 p-2.5 text-sm bg-background border border-border rounded-lg text-text-primary outline-none font-semibold">
                                                                             <option value="g">Gram (g)</option>
                                                                             <option value="ml">Mililiter (ml)</option>
                                                                             <option value="pcs">Pieces (pcs)</option>
@@ -1927,8 +1931,8 @@ export default function PosPage() {
                                                                             <option value="kaleng">Kaleng</option>
                                                                         </select>
                                                                         <div className="flex gap-2 shrink-0">
-                                                                            <button type="button" onClick={handleInlineAddMaterial} className="flex-1 sm:flex-none px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-500">Simpan Bahan</button>
-                                                                            <button type="button" onClick={() => setShowInlineAddMaterial(false)} className="flex-1 sm:flex-none px-3 py-2 bg-gray-800 text-gray-400 text-xs font-bold rounded-lg hover:bg-gray-700">Batal</button>
+                                                                            <button type="button" onClick={handleInlineAddMaterial} className="flex-1 sm:flex-none px-3 py-2 bg-accent text-text-primary text-xs font-bold rounded-lg hover:bg-accent-hover">Simpan Bahan</button>
+                                                                            <button type="button" onClick={() => setShowInlineAddMaterial(false)} className="flex-1 sm:flex-none px-3 py-2 bg-gray-800 text-text-muted text-xs font-bold rounded-lg hover:bg-gray-700">Batal</button>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -1936,7 +1940,7 @@ export default function PosPage() {
 
                                                             <div className="space-y-3">
                                                                 <div>
-                                                                    <label className="text-xs font-bold text-gray-400 block mb-1">Pilih Bahan Baku</label>
+                                                                    <label className="text-xs font-bold text-text-muted block mb-1">Pilih Bahan Baku</label>
                                                                     <select 
                                                                         value={activeMaterialId} 
                                                                         onChange={e => {
@@ -1946,8 +1950,8 @@ export default function PosPage() {
                                                                             if (editingExpense) setEditingExpense({...editingExpense, material_id: mId, buy_unit: defUnit});
                                                                             else setNewExpense({...newExpense, material_id: mId, buy_unit: defUnit});
                                                                         }}
-                                                                        className={`w-full p-3 bg-gray-900 border rounded-xl focus:border-blue-500 outline-none text-white text-sm ${
-                                                                            !activeMaterialId ? 'border-red-500/50' : 'border-gray-800'
+                                                                        className={`w-full p-3 bg-surface-hover border rounded-xl focus:border-accent outline-none text-text-primary text-sm ${
+                                                                            !activeMaterialId ? 'border-red-500/50' : 'border-border'
                                                                         }`}
                                                                         required
                                                                     >
@@ -1960,7 +1964,7 @@ export default function PosPage() {
                                                                 
                                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                                     <div>
-                                                                        <label className="text-xs font-bold text-gray-400 block mb-1">Kuantitas Dibeli</label>
+                                                                        <label className="text-xs font-bold text-text-muted block mb-1">Kuantitas Dibeli</label>
                                                                         <input 
                                                                             type="number" 
                                                                             step="any"
@@ -1971,11 +1975,11 @@ export default function PosPage() {
                                                                                 if (editingExpense) setEditingExpense({...editingExpense, quantity: val});
                                                                                 else setNewExpense({...newExpense, quantity: val});
                                                                             }}
-                                                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm"
+                                                                            className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-sm"
                                                                         />
                                                                     </div>
                                                                     <div>
-                                                                        <label className="text-xs font-bold text-gray-400 block mb-1">Satuan Beli</label>
+                                                                        <label className="text-xs font-bold text-text-muted block mb-1">Satuan Beli</label>
                                                                         <select 
                                                                             value={activeBuyUnit} 
                                                                             onChange={e => {
@@ -1983,7 +1987,7 @@ export default function PosPage() {
                                                                                 if (editingExpense) setEditingExpense({...editingExpense, buy_unit: val});
                                                                                 else setNewExpense({...newExpense, buy_unit: val});
                                                                             }}
-                                                                            className="w-full p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white text-sm font-bold"
+                                                                            className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-sm font-bold"
                                                                         >
                                                                             <option value="kg">kg (kilogram)</option>
                                                                             <option value="g">gram (g)</option>
@@ -2029,17 +2033,17 @@ export default function PosPage() {
                                     )}
                                 </div>
 
-                                <div className="bg-[#131B2C] border border-gray-800 rounded-2xl overflow-hidden">
-                                    <div className="p-4 bg-gray-800/30 border-b border-gray-800 flex flex-col sm:flex-row gap-2 justify-between sm:items-center cursor-pointer" onClick={() => setCollapseListExp(!collapseListExp)}>
+                                <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+                                    <div className="p-4 bg-gray-800/30 border-b border-border flex flex-col sm:flex-row gap-2 justify-between sm:items-center cursor-pointer" onClick={() => setCollapseListExp(!collapseListExp)}>
                                         <div className="flex items-center gap-2">
-                                            <h3 className="font-bold text-gray-300">Riwayat Pengeluaran</h3>
-                                            <button type="button" className="text-gray-400 hover:text-white transition-colors">{collapseListExp ? '+' : '−'}</button>
+                                            <h3 className="font-bold text-text-secondary">Riwayat Pengeluaran</h3>
+                                            <button type="button" className="text-text-muted hover:text-text-primary transition-colors">{collapseListExp ? '+' : '−'}</button>
                                         </div>
-                                        <div className="flex gap-1 bg-gray-900 rounded-lg p-1 border border-gray-700" onClick={e => e.stopPropagation()}>
+                                        <div className="flex gap-1 bg-surface-hover rounded-lg p-1 border border-border" onClick={e => e.stopPropagation()}>
                                             {[{k:'all',l:'Semua'},{k:'bahan_baku',l:'🧪 Bahan'},{k:'operasional',l:'⚙️ Ops'}].map(f => (
                                                 <button key={f.k} type="button" onClick={() => setPosExpenseCategoryFilter(f.k as any)}
                                                     className={`px-2 py-0.5 rounded text-xs font-bold transition-all ${
-                                                        posExpenseCategoryFilter === f.k ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-white'
+                                                        posExpenseCategoryFilter === f.k ? 'bg-orange-500 text-text-primary' : 'text-text-muted hover:text-text-primary'
                                                     }`}>{f.l}</button>
                                             ))}
                                         </div>
@@ -2050,7 +2054,7 @@ export default function PosPage() {
                                             const getPosCategory = (e: any) => (e.category || (e.raw_material_id ? 'bahan_baku' : 'operasional')).toLowerCase();
                                             const filteredPosExpenses = expenses.filter(e => posExpenseCategoryFilter === 'all' || getPosCategory(e) === posExpenseCategoryFilter);
                                             return filteredPosExpenses.length === 0 ? (
-                                                <p className="p-4 md:p-6 text-gray-500 text-center text-sm">Belum ada pengeluaran dicatat.</p>
+                                                <p className="p-4 md:p-6 text-text-muted text-center text-sm">Belum ada pengeluaran dicatat.</p>
                                             ) : (
                                                 <div className="overflow-x-auto w-full">
                                                     <table className="w-full text-left text-xs md:text-sm whitespace-nowrap min-w-max md:min-w-0 md:whitespace-normal">
@@ -2058,10 +2062,10 @@ export default function PosPage() {
                                                             {filteredPosExpenses.map((exp: any) => {
                                                                 const isBahan = getPosCategory(exp) === 'bahan_baku';
                                                                 return (
-                                                                    <tr key={exp.id} className="border-b border-gray-800 hover:bg-gray-800/20 group">
+                                                                    <tr key={exp.id} className="border-b border-border hover:bg-gray-800/20 group">
                                                                         <td className="p-4">
-                                                                            <div className="font-bold text-white">{exp.description}</div>
-                                                                            <div className="text-[10px] text-gray-500 mt-1">{new Date(exp.expense_date || exp.created_at).toLocaleDateString('id-ID')} {new Date(exp.expense_date || exp.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</div>
+                                                                            <div className="font-bold text-text-primary">{exp.description}</div>
+                                                                            <div className="text-[10px] text-text-muted mt-1">{new Date(exp.expense_date || exp.created_at).toLocaleDateString('id-ID')} {new Date(exp.expense_date || exp.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</div>
                                                                         </td>
                                                                         <td className="p-4 text-center">
                                                                             <span className={`px-2 py-1 rounded-md text-[10px] font-bold border ${
@@ -2074,9 +2078,9 @@ export default function PosPage() {
                                                                         </td>
                                                                         <td className="p-4 text-center">
                                                                             {exp.staff_name ? (
-                                                                                <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold border border-blue-500/20">{exp.staff_name}</span>
+                                                                                <span className="px-2 py-1 bg-accent/10 text-accent rounded-md text-[10px] font-bold border border-accent/20">{exp.staff_name}</span>
                                                                             ) : (
-                                                                                <span className="px-2 py-1 bg-gray-800 text-gray-400 rounded-md text-[10px] border border-gray-700">Owner</span>
+                                                                                <span className="px-2 py-1 bg-gray-800 text-text-muted rounded-md text-[10px] border border-border">Owner</span>
                                                                             )}
                                                                         </td>
                                                                         <td className="p-4 text-right text-orange-400 font-bold">
@@ -2097,11 +2101,11 @@ export default function PosPage() {
                                                                                                 description: cleanExpenseDescription(exp.description)
                                                                                             });
                                                                                         }} 
-                                                                                        className="px-2 py-1 text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md hover:bg-blue-600 hover:text-white font-bold transition-colors"
+                                                                                        className="px-2 py-1 text-[10px] bg-accent/10 text-accent border border-accent/20 rounded-md hover:bg-accent hover:text-text-primary font-bold transition-colors"
                                                                                     >
                                                                                         Edit
                                                                                     </button>
-                                                                                    <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 rounded-md hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                                    <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 rounded-md hover:bg-red-600 hover:text-text-primary font-bold transition-colors">Hapus</button>
                                                                                 </div>
                                                                             )}
                                                                         </td>
@@ -2125,28 +2129,28 @@ export default function PosPage() {
             {/* Adjust Material Stock Modal */}
             {selectedMaterial && (
                 <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-[200] p-4 overflow-y-auto backdrop-blur-md">
-                    <div className="bg-[#131B2C] border border-gray-800 p-4 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl mt-16 mb-16">
-                        <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
+                    <div className="bg-surface border border-border p-4 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl mt-16 mb-16">
+                        <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
                             <div>
-                                <h3 className="font-bold text-lg md:text-xl text-white">Update Stok Bahan</h3>
-                                <p className="text-gray-400 font-bold mt-1">{selectedMaterial.name}</p>
+                                <h3 className="font-bold text-lg md:text-xl text-text-primary">Update Stok Bahan</h3>
+                                <p className="text-text-muted font-bold mt-1">{selectedMaterial.name}</p>
                             </div>
-                            <span className="text-sm bg-gray-800 px-3 py-1.5 rounded-lg text-gray-300 font-bold">Stok: {selectedMaterial.current_stock} {selectedMaterial.unit}</span>
+                            <span className="text-sm bg-gray-800 px-3 py-1.5 rounded-lg text-text-secondary font-bold">Stok: {selectedMaterial.current_stock} {selectedMaterial.unit}</span>
                         </div>
                         <form onSubmit={handleAdjustStock} className="space-y-4 md:space-y-5">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                                 <div>
-                                    <label className="text-xs md:text-sm font-bold text-gray-400 block mb-2">Penambahan / Pengurangan</label>
+                                    <label className="text-xs md:text-sm font-bold text-text-muted block mb-2">Penambahan / Pengurangan</label>
                                     <div className="flex items-center gap-2">
-                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) - 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xl md:text-2xl font-black border border-gray-700">-</button>
-                                        <input type="number" step="any" className="flex-1 min-w-0 w-full text-center bg-gray-900 border border-gray-800 rounded-xl py-2 md:py-3 text-white font-bold text-base md:text-lg outline-none focus:border-blue-500" value={stockAdjustment.delta || ''} onChange={e => setStockAdjustment({...stockAdjustment, delta: Number(e.target.value) || 0})} placeholder="0" />
-                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) + 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xl md:text-2xl font-black border border-gray-700">+</button>
+                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) - 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-text-primary rounded-xl text-xl md:text-2xl font-bold border border-border">-</button>
+                                        <input type="number" step="any" className="flex-1 min-w-0 w-full text-center bg-surface-hover border border-border rounded-xl py-2 md:py-3 text-text-primary font-bold text-base md:text-lg outline-none focus:border-accent" value={stockAdjustment.delta || ''} onChange={e => setStockAdjustment({...stockAdjustment, delta: Number(e.target.value) || 0})} placeholder="0" />
+                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) + 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-text-primary rounded-xl text-xl md:text-2xl font-bold border border-border">+</button>
                                         
                                         {/* UNIT SELECTOR */}
                                         <select 
                                             value={stockAdjustment.unit || selectedMaterial.unit} 
                                             onChange={e => setStockAdjustment({...stockAdjustment, unit: e.target.value})}
-                                            className="w-28 p-2 md:p-3 bg-gray-900 border border-gray-800 rounded-xl text-white font-bold text-xs md:text-sm outline-none focus:border-blue-500 h-10 md:h-12"
+                                            className="w-28 p-2 md:p-3 bg-surface-hover border border-border rounded-xl text-text-primary font-bold text-xs md:text-sm outline-none focus:border-accent h-10 md:h-12"
                                         >
                                             {(selectedMaterial.unit === 'g' || selectedMaterial.unit === 'gr') && (
                                                 <>
@@ -2183,8 +2187,8 @@ export default function PosPage() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="text-xs md:text-sm font-bold text-gray-400 block mb-2">Harga Beli Total (Opsional)</label>
-                                    <input type="number" placeholder="Bila kosong = harga lama" value={stockAdjustment.price || ''} onChange={e => setStockAdjustment({...stockAdjustment, price: Number(e.target.value)})} className="w-full p-2 md:p-3 bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white h-10 md:h-12 text-sm" />
+                                    <label className="text-xs md:text-sm font-bold text-text-muted block mb-2">Harga Beli Total (Opsional)</label>
+                                    <input type="number" placeholder="Bila kosong = harga lama" value={stockAdjustment.price || ''} onChange={e => setStockAdjustment({...stockAdjustment, price: Number(e.target.value)})} className="w-full p-2 md:p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary h-10 md:h-12 text-sm" />
                                 </div>
                             </div>
 
@@ -2197,13 +2201,13 @@ export default function PosPage() {
                                 const effDelta = (Number(stockAdjustment.delta) || 0) * mult;
                                 const finalStock = Number(selectedMaterial.current_stock) + effDelta;
                                 return (
-                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-xs text-blue-300 flex flex-col gap-1.5">
+                                    <div className="bg-accent/10 border border-accent/20 rounded-xl p-3 text-xs text-blue-300 flex flex-col gap-1.5">
                                         <div className="flex justify-between items-center">
                                             <span>Perubahan Stok: <b className={effDelta >= 0 ? 'text-green-400' : 'text-red-400'}>{effDelta >= 0 ? `+${effDelta.toLocaleString('id-ID')}` : effDelta.toLocaleString('id-ID')} {selectedMaterial.unit}</b></span>
-                                            <span>Stok Akhir: <b className="text-white">{finalStock.toLocaleString('id-ID')} {selectedMaterial.unit}</b></span>
+                                            <span>Stok Akhir: <b className="text-text-primary">{finalStock.toLocaleString('id-ID')} {selectedMaterial.unit}</b></span>
                                         </div>
                                         {stockAdjustment.price > 0 && (
-                                            <div className="text-[11px] text-green-300 border-t border-blue-500/20 pt-1">
+                                            <div className="text-[11px] text-green-300 border-t border-accent/20 pt-1">
                                                 💡 Harga Baru per {selectedMaterial.unit}: <b>Rp {((mult > 1 ? (Number(stockAdjustment.price) / (Math.abs(effDelta) || 1)) : Number(stockAdjustment.price))).toLocaleString('id-ID', { maximumFractionDigits: 2 })} / {selectedMaterial.unit}</b>
                                             </div>
                                         )}
@@ -2212,13 +2216,13 @@ export default function PosPage() {
                             })()}
 
                             <div>
-                                <label className="text-xs md:text-sm font-bold text-gray-400 block mb-1 md:mb-2">Keterangan Aktivitas</label>
-                                <input type="text" placeholder="Contoh: Beli bahan baru, terpakai tester..." required value={stockAdjustment.note || ''} onChange={e => setStockAdjustment({...stockAdjustment, note: e.target.value})} className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-900 border border-gray-800 rounded-xl focus:border-blue-500 outline-none text-white" />
+                                <label className="text-xs md:text-sm font-bold text-text-muted block mb-1 md:mb-2">Keterangan Aktivitas</label>
+                                <input type="text" placeholder="Contoh: Beli bahan baru, terpakai tester..." required value={stockAdjustment.note || ''} onChange={e => setStockAdjustment({...stockAdjustment, note: e.target.value})} className="w-full p-2 md:p-3 text-sm md:text-base bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary" />
                             </div>
-                            <p className="text-xs text-gray-500">💡 <b>Tip:</b> Anda bisa langsung mengetik jumlah di kotak angka. Gunakan angka minus (-) jika bahan terpakai/dibuang.</p>
-                            <div className="flex gap-4 mt-6 pt-4 border-t border-gray-800">
-                                <button type="button" onClick={() => setSelectedMaterial(null)} className="flex-1 py-2 md:py-3 text-sm md:text-base bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-colors">Batal</button>
-                                <button type="submit" disabled={loading} className="flex-1 py-2 md:py-3 text-sm md:text-base bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors">Simpan Stok</button>
+                            <p className="text-xs text-text-muted">💡 <b>Tip:</b> Anda bisa langsung mengetik jumlah di kotak angka. Gunakan angka minus (-) jika bahan terpakai/dibuang.</p>
+                            <div className="flex gap-4 mt-6 pt-4 border-t border-border">
+                                <button type="button" onClick={() => setSelectedMaterial(null)} className="flex-1 py-2 md:py-3 text-sm md:text-base bg-gray-800 text-text-secondary rounded-xl font-bold hover:bg-gray-700 transition-colors">Batal</button>
+                                <button type="submit" disabled={loading} className="flex-1 py-2 md:py-3 text-sm md:text-base bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover transition-colors">Simpan Stok</button>
                             </div>
                         </form>
                     </div>
@@ -2228,20 +2232,20 @@ export default function PosPage() {
             {/* PRODUCT OPTIONS & ADD-ON MODAL */}
             {showOptionsModal && selectedProductForOptions && (
                 <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 backdrop-blur-sm overflow-y-auto">
-                    <div className="bg-[#1a1a1c] p-6 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-800 relative max-h-[90vh] flex flex-col mt-16 mb-16">
-                        <div className="flex justify-between items-start mb-4 pb-3 border-b border-gray-800">
+                    <div className="bg-surface p-6 rounded-3xl w-full max-w-lg shadow-2xl border border-border relative max-h-[90vh] flex flex-col mt-16 mb-16">
+                        <div className="flex justify-between items-start mb-4 pb-3 border-b border-border">
                             <div>
-                                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
                                     <span>{selectedProductForOptions.image_icon || '☕'}</span>
                                     <span>{selectedProductForOptions.name}</span>
                                 </h2>
-                                <p className="text-gray-400 text-xs mt-1">
-                                    Harga Dasar: <span className="text-blue-400 font-semibold">Rp {Number(selectedProductForOptions.price).toLocaleString('id-ID')}</span>
+                                <p className="text-text-muted text-xs mt-1">
+                                    Harga Dasar: <span className="text-accent font-semibold">Rp {Number(selectedProductForOptions.price).toLocaleString('id-ID')}</span>
                                 </p>
                             </div>
                             <button 
                                 onClick={() => setShowOptionsModal(false)} 
-                                className="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 flex items-center justify-center font-bold text-sm transition-colors"
+                                className="w-8 h-8 rounded-full bg-gray-800 text-text-muted hover:text-text-primary hover:bg-gray-700 flex items-center justify-center font-bold text-sm transition-colors"
                             >
                                 ✕
                             </button>
@@ -2252,15 +2256,15 @@ export default function PosPage() {
                                 const isMulti = cat.type === 'multiple';
                                 const currentVal = selectedOptions[cat.name];
                                 return (
-                                    <div key={i} className="bg-gray-900/60 p-4 rounded-2xl border border-gray-800/80">
+                                    <div key={i} className="bg-surface-hover/60 p-4 rounded-2xl border border-border/80">
                                         <div className="flex justify-between items-center mb-3">
-                                            <h3 className="font-bold text-sm text-gray-200 flex items-center gap-2">
+                                            <h3 className="font-bold text-sm text-text-secondary flex items-center gap-2">
                                                 <span>{cat.name}</span>
                                                 {cat.is_required && (
                                                     <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold">Wajib</span>
                                                 )}
                                             </h3>
-                                            <span className="text-[11px] text-gray-500 font-medium">
+                                            <span className="text-[11px] text-text-muted font-medium">
                                                 {isMulti ? 'Bisa pilih lebih dari 1' : 'Pilih salah satu'}
                                             </span>
                                         </div>
@@ -2292,13 +2296,13 @@ export default function PosPage() {
                                                         onClick={handleToggle}
                                                         className={`flex items-center justify-between p-3 rounded-xl cursor-pointer border transition-all select-none ${
                                                             isSelected 
-                                                                ? 'bg-blue-600/20 border-blue-500 text-white shadow-sm ring-1 ring-blue-500/30' 
-                                                                : 'bg-gray-800/60 border-gray-700/60 text-gray-300 hover:border-gray-600 hover:bg-gray-800'
+                                                                ? 'bg-accent/20 border-accent text-text-primary shadow-sm ring-1 ring-accent/30' 
+                                                                : 'bg-gray-800/60 border-border/60 text-text-secondary hover:border-gray-600 hover:bg-gray-800'
                                                         }`}
                                                     >
                                                         <div className="flex items-center gap-2.5">
                                                             <div className={`w-4 h-4 rounded-${isMulti ? 'md' : 'full'} border flex items-center justify-center text-[10px] transition-colors ${
-                                                                isSelected ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-600 bg-gray-900'
+                                                                isSelected ? 'border-accent bg-accent text-text-primary' : 'border-gray-600 bg-surface-hover'
                                                             }`}>
                                                                 {isSelected && (isMulti ? '✓' : '•')}
                                                             </div>
@@ -2306,7 +2310,7 @@ export default function PosPage() {
                                                         </div>
                                                         {Number(choice.price_adjustment) > 0 && (
                                                             <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
-                                                                isSelected ? 'bg-blue-500/30 text-blue-300' : 'bg-gray-700/60 text-blue-400'
+                                                                isSelected ? 'bg-accent/30 text-blue-300' : 'bg-gray-700/60 text-accent'
                                                             }`}>
                                                                 +Rp {Number(choice.price_adjustment).toLocaleString('id-ID')}
                                                             </span>
@@ -2321,10 +2325,10 @@ export default function PosPage() {
                         </div>
                         
                         {/* Modal Footer with Dynamic Total Price */}
-                        <div className="mt-5 pt-4 border-t border-gray-800 flex items-center justify-between gap-4">
+                        <div className="mt-5 pt-4 border-t border-border flex items-center justify-between gap-4">
                             <div>
-                                <span className="text-xs text-gray-500 block">Total per Porsi</span>
-                                <span className="text-xl font-black text-blue-400">
+                                <span className="text-xs text-text-muted block">Total per Porsi</span>
+                                <span className="text-xl font-bold text-accent">
                                     Rp {(() => {
                                         let total = Number(selectedProductForOptions.price) || 0;
                                         Object.values(selectedOptions).forEach((val: any) => {
@@ -2344,7 +2348,7 @@ export default function PosPage() {
                                     addToCart(selectedProductForOptions, selectedOptions);
                                     setShowOptionsModal(false);
                                 }}
-                                className="flex-1 py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition-all text-sm flex items-center justify-center gap-2"
+                                className="flex-1 py-3 px-6 bg-accent hover:bg-accent-hover text-text-primary font-bold rounded-xl shadow-soft transition-all text-sm flex items-center justify-center gap-2"
                             >
                                 + Tambahkan ke Pesanan
                             </button>
@@ -2356,13 +2360,13 @@ export default function PosPage() {
             {isMobileDraftOpen && (
                 <div className="fixed inset-0 z-[60] sm:hidden flex flex-col justify-end">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileDraftOpen(false)}></div>
-                    <div className="relative bg-[#1a1a1c] w-full h-[75vh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] flex flex-col">
+                    <div className="relative bg-surface w-full h-[75vh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] flex flex-col">
                         <div className="w-full flex justify-center pt-3 pb-1 cursor-pointer" onClick={() => setIsMobileDraftOpen(false)}>
                             <div className="w-12 h-1.5 bg-gray-600 rounded-full"></div>
                         </div>
-                        <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-[#1a1a1c]">
-                            <h2 className="font-bold text-white text-lg">Daftar Antrean & Draft</h2>
-                            <button onClick={() => setIsMobileDraftOpen(false)} className="text-gray-400 hover:text-white p-2 bg-gray-800 rounded-lg">
+                        <div className="p-4 border-b border-border flex justify-between items-center bg-surface">
+                            <h2 className="font-bold text-text-primary text-lg">Daftar Antrean & Draft</h2>
+                            <button onClick={() => setIsMobileDraftOpen(false)} className="text-text-muted hover:text-text-primary p-2 bg-gray-800 rounded-lg">
                                 &#10005;
                             </button>
                         </div>
@@ -2379,14 +2383,14 @@ export default function PosPage() {
                                                         loadCustomerOrder(order, pendingOrders.findIndex((p: any) => p.id === order.id));
                                                         setIsMobileDraftOpen(false);
                                                     }}
-                                                    className="w-full h-full bg-gradient-to-br from-orange-500/20 to-red-500/20 px-4 py-3 rounded-xl border border-orange-500/40 text-white font-bold text-left flex flex-col relative overflow-hidden"
+                                                    className="w-full h-full bg-gradient-to-br from-orange-500/20 to-red-500/20 px-4 py-3 rounded-xl border border-orange-500/40 text-text-primary font-bold text-left flex flex-col relative overflow-hidden"
                                                 >
                                                     <span className="text-orange-400 text-xs mb-1">{order.queue_number || order.id}</span>
                                                     <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
                                                 </button>
                                                 <button
                                                     onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
-                                                    className="absolute -top-2 -right-2 bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-lg"
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-text-primary w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-soft"
                                                 >
                                                     &#10005;
                                                 </button>
@@ -2397,8 +2401,8 @@ export default function PosPage() {
                             )}
                             {/* DRAFT ORDERS NOTIFICATION */}
                             {pendingOrders.filter((o: any) => o.status === 'draft').length > 0 && (
-                                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
-                                    <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">📝 Draft Tersimpan</h3>
+                                <div className="p-4 bg-accent/10 border border-accent/20 rounded-2xl">
+                                    <h3 className="font-bold text-accent mb-3 flex items-center gap-2">📝 Draft Tersimpan</h3>
                                     <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
                                         {pendingOrders.filter((o: any) => o.status === 'draft').map((order: any, idx: number) => (
                                             <div key={order.id} className="relative group flex-shrink-0 min-w-[140px]">
@@ -2407,14 +2411,14 @@ export default function PosPage() {
                                                         loadCustomerOrder(order, pendingOrders.findIndex((p: any) => p.id === order.id));
                                                         setIsMobileDraftOpen(false);
                                                     }}
-                                                    className="w-full h-full bg-[#121214] px-4 py-3 rounded-xl border border-blue-500/20 text-white font-bold text-left flex flex-col"
+                                                    className="w-full h-full bg-background px-4 py-3 rounded-xl border border-accent/20 text-text-primary font-bold text-left flex flex-col"
                                                 >
-                                                    <span className="text-blue-400 text-xs mb-1">{order.queue_number || order.id}</span>
+                                                    <span className="text-accent text-xs mb-1">{order.queue_number || order.id}</span>
                                                     <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
                                                 </button>
                                                 <button
                                                     onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
-                                                    className="absolute -top-2 -right-2 bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-lg"
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-text-primary w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-soft"
                                                 >
                                                     &#10005;
                                                 </button>
@@ -2424,7 +2428,7 @@ export default function PosPage() {
                                 </div>
                             )}
                             {pendingOrders.length === 0 && (
-                                <div className="text-center text-gray-500 py-10">Tidak ada antrean atau draft.</div>
+                                <div className="text-center text-text-muted py-10">Tidak ada antrean atau draft.</div>
                             )}
                         </div>
                     </div>
@@ -2438,7 +2442,7 @@ export default function PosPage() {
                     {pendingOrders.length > 0 && !isMobileCartOpen && !isMobileDraftOpen && (
                         <button
                             onClick={() => setIsMobileDraftOpen(true)}
-                            className="bg-gray-800 border border-gray-700 text-gray-200 shadow-lg px-4 py-3.5 rounded-full font-bold flex items-center gap-2 transition-transform relative"
+                            className="bg-gray-800 border border-border text-text-secondary shadow-soft px-4 py-3.5 rounded-full font-bold flex items-center gap-2 transition-transform relative"
                         >
                             <span className="absolute -top-1 -right-1 flex h-3 w-3">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
@@ -2454,12 +2458,12 @@ export default function PosPage() {
                     {!isMobileCartOpen && (
                         <button
                             onClick={() => setIsMobileCartOpen(true)}
-                            className="bg-blue-600 hover:bg-blue-500 text-white shadow-[0_10px_40px_rgba(37,99,235,0.5)] px-6 py-3.5 rounded-full font-bold flex items-center gap-3 transition-transform"
+                            className="bg-accent hover:bg-accent-hover text-text-primary shadow-[0_10px_40px_rgba(37,99,235,0.5)] px-6 py-3.5 rounded-full font-bold flex items-center gap-3 transition-transform"
                         >
                             <ShoppingCart className="w-5 h-5" />
                             <span>Lihat Pesanan</span>
                             {cart.reduce((sum, item) => sum + item.qty, 0) > 0 && (
-                                <span className="bg-white text-blue-600 px-2.5 py-0.5 rounded-full text-xs font-black">
+                                <span className="bg-white text-blue-600 px-2.5 py-0.5 rounded-full text-xs font-bold">
                                     {cart.reduce((sum, item) => sum + item.qty, 0)} item
                                 </span>
                             )}

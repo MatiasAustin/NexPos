@@ -200,16 +200,16 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
     };
 
     return (
-        <div className="bg-[#131B2C] border border-gray-800 rounded-2xl p-6 shadow-xl">
+        <div className="bg-surface border border-border rounded-2xl p-6 shadow-xl">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
-                    <h3 className="font-bold text-xl text-white">Dashboard Keuangan</h3>
-                    <p className="text-sm text-gray-400 mt-1">{periodLabel}</p>
+                    <h3 className="font-bold text-xl text-text-primary">Dashboard Keuangan</h3>
+                    <p className="text-sm text-text-muted mt-1">{periodLabel}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <button
                         onClick={exportCSV}
-                        className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-500 flex items-center gap-1"
+                        className="px-4 py-2 bg-green-600 text-text-primary rounded-xl text-sm font-bold hover:bg-green-500 flex items-center gap-1"
                     >
                         Export CSV
                     </button>
@@ -217,9 +217,9 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
             </div>
 
             {loading ? (
-                <div className="h-64 flex items-center justify-center text-gray-500">Memuat data...</div>
+                <div className="h-64 flex items-center justify-center text-text-muted">Memuat data...</div>
             ) : chartData.length === 0 ? (
-                <div className="h-64 flex flex-col items-center justify-center text-gray-500 gap-2">
+                <div className="h-64 flex flex-col items-center justify-center text-text-muted gap-2">
                     <p className="text-lg font-semibold">Belum ada data transaksi</p>
                 </div>
             ) : (
@@ -233,8 +233,8 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
                                 const { active, payload, label } = props;
                                 if (active && payload && payload.length) {
                                     return (
-                                        <div className="bg-[#131B2C] border border-gray-800 rounded-xl p-3 shadow-xl">
-                                            <p className="text-gray-300 font-bold mb-2">{label}</p>
+                                        <div className="bg-surface border border-border rounded-xl p-3 shadow-xl">
+                                            <p className="text-text-secondary font-bold mb-2">{label}</p>
                                             {payload.map((entry: any, index: number) => {
                                                 const val = Number(entry.value) || 0;
                                                 const isLaba = entry.dataKey === 'laba';
@@ -242,7 +242,7 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
                                                 return (
                                                     <div key={index} className="flex justify-between gap-4 text-sm mb-1">
                                                         <span style={{ color }}>{entry.name}:</span>
-                                                        <span className="font-bold text-white">{formatRupiah(val)}</span>
+                                                        <span className="font-bold text-text-primary">{formatRupiah(val)}</span>
                                                     </div>
                                                 );
                                             })}
@@ -263,29 +263,29 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
 
             {!loading && (
                 <>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-800">
-                        <div className="text-center border-b md:border-b-0 md:border-r border-gray-800 pb-4 md:pb-0">
-                            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Total Omset</p>
-                            <p className="text-sm md:text-lg font-extrabold text-blue-400">{formatRupiah(totals.omset)}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-border">
+                        <div className="text-center border-b md:border-b-0 md:border-r border-border pb-4 md:pb-0">
+                            <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Total Omset</p>
+                            <p className="text-sm md:text-lg font-extrabold text-accent">{formatRupiah(totals.omset)}</p>
                         </div>
-                        <div className="text-center border-b md:border-b-0 md:border-r border-gray-800 pb-4 md:pb-0">
-                            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Total HPP</p>
+                        <div className="text-center border-b md:border-b-0 md:border-r border-border pb-4 md:pb-0">
+                            <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Total HPP</p>
                             <p className="text-sm md:text-lg font-extrabold text-amber-400">{formatRupiah(totals.hpp)}</p>
                         </div>
-                        <div className="text-center md:border-r border-gray-800">
-                            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Total Pengeluaran</p>
+                        <div className="text-center md:border-r border-border">
+                            <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Total Pengeluaran</p>
                             <p className="text-sm md:text-lg font-extrabold text-red-400">{formatRupiah(totals.pengeluaranOp)}</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Laba Bersih</p>
+                            <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Laba Bersih</p>
                             <p className={`text-sm md:text-lg font-extrabold ${totals.laba >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                                 {formatRupiah(totals.laba)}
                             </p>
                         </div>
                     </div>
-                    <div className="mt-4 text-[10px] md:text-xs text-gray-500 text-center px-4">
-                        <p>* <strong className="text-gray-400">Total HPP</strong> adalah hitungan kasar estimasi modal bahan baku.</p>
-                        <p>* <strong className="text-gray-400">Laba Bersih</strong> adalah hasil pengurangan <strong className="text-gray-400">Total Omset</strong> dengan <strong className="text-gray-400">Total Pengeluaran</strong> riil (operasional) yang diinput kasir.</p>
+                    <div className="mt-4 text-[10px] md:text-xs text-text-muted text-center px-4">
+                        <p>* <strong className="text-text-muted">Total HPP</strong> adalah hitungan kasar estimasi modal bahan baku.</p>
+                        <p>* <strong className="text-text-muted">Laba Bersih</strong> adalah hasil pengurangan <strong className="text-text-muted">Total Omset</strong> dengan <strong className="text-text-muted">Total Pengeluaran</strong> riil (operasional) yang diinput kasir.</p>
                     </div>
                 </>
             )}
