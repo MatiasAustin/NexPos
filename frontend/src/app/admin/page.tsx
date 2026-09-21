@@ -375,7 +375,11 @@ export default function AdminDashboard() {
                 setRawMaterials(matRes.data || []);
                 setMaterialStockLogs(logRes.data || []);
             } else if (activeTab === "cash_sessions") {
-                const { data } = await supabase.from('cash_sessions').select('*, staff_profiles(full_name)').order('created_at', { ascending: false });
+                const { data, error } = await supabase.from('cash_sessions').select('*, staff_profiles(full_name)').order('created_at', { ascending: false });
+                if (error) {
+                    console.error("CASH SESSIONS ERROR:", error);
+                    toast.error("Gagal memuat riwayat shift: " + error.message);
+                }
                 if (data) setCashSessions(data.map((s: any) => ({ ...s, staff_name: s.staff_profiles?.full_name })));
             } else if (activeTab === "expenses") {
                 const [expRes, matRes, logRes] = await Promise.all([

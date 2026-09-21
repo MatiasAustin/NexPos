@@ -214,28 +214,32 @@ export default function PosPage() {
 
         setLoading(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/open`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    staffId: activeStaffId,
-                    terminalId: "TERM-01",
-                    openingCash: Number(openingCash)
-                })
-            });
-            if (res.ok) {
-                const sess = await res.json();
-                setSessionId(sess.id);
-                setSessionData({...sess, total_expense: 0});
+            // Bypass Vercel API for Multitenant compatibility
+            const { data: sessData, error } = await supabase.from('cash_sessions').insert([{
+                staff_id: activeStaffId,
+                terminal_id: "TERM-01",
+                opening_cash: Number(openingCash),
+                expected_cash: Number(openingCash),
+                status: 'open',
+                opened_at: new Date().toISOString()
+            }]).select().single();
+
+            if (error) throw error;
+
+            if (sessData) {
+                setSessionId(sessData.id);
+                setSessionData({ ...sessData, total_expense: 0 });
                 // Also update the local 'staff' state so the header shows the selected person
                 const selectedProfile = allStaff.find(s => s.id === activeStaffId);
                 if (selectedProfile) setStaff(selectedProfile);
                 setHasSession(true);
+                toast.success("Shift kasir berhasil dibuka.");
             } else {
                 toast.error("Gagal membuka shift kasir.");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error opening session:", error);
+            toast.error("Gagal membuka shift: " + error.message);
         }
         setLoading(false);
     };
@@ -254,27 +258,24 @@ export default function PosPage() {
         if (!actualCashInput) return;
         setLoading(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/close`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sessionId: sessionId,
-                    actualCash: Number(actualCashInput),
-                    discrepancyReason: "Ditutup manual oleh kasir" // Default reason for demo
-                })
-            });
-            if (res.ok) {
-                toast.success("Shift berhasil ditutup.");
-                setHasSession(false);
-                setSessionId(null);
-                setOpeningCash("");
-                setShowCloseShiftModal(false);
-            } else {
-                const err = await res.json();
-                toast.error(`Gagal menutup shift: ${err.error}`);
-            }
-        } catch (error) {
+            // Bypass Vercel API for Multitenant compatibility
+            const { error } = await supabase.from('cash_sessions').update({
+                status: 'closed',
+                closed_at: new Date().toISOString(),
+                actual_cash: Number(actualCashInput),
+                discrepancy_reason: "Ditutup manual oleh kasir"
+            }).eq('id', sessionId);
+
+            if (error) throw error;
+
+            toast.success("Shift berhasil ditutup.");
+            setHasSession(false);
+            setSessionId(null);
+            setOpeningCash("");
+            setShowCloseShiftModal(false);
+        } catch (error: any) {
             console.error(error);
+            toast.error(`Gagal menutup shift: ${error.message}`);
         }
         setLoading(false);
     };
