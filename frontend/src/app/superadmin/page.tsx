@@ -202,7 +202,7 @@ export default function SuperAdminPage() {
                             <ShieldAlert className="w-7 h-7 text-text-primary" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-text-primary">SaaS Backoffice</h1>
+                            <h1 className="text-lg font-semibold text-text-primary">SaaS Backoffice</h1>
                             <p className="text-sm text-text-muted">Manajemen Tenant & Subscription NexPos</p>
                         </div>
                     </div>
@@ -272,7 +272,7 @@ export default function SuperAdminPage() {
                                 </h2>
                                 <button 
                                     onClick={() => toast.info("Gunakan halaman /signup untuk registrasi tenant baru. Fitur input manual akan segera datang.")}
-                                    className="px-4 py-2 bg-accent hover:bg-blue-500 text-text-primary rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-900/20"
+                                    className="px-4 py-2 bg-accent hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-900/20"
                                 >
                                     + Tambah Tenant Manual
                                 </button>
@@ -341,7 +341,7 @@ export default function SuperAdminPage() {
 
                 {activeTab === 'settings' && (
                     <div className="bg-surface border border-border rounded-3xl p-6 md:p-10 shadow-xl max-w-4xl">
-                        <h2 className="text-2xl font-bold text-text-primary mb-2">Pengaturan Aplikasi SaaS</h2>
+                        <h2 className="text-lg font-semibold text-text-primary mb-2">Pengaturan Aplikasi SaaS</h2>
                         <p className="text-text-muted mb-8">Ubah identitas aplikasi secara global yang akan dilihat oleh seluruh tenant.</p>
                         
                         <form onSubmit={handleSaveSaasSettings} className="space-y-6">
@@ -389,7 +389,7 @@ export default function SuperAdminPage() {
                                                 </div>
                                             ) : (
                                                 <div className="w-16 h-16 bg-surface-hover rounded-2xl flex items-center justify-center mb-4">
-                                                    <span className="text-text-muted text-2xl font-bold">N</span>
+                                                    <span className="text-text-muted text-lg font-semibold">N</span>
                                                 </div>
                                             )}
                                             <p className="text-text-muted text-sm mt-4 text-center">
@@ -459,7 +459,7 @@ export default function SuperAdminPage() {
                             </div>
                             
                             <div className="pt-8 border-t border-border flex justify-end">
-                                <button type="submit" disabled={savingSettings} className="px-8 py-3 bg-accent hover:bg-blue-500 text-text-primary font-bold rounded-xl transition-colors disabled:opacity-50">
+                                <button type="submit" disabled={savingSettings} className="px-8 py-3 bg-accent hover:bg-blue-500 text-white font-bold rounded-xl transition-colors disabled:opacity-50">
                                     {savingSettings ? "Menyimpan..." : "Simpan Pengaturan"}
                                 </button>
                             </div>
@@ -472,7 +472,7 @@ export default function SuperAdminPage() {
             {/* Modal Edit */}
             {selectedStore && (
                 <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-                    <div className="bg-surface border border-border rounded-3xl p-6 max-w-md w-full shadow-2xl">
+                    <div className="bg-surface border border-border rounded-3xl p-6 max-w-md w-full shadow-md">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-text-primary">Kelola Tenant</h2>
                             <button onClick={() => setSelectedStore(null)} className="text-text-muted hover:text-text-primary">✕</button>
@@ -507,7 +507,7 @@ export default function SuperAdminPage() {
                             
                             <div className="flex gap-4 mt-8 pt-4 border-t border-border">
                                 <button type="button" onClick={() => setSelectedStore(null)} className="flex-1 py-3 bg-surface-hover hover:bg-border text-text-primary font-bold rounded-xl transition-colors">Batal</button>
-                                <button type="submit" disabled={saving} className="flex-1 py-3 bg-accent hover:bg-blue-500 text-text-primary font-bold rounded-xl transition-colors disabled:opacity-50">
+                                <button type="submit" disabled={saving} className="flex-1 py-3 bg-accent hover:bg-blue-500 text-white font-bold rounded-xl transition-colors disabled:opacity-50">
                                     {saving ? "Menyimpan..." : "Simpan Perubahan"}
                                 </button>
                             </div>

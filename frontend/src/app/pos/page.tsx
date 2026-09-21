@@ -1049,9 +1049,9 @@ export default function PosPage() {
         return (
             <div className="flex min-h-screen bg-background items-center justify-center p-4">
                 <ConfirmDialog />
-                <div className="bg-surface p-4 md:p-8 rounded-2xl w-full max-w-[400px] shadow-2xl border border-border text-center">
+                <div className="bg-surface p-4 md:p-8 rounded-2xl w-full max-w-[400px] shadow-md border border-border text-center">
                     <Banknote className="w-12 h-12 text-accent mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold mb-2 text-text-primary">Buka Shift Kasir</h2>
+                    <h2 className="text-lg font-semibold mb-2 text-text-primary">Buka Shift Kasir</h2>
                     <p className="text-text-muted mb-6 text-sm">Pilih nama kasir dan masukkan modal uang fisik awal (Opening Cash).</p>
                     
                     <div className="text-left mb-4">
@@ -1074,7 +1074,7 @@ export default function PosPage() {
                             <button 
                                 onClick={handleUsePreviousCash}
                                 type="button"
-                                className="text-[10px] bg-gray-800 hover:bg-gray-700 text-text-secondary px-3 py-1.5 whitespace-nowrap rounded border border-border"
+                                className="text-[10px] bg-gray-800 hover:bg-gray-600 text-white px-3 py-1.5 whitespace-nowrap rounded border border-border"
                             >
                                 Gunakan Saldo Kasir Terakhir
                             </button>
@@ -1133,7 +1133,7 @@ export default function PosPage() {
                     
                     {/* Staff Profile in POS Header */}
                     <div className="bg-background border border-border p-2 pr-4 rounded-full font-semibold flex items-center gap-3 text-sm shadow-sm overflow-x-auto whitespace-nowrap hide-scrollbar max-w-full">
-                        <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-accent shrink-0">
+                        <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center text-accent shrink-0">
                             <Banknote className="w-5 h-5" />
                         </div>
                         <div className="flex flex-col shrink-0">
@@ -1165,22 +1165,22 @@ export default function PosPage() {
                             </div>
                         )}
                         <div className="flex gap-2 ml-4 shrink-0">
-                            <button onClick={() => setShowExpensesModal(true)} className="px-3 py-1 bg-orange-500/10 text-orange-400 rounded-full hover:bg-orange-500/20 font-bold text-[10px] uppercase tracking-wider border border-orange-500/20 transition-colors">
+                            <button onClick={() => setShowExpensesModal(true)} className="px-3 py-1 bg-orange-500/10 text-orange-400 rounded-full hover:bg-orange-500/20 font-semibold text-[10px] uppercase tracking-wider border border-orange-500/20 transition-colors">
                                 Catat Pengeluaran
                             </button>
-                            <Link href="/admin?tab=raw_materials" className="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-full hover:bg-purple-500/20 font-bold text-[10px] uppercase tracking-wider border border-purple-500/20 transition-colors flex items-center gap-1">
+                            <Link href="/admin?tab=raw_materials" className="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-full hover:bg-purple-500/20 font-semibold text-[10px] uppercase tracking-wider border border-purple-500/20 transition-colors flex items-center gap-1">
                                 📦 Bahan Baku
                             </Link>
-                            <Link href="/admin?tab=inventory" className="px-3 py-1 bg-green-500/10 text-green-400 rounded-full hover:bg-green-500/20 font-bold text-[10px] uppercase tracking-wider border border-green-500/20 transition-colors flex items-center gap-1">
+                            <Link href="/admin?tab=inventory" className="px-3 py-1 bg-green-500/10 text-green-400 rounded-full hover:bg-green-500/20 font-semibold text-[10px] uppercase tracking-wider border border-green-500/20 transition-colors flex items-center gap-1">
                                 📋 Produk & Stok
                             </Link>
-                            <Link href="/admin" className="px-3 py-1 bg-accent/10 text-accent rounded-full hover:bg-accent-hover/20 font-bold text-[10px] uppercase tracking-wider border border-accent/20 transition-colors flex items-center justify-center">
+                            <Link href="/admin" className="px-3 py-1 bg-accent/10 text-accent rounded-full hover:bg-accent-hover/20 font-semibold text-[10px] uppercase tracking-wider border border-accent/20 transition-colors flex items-center justify-center">
                                 Dashboard
                             </Link>
-                            <button onClick={handleCloseSession} className="px-4 py-2 whitespace-nowrap bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20 font-bold text-[10px] uppercase tracking-wider border border-red-500/20 transition-colors">
+                            <button onClick={handleCloseSession} className="px-4 py-2 whitespace-nowrap bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20 font-semibold text-[10px] uppercase tracking-wider border border-red-500/20 transition-colors">
                                 Tutup Shift
                             </button>
-                            <button onClick={handleLogout} className="px-4 py-2 whitespace-nowrap bg-gray-800 text-text-secondary rounded-full hover:bg-gray-700 font-bold text-[10px] uppercase tracking-wider transition-colors">
+                            <button onClick={handleLogout} className="px-4 py-2 whitespace-nowrap bg-gray-800 text-white rounded-full hover:bg-gray-700 font-semibold text-[10px] uppercase tracking-wider transition-colors">
                                 Logout
                             </button>
                         </div>
@@ -1207,7 +1207,7 @@ export default function PosPage() {
                                             </button>
                                             <button
                                                 onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
-                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-text-primary w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-soft transition-opacity z-10"
+                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-soft transition-opacity z-10"
                                                 title="Tolak Pesanan"
                                             >
                                                 &#10005;
@@ -1227,14 +1227,14 @@ export default function PosPage() {
                                         <div key={order.id} className="relative group flex-shrink-0 min-w-[150px]">
                                             <button 
                                                 onClick={() => loadCustomerOrder(order, idx)}
-                                                className="w-full h-full bg-surface px-4 py-3 rounded-xl border border-accent/20 text-text-primary font-bold hover:bg-bg-gray-800 shadow-sm transition-colors text-left flex flex-col"
+                                                className="w-full h-full bg-surface px-4 py-3 rounded-xl border border-accent/20 text-white font-bold hover:bg-bg-gray-800 shadow-sm transition-colors text-left flex flex-col"
                                             >
                                                 <span className="text-accent text-xs mb-1">{order.queue_number || order.id}</span>
                                                 <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
                                             </button>
                                             <button
                                                 onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
-                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-text-primary w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-soft transition-opacity z-10"
+                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-soft transition-opacity z-10"
                                                 title="Hapus Draft"
                                             >
                                                 &#10005;
@@ -1264,10 +1264,10 @@ export default function PosPage() {
                             ))}
                         </div>
                         <div className="flex bg-surface rounded-xl border border-border p-1 shrink-0">
-                            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-gray-800 text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}>
+                            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-gray-800 text-white' : 'text-white hover:text-white'}`}>
                                 <LayoutGrid className="w-5 h-5" />
                             </button>
-                            <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-gray-800 text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}>
+                            <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-gray-800 text-white' : 'text-white hover:text-white'}`}>
                                 <List className="w-5 h-5" />
                             </button>
                         </div>
@@ -1281,7 +1281,7 @@ export default function PosPage() {
                                 <div
                                     key={p.id}
                                     onClick={() => handleProductClick(p)}
-                                    className={`bg-surface rounded-2xl border border-border cursor-pointer hover:border-accent/50 hover:bg-gray-800/50 transition-all shadow-soft group overflow-hidden ${
+                                    className={`bg-surface rounded-2xl border border-border cursor-pointer hover:border-accent/50 hover:bg-surface-hover transition-all shadow-soft group overflow-hidden ${
                                         viewMode === 'grid' 
                                         ? "p-4 flex flex-col h-full relative text-left" 
                                         : "p-3 flex items-center justify-between gap-4"
@@ -1289,7 +1289,7 @@ export default function PosPage() {
                                 >
                                     <div className={viewMode === 'grid' ? "flex-1 relative z-10" : "flex items-center gap-4 relative z-10"}>
                                         {viewMode === 'list' && (
-                                            <div className="text-2xl md:text-2xl md:text-3xl bg-gray-800/50 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                                            <div className="text-2xl md:text-2xl md:text-3xl bg-surface-hover w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform">
                                                 {p.image_icon || '☕'}
                                             </div>
                                         )}
@@ -1338,7 +1338,7 @@ export default function PosPage() {
             )}
             
             {/* RIGHT: CART */}
-            <div className={`w-full sm:w-[260px] md:w-[280px] lg:w-[320px] xl:w-[400px] h-[85vh] sm:h-screen bg-surface shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sm:shadow-2xl flex flex-col sm:border-t-0 sm:border-l border-border shrink-0 print:hidden fixed sm:relative bottom-0 left-0 right-0 rounded-t-3xl sm:rounded-none z-50 sm:z-10 transition-transform duration-300 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full sm:translate-y-0"}`}>
+            <div className={`w-full sm:w-[260px] md:w-[280px] lg:w-[320px] xl:w-[400px] h-[85vh] sm:h-screen bg-surface shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sm:shadow-md flex flex-col sm:border-t-0 sm:border-l border-border shrink-0 print:hidden fixed sm:relative bottom-0 left-0 right-0 rounded-t-3xl sm:rounded-none z-50 sm:z-10 transition-transform duration-300 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full sm:translate-y-0"}`}>
                 
                 {/* Mobile Drag Handle */}
                 <div className="w-full flex justify-center pt-3 pb-1 sm:hidden cursor-pointer" onClick={() => setIsMobileCartOpen(false)}>
@@ -1353,7 +1353,7 @@ export default function PosPage() {
                         <button onClick={clearCart} className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors border border-transparent hover:border-red-500/20">
                             <Trash2 className="w-5 h-5" />
                         </button>
-                        <button onClick={() => setIsMobileCartOpen(false)} className="sm:hidden text-text-muted hover:text-text-primary p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
+                        <button onClick={() => setIsMobileCartOpen(false)} className="sm:hidden text-white hover:text-white p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
                             &#10005;
                         </button>
                     </div>
@@ -1396,7 +1396,7 @@ export default function PosPage() {
                                         <button 
                                             onClick={() => updateCartQty(itemKey, item.qty - 1)}
                                             disabled={item.qty <= 1}
-                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-text-primary rounded-lg transition-colors border border-border"
+                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white rounded-lg transition-colors border border-border"
                                         >
                                             <Minus className="w-5 h-5" />
                                         </button>
@@ -1408,7 +1408,7 @@ export default function PosPage() {
                                         />
                                         <button 
                                             onClick={() => updateCartQty(itemKey, item.qty + 1)}
-                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-text-primary rounded-lg transition-colors border border-border"
+                                            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-600 text-white rounded-lg transition-colors border border-border"
                                         >
                                             <Plus className="w-5 h-5" />
                                         </button>
@@ -1470,14 +1470,14 @@ export default function PosPage() {
                     )}
                     <div className="flex justify-between mb-4 border-t border-border pt-4">
                         <span className="text-text-secondary font-bold text-base md:text-lg">Total</span>
-                        <span className="font-bold text-2xl md:text-2xl md:text-3xl text-accent">Rp {grandTotal.toLocaleString("id-ID")}</span>
+                        <span className="font-semibold text-2xl md:text-2xl md:text-xl text-accent">Rp {grandTotal.toLocaleString("id-ID")}</span>
                     </div>
                     
                     <div className="flex gap-2">
                         <button 
                             onClick={handleSaveDraft}
                             disabled={cart.length === 0}
-                            className="flex-1 bg-gray-800 hover:bg-gray-700 text-text-secondary py-3 md:py-4 rounded-xl font-bold text-sm md:text-base flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-soft border border-border"
+                            className="flex-1 bg-gray-800 hover:bg-gray-600 text-white py-3 md:py-4 rounded-xl font-bold text-sm md:text-base flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-soft border border-border"
                         >
                             Bayar Nanti
                         </button>
@@ -1498,10 +1498,10 @@ export default function PosPage() {
             {/* PAYMENT MODAL */}
             {showPayment && (
                 <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 backdrop-blur-md overflow-y-auto print:hidden">
-                    <div className="bg-surface border border-border p-4 md:p-6 md:p-4 md:p-8 rounded-3xl w-full max-w-[500px] shadow-2xl mt-16 mb-16">
+                    <div className="bg-surface border border-border p-4 md:p-6 md:p-4 md:p-8 rounded-3xl w-full max-w-[500px] shadow-md mt-16 mb-16">
                         {!paymentResult ? (
                             <>
-                                <h2 className="text-2xl font-bold mb-6 border-b border-border pb-4 text-text-primary">Pilih Pembayaran</h2>
+                                <h2 className="text-lg font-semibold mb-6 border-b border-border pb-4 text-text-primary">Pilih Pembayaran</h2>
                                 <div className="text-center mb-8 p-4 md:p-6 bg-background rounded-2xl border border-border">
                                     <p className="text-text-muted mb-2">Total Tagihan</p>
                                     <p className="text-5xl font-bold text-accent">Rp {grandTotal.toLocaleString("id-ID")}</p>
@@ -1515,7 +1515,7 @@ export default function PosPage() {
                                                 <button
                                                     key={m.id}
                                                     onClick={() => setSelectedMethod(m)}
-                                                    className={`py-3 px-4 rounded-xl border-2 font-bold transition-all ${selectedMethod?.id === m.id ? 'border-accent bg-accent/10 text-accent shadow-soft shadow-soft' : 'border-border text-text-muted hover:border-border hover:bg-gray-800/50'}`}
+                                                    className={`py-3 px-4 rounded-xl border-2 font-bold transition-all ${selectedMethod?.id === m.id ? 'border-accent bg-accent/10 text-accent shadow-soft shadow-soft' : 'border-border text-white hover:border-border hover:bg-surface-hover'}`}
                                                 >
                                                     {m.name}
                                                 </button>
@@ -1545,7 +1545,7 @@ export default function PosPage() {
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="mb-8 p-4 md:p-6 bg-gray-800/30 border border-border rounded-xl text-center text-text-muted">
+                                    <div className="mb-8 p-4 md:p-6 bg-surface-hover border border-border rounded-xl text-center text-white">
                                         Sistem akan membuka jendela pembayaran pihak ketiga untuk {selectedMethod?.name}...
                                     </div>
                                 )}
@@ -1556,7 +1556,7 @@ export default function PosPage() {
                                             setShowPayment(false);
                                             setAmountReceived("");
                                         }}
-                                        className="flex-1 py-3 md:py-4 bg-gray-800 text-text-secondary rounded-xl font-bold hover:bg-gray-700 transition-colors"
+                                        className="flex-1 py-3 md:py-4 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 transition-colors"
                                     >
                                         Batal
                                     </button>
@@ -1574,10 +1574,10 @@ export default function PosPage() {
                                 <div className="w-20 h-20 bg-green-500/10 border border-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                                 </div>
-                                <h2 className="text-2xl md:text-3xl font-bold mb-1 text-text-primary">{paymentResult?.isDraft ? "Pesanan Tersimpan!" : "Pembayaran Sukses!"}</h2>
+                                <h2 className="text-2xl md:text-xl font-semibold mb-1 text-text-primary">{paymentResult?.isDraft ? "Pesanan Tersimpan!" : "Pembayaran Sukses!"}</h2>
                                 <p className="text-text-muted mb-6 flex flex-col items-center">
                                     <span className="text-[10px] uppercase tracking-wider mb-1">Nomor Antrean / Order</span>
-                                    <span className="font-bold text-2xl text-text-primary">{paymentResult.transaction?.order_reference || paymentResult.order_reference}</span>
+                                    <span className="font-semibold text-lg text-text-primary">{paymentResult.transaction?.order_reference || paymentResult.order_reference}</span>
                                 </p>
                                 <div className="flex flex-col md:flex-row gap-4">
 
@@ -1714,7 +1714,7 @@ export default function PosPage() {
             {/* EXPENSES & RAW MATERIALS MODAL */}
                         {showCloseShiftModal && (
                 <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
-                    <div className="bg-surface border border-border p-6 md:p-8 rounded-3xl w-full max-w-md shadow-2xl mt-16 mb-16">
+                    <div className="bg-surface border border-border p-6 md:p-8 rounded-3xl w-full max-w-md shadow-md mt-16 mb-16">
                         <h3 className="font-bold text-xl text-text-primary mb-2">Tutup Shift</h3>
                         <p className="text-text-muted text-sm mb-6">Hitung seluruh uang fisik (kertas & koin) yang ada di dalam laci kasir saat ini, lalu masukkan totalnya di bawah ini.</p>
                         <input 
@@ -1728,7 +1728,7 @@ export default function PosPage() {
                         <div className="flex gap-3">
                             <button 
                                 onClick={() => setShowCloseShiftModal(false)}
-                                className="flex-1 py-3 md:py-4 bg-gray-800 text-text-secondary rounded-xl font-bold hover:bg-gray-700 transition-colors"
+                                className="flex-1 py-3 md:py-4 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 transition-colors"
                             >
                                 Batal
                             </button>
@@ -1746,19 +1746,19 @@ export default function PosPage() {
 
             {showExpensesModal && (
                 <div className="fixed inset-0 bg-black/90 flex items-start justify-center z-[100] p-2 sm:p-4 md:p-6 backdrop-blur-sm overflow-y-auto print:hidden">
-                    <div className="bg-surface border border-border rounded-2xl sm:rounded-3xl w-full max-w-[98vw] shadow-2xl p-4 sm:p-6 lg:p-8 my-2 sm:my-4 flex-shrink-0 relative">
+                    <div className="bg-surface border border-border rounded-2xl sm:rounded-3xl w-full max-w-[98vw] shadow-md p-4 sm:p-6 lg:p-8 my-2 sm:my-4 flex-shrink-0 relative">
                         <button 
                             onClick={() => setShowExpensesModal(false)}
-                            className="absolute top-4 right-4 sm:right-6 w-9 h-9 sm:w-10 sm:h-10 bg-gray-800 hover:bg-red-500 hover:text-text-primary rounded-full flex items-center justify-center text-text-muted transition-colors z-10"
+                            className="absolute top-4 right-4 sm:right-6 w-9 h-9 sm:w-10 sm:h-10 bg-gray-800 hover:bg-red-500 hover:text-white rounded-full flex items-center justify-center text-text-muted transition-colors z-10"
                         >
                             ✕
                         </button>
                         
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8 pr-12">
-                            <h2 className="text-xl sm:text-2xl font-bold text-text-primary flex items-center gap-2 sm:gap-3">
+                            <h2 className="text-xl sm:text-lg font-semibold text-text-primary flex items-center gap-2 sm:gap-3">
                                 <Banknote className="text-orange-500 w-6 h-6 shrink-0" /> Kelola Bahan Baku & Pengeluaran 
                             </h2>
-                            <span className="text-xs sm:text-sm font-normal text-text-muted px-3 py-1 bg-gray-800/80 border border-border rounded-full w-fit">
+                            <span className="text-xs sm:text-sm font-normal text-white px-3 py-1 bg-gray-800/80 border border-border rounded-full w-fit">
                                 Staff: {staff?.full_name || 'Kasir'}
                             </span>
                         </div>
@@ -1809,7 +1809,7 @@ export default function PosPage() {
                                 </div>
 
                                 <div className="bg-surface border border-border rounded-2xl overflow-hidden">
-                                    <div className="p-4 bg-gray-800/30 border-b border-border flex justify-between items-center cursor-pointer" onClick={() => setCollapseListMat(!collapseListMat)}>
+                                    <div className="p-4 bg-surface-hover border-b border-border flex justify-between items-center cursor-pointer" onClick={() => setCollapseListMat(!collapseListMat)}>
                                         <h3 className="font-bold text-text-secondary">Daftar Bahan Baku</h3>
                                         <button type="button" className="text-text-muted hover:text-text-primary transition-colors">{collapseListMat ? '+' : '−'}</button>
                                     </div>
@@ -1822,7 +1822,7 @@ export default function PosPage() {
                                                 <table className="w-full text-left text-xs md:text-sm whitespace-nowrap min-w-max md:min-w-0 md:whitespace-normal">
                                                     <tbody>
                                                         {rawMaterials.map((mat: any) => (
-                                                            <tr key={mat.id} className="border-b border-border hover:bg-gray-800/20 group">
+                                                            <tr key={mat.id} className="border-b border-border hover:bg-surface-hover group">
                                                                 <td className="p-3 sm:p-4">
                                                                     <div className="font-bold text-text-primary">{mat.name}</div>
                                                                     {mat.updated_by_name && <div className="text-[10px] text-accent mt-1">Oleh: {mat.updated_by_name}</div>}
@@ -1832,7 +1832,7 @@ export default function PosPage() {
                                                                     <div className="flex gap-1 justify-end">
                                                                         <button onClick={() => { setSelectedMaterial(mat); setStockAdjustment({ delta: 0, note: '', price: mat.last_price_per_unit }); }} className="px-2 py-1 text-xs bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent hover:text-text-primary font-bold transition-colors">+/- Stok</button>
                                                                         {canEditRecord(mat.updated_by_name) && (
-                                                                            <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-text-primary font-bold transition-colors">Hapus</button>
+                                                                            <button onClick={() => handleDeleteMaterial(mat.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
                                                                         )}
                                                                     </div>
                                                                 </td>
@@ -1887,11 +1887,11 @@ export default function PosPage() {
                                             return (
                                                 <>
                                                     <div className="flex gap-3 mb-2 p-1.5 sm:p-2 bg-surface-hover border border-border rounded-xl">
-                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'operasional' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'text-text-muted hover:bg-gray-800'}`}>
+                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'operasional' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'text-white hover:bg-gray-800'}`}>
                                                             <input type="radio" name="exp_category_pos" value="operasional" checked={currentCat === 'operasional'} onChange={() => setCat('operasional')} className="hidden" />
                                                             ⚙️ Operasional
                                                         </label>
-                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'bahan_baku' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'text-text-muted hover:bg-gray-800'}`}>
+                                                        <label className={`flex-1 py-2 text-center rounded-lg cursor-pointer text-xs sm:text-sm font-bold transition-all ${currentCat === 'bahan_baku' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'text-white hover:bg-gray-800'}`}>
                                                             <input type="radio" name="exp_category_pos" value="bahan_baku" checked={currentCat === 'bahan_baku'} onChange={() => setCat('bahan_baku')} className="hidden" />
                                                             🧪 Bahan Baku
                                                         </label>
@@ -1933,7 +1933,7 @@ export default function PosPage() {
                                                                         </select>
                                                                         <div className="flex gap-2 shrink-0">
                                                                             <button type="button" onClick={handleInlineAddMaterial} className="flex-1 sm:flex-none px-3 py-2 bg-accent text-text-primary text-xs font-bold rounded-lg hover:bg-accent-hover">Simpan Bahan</button>
-                                                                            <button type="button" onClick={() => setShowInlineAddMaterial(false)} className="flex-1 sm:flex-none px-3 py-2 bg-gray-800 text-text-muted text-xs font-bold rounded-lg hover:bg-gray-700">Batal</button>
+                                                                            <button type="button" onClick={() => setShowInlineAddMaterial(false)} className="flex-1 sm:flex-none px-3 py-2 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-gray-700">Batal</button>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -2035,7 +2035,7 @@ export default function PosPage() {
                                 </div>
 
                                 <div className="bg-surface border border-border rounded-2xl overflow-hidden">
-                                    <div className="p-4 bg-gray-800/30 border-b border-border flex flex-col sm:flex-row gap-2 justify-between sm:items-center cursor-pointer" onClick={() => setCollapseListExp(!collapseListExp)}>
+                                    <div className="p-4 bg-surface-hover border-b border-border flex flex-col sm:flex-row gap-2 justify-between sm:items-center cursor-pointer" onClick={() => setCollapseListExp(!collapseListExp)}>
                                         <div className="flex items-center gap-2">
                                             <h3 className="font-bold text-text-secondary">Riwayat Pengeluaran</h3>
                                             <button type="button" className="text-text-muted hover:text-text-primary transition-colors">{collapseListExp ? '+' : '−'}</button>
@@ -2063,7 +2063,7 @@ export default function PosPage() {
                                                             {filteredPosExpenses.map((exp: any) => {
                                                                 const isBahan = getPosCategory(exp) === 'bahan_baku';
                                                                 return (
-                                                                    <tr key={exp.id} className="border-b border-border hover:bg-gray-800/20 group">
+                                                                    <tr key={exp.id} className="border-b border-border hover:bg-surface-hover group">
                                                                         <td className="p-4">
                                                                             <div className="font-bold text-text-primary">{exp.description}</div>
                                                                             <div className="text-[10px] text-text-muted mt-1">{new Date(exp.expense_date || exp.created_at).toLocaleDateString('id-ID')} {new Date(exp.expense_date || exp.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</div>
@@ -2081,7 +2081,7 @@ export default function PosPage() {
                                                                             {exp.staff_name ? (
                                                                                 <span className="px-2 py-1 bg-accent/10 text-accent rounded-md text-[10px] font-bold border border-accent/20">{exp.staff_name}</span>
                                                                             ) : (
-                                                                                <span className="px-2 py-1 bg-gray-800 text-text-muted rounded-md text-[10px] border border-border">Owner</span>
+                                                                                <span className="px-2 py-1 bg-gray-800 text-white rounded-md text-[10px] border border-border">Owner</span>
                                                                             )}
                                                                         </td>
                                                                         <td className="p-4 text-right text-orange-400 font-bold">
@@ -2106,7 +2106,7 @@ export default function PosPage() {
                                                                                     >
                                                                                         Edit
                                                                                     </button>
-                                                                                    <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 rounded-md hover:bg-red-600 hover:text-text-primary font-bold transition-colors">Hapus</button>
+                                                                                    <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 rounded-md hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
                                                                                 </div>
                                                                             )}
                                                                         </td>
@@ -2130,22 +2130,22 @@ export default function PosPage() {
             {/* Adjust Material Stock Modal */}
             {selectedMaterial && (
                 <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-[200] p-4 overflow-y-auto backdrop-blur-md">
-                    <div className="bg-surface border border-border p-4 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl mt-16 mb-16">
+                    <div className="bg-surface border border-border p-4 md:p-8 rounded-3xl w-full max-w-lg shadow-md mt-16 mb-16">
                         <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
                             <div>
                                 <h3 className="font-bold text-lg md:text-xl text-text-primary">Update Stok Bahan</h3>
                                 <p className="text-text-muted font-bold mt-1">{selectedMaterial.name}</p>
                             </div>
-                            <span className="text-sm bg-gray-800 px-3 py-1.5 rounded-lg text-text-secondary font-bold">Stok: {selectedMaterial.current_stock} {selectedMaterial.unit}</span>
+                            <span className="text-sm bg-surface px-3 py-1.5 rounded-lg text-white font-bold">Stok: {selectedMaterial.current_stock} {selectedMaterial.unit}</span>
                         </div>
                         <form onSubmit={handleAdjustStock} className="space-y-4 md:space-y-5">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                                 <div>
                                     <label className="text-xs md:text-sm font-bold text-text-muted block mb-2">Penambahan / Pengurangan</label>
                                     <div className="flex items-center gap-2">
-                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) - 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-text-primary rounded-xl text-xl md:text-2xl font-bold border border-border">-</button>
+                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) - 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-600 text-white rounded-xl text-xl md:text-lg font-semibold border border-border">-</button>
                                         <input type="number" step="any" className="flex-1 min-w-0 w-full text-center bg-surface-hover border border-border rounded-xl py-2 md:py-3 text-text-primary font-bold text-base md:text-lg outline-none focus:border-accent" value={stockAdjustment.delta || ''} onChange={e => setStockAdjustment({...stockAdjustment, delta: Number(e.target.value) || 0})} placeholder="0" />
-                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) + 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-text-primary rounded-xl text-xl md:text-2xl font-bold border border-border">+</button>
+                                        <button type="button" onClick={() => setStockAdjustment({...stockAdjustment, delta: (Number(stockAdjustment.delta) || 0) + 1})} className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-gray-800 hover:bg-gray-600 text-white rounded-xl text-xl md:text-lg font-semibold border border-border">+</button>
                                         
                                         {/* UNIT SELECTOR */}
                                         <select 
@@ -2222,7 +2222,7 @@ export default function PosPage() {
                             </div>
                             <p className="text-xs text-text-muted">💡 <b>Tip:</b> Anda bisa langsung mengetik jumlah di kotak angka. Gunakan angka minus (-) jika bahan terpakai/dibuang.</p>
                             <div className="flex gap-4 mt-6 pt-4 border-t border-border">
-                                <button type="button" onClick={() => setSelectedMaterial(null)} className="flex-1 py-2 md:py-3 text-sm md:text-base bg-gray-800 text-text-secondary rounded-xl font-bold hover:bg-gray-700 transition-colors">Batal</button>
+                                <button type="button" onClick={() => setSelectedMaterial(null)} className="flex-1 py-2 md:py-3 text-sm md:text-base bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 transition-colors">Batal</button>
                                 <button type="submit" disabled={loading} className="flex-1 py-2 md:py-3 text-sm md:text-base bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover transition-colors">Simpan Stok</button>
                             </div>
                         </form>
@@ -2233,7 +2233,7 @@ export default function PosPage() {
             {/* PRODUCT OPTIONS & ADD-ON MODAL */}
             {showOptionsModal && selectedProductForOptions && (
                 <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 backdrop-blur-sm overflow-y-auto">
-                    <div className="bg-surface p-6 rounded-3xl w-full max-w-lg shadow-2xl border border-border relative max-h-[90vh] flex flex-col mt-16 mb-16">
+                    <div className="bg-surface p-6 rounded-3xl w-full max-w-lg shadow-md border border-border relative max-h-[90vh] flex flex-col mt-16 mb-16">
                         <div className="flex justify-between items-start mb-4 pb-3 border-b border-border">
                             <div>
                                 <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
@@ -2246,7 +2246,7 @@ export default function PosPage() {
                             </div>
                             <button 
                                 onClick={() => setShowOptionsModal(false)} 
-                                className="w-8 h-8 rounded-full bg-gray-800 text-text-muted hover:text-text-primary hover:bg-gray-700 flex items-center justify-center font-bold text-sm transition-colors"
+                                className="w-8 h-8 rounded-full bg-gray-800 text-white hover:text-white hover:bg-gray-700 flex items-center justify-center font-bold text-sm transition-colors"
                             >
                                 ✕
                             </button>
@@ -2298,7 +2298,7 @@ export default function PosPage() {
                                                         className={`flex items-center justify-between p-3 rounded-xl cursor-pointer border transition-all select-none ${
                                                             isSelected 
                                                                 ? 'bg-accent/20 border-accent text-text-primary shadow-sm ring-1 ring-accent/30' 
-                                                                : 'bg-gray-800/60 border-border/60 text-text-secondary hover:border-gray-600 hover:bg-gray-800'
+                                                                : 'bg-gray-800/60 border-border/60 text-white hover:border-gray-600 hover:bg-gray-800'
                                                         }`}
                                                     >
                                                         <div className="flex items-center gap-2.5">
@@ -2367,7 +2367,7 @@ export default function PosPage() {
                         </div>
                         <div className="p-4 border-b border-border flex justify-between items-center bg-surface">
                             <h2 className="font-bold text-text-primary text-lg">Daftar Antrean & Draft</h2>
-                            <button onClick={() => setIsMobileDraftOpen(false)} className="text-text-muted hover:text-text-primary p-2 bg-gray-800 rounded-lg">
+                            <button onClick={() => setIsMobileDraftOpen(false)} className="text-white hover:text-white p-2 bg-gray-800 rounded-lg">
                                 &#10005;
                             </button>
                         </div>
@@ -2391,7 +2391,7 @@ export default function PosPage() {
                                                 </button>
                                                 <button
                                                     onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
-                                                    className="absolute -top-2 -right-2 bg-red-500 text-text-primary w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-soft"
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-soft"
                                                 >
                                                     &#10005;
                                                 </button>
@@ -2419,7 +2419,7 @@ export default function PosPage() {
                                                 </button>
                                                 <button
                                                     onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
-                                                    className="absolute -top-2 -right-2 bg-red-500 text-text-primary w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-soft"
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-soft"
                                                 >
                                                     &#10005;
                                                 </button>
@@ -2443,7 +2443,7 @@ export default function PosPage() {
                     {pendingOrders.length > 0 && !isMobileCartOpen && !isMobileDraftOpen && (
                         <button
                             onClick={() => setIsMobileDraftOpen(true)}
-                            className="bg-gray-800 border border-border text-text-secondary shadow-soft px-4 py-3.5 rounded-full font-bold flex items-center gap-2 transition-transform relative"
+                            className="bg-gray-800 border border-border text-white shadow-soft px-4 py-3.5 rounded-full font-bold flex items-center gap-2 transition-transform relative"
                         >
                             <span className="absolute -top-1 -right-1 flex h-3 w-3">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
