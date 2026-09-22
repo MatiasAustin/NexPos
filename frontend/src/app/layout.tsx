@@ -17,8 +17,11 @@ export const viewport = {
   userScalable: false,
 };
 
+// Never cache this layout — always fetch the latest logo & app name from DB on every request
+export const dynamic = 'force-dynamic';
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Fetch once on the server — no flash, no extra client round-trip
+  // Always fresh — no cache, reads latest saas_settings from Supabase on every render
   const { data: saasSettings } = await supabase
     .from('saas_settings')
     .select('app_name, app_logo, logo_show_background, support_email, support_phone, maintenance_mode, plan_starter_price, plan_pro_price, plan_enterprise_price')

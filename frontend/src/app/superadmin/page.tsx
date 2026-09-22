@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 import AppLogo from "@/components/AppLogo";
+import LogoDropzone from "@/components/LogoDropzone";
 import { Store, ShieldAlert, CheckCircle2, AlertTriangle, Users, Power, Activity } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { LoadingSpinner } from "@/components/Loading";
@@ -361,38 +362,13 @@ export default function SuperAdminPage() {
 
                                 {/* Right: Logo upload */}
                                 <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-text-secondary mb-1.5">Logo Aplikasi</label>
-                                        <div className="border-2 border-dashed border-border bg-background rounded-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden group hover:border-accent transition-colors cursor-pointer">
-                                            {/* Logo preview */}
-                                            <AppLogo
-                                                logoUrl={saasSettings.app_logo}
-                                                showBackground={saasSettings.logo_show_background}
-                                                fallbackLetter={saasSettings.app_name.charAt(0) || 'N'}
-                                                size={20}
-                                                className="mb-4"
-                                            />
-                                            <p className="text-text-muted text-xs text-center">
-                                                Klik untuk upload logo baru<br/>
-                                                <span className="text-text-muted/60">PNG transparan direkomendasikan · Auto-compress ke WebP maks 500×500</span>
-                                            </p>
-                                            <input 
-                                                type="file" 
-                                                accept="image/*"
-                                                onChange={handleLogoUpload}
-                                                className="absolute inset-0 opacity-0 cursor-pointer z-20"
-                                            />
-                                        </div>
-                                        {saasSettings.app_logo && (
-                                            <button 
-                                                type="button"
-                                                onClick={() => setSaasSettings(prev => ({ ...prev, app_logo: '' }))}
-                                                className="text-xs text-red-400 hover:underline mt-1"
-                                            >
-                                                Hapus logo
-                                            </button>
-                                        )}
-                                    </div>
+                                    <LogoDropzone
+                                        logoUrl={saasSettings.app_logo}
+                                        showBackground={saasSettings.logo_show_background}
+                                        fallbackLetter={saasSettings.app_name.charAt(0) || 'N'}
+                                        onLogoChange={(base64) => setSaasSettings(prev => ({ ...prev, app_logo: base64 }))}
+                                        onLogoClear={() => setSaasSettings(prev => ({ ...prev, app_logo: '' }))}
+                                    />
 
                                     {/* Logo background toggle */}
                                     <div className="bg-background border border-border rounded-xl p-4 flex items-center justify-between gap-4">
