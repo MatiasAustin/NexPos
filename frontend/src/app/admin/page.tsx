@@ -381,7 +381,32 @@ export default function AdminDashboard() {
                     console.error("CASH SESSIONS ERROR:", error);
                     toast.error("Gagal memuat riwayat shift: " + error.message);
                 }
-                if (data) setCashSessions(data.map((s: any) => ({ ...s, staff_name: s.staff_profiles?.full_name })));
+                if (data) {
+                    // Ambil seluruh data pengeluaran dan refund untuk menghitung total per sesi
+                    const { data: allExpenses } = await supabase.from('expenses').select('created_at, amount, category');
+                    const { data: allRefunds } = await supabase.from('refunds').select('created_at, refund_amount').eq('status', 'APPROVED');
+                    
+                    const sessionsWithTotals = data.map((session: any) => {
+                        const sessionStart = session.opened_at;
+                        const sessionEnd = session.closed_at || new Date().toISOString();
+                        
+                        // Hitung pengeluaran (cash) dalam rentang waktu sesi
+                        const sessionExpenses = allExpenses ? allExpenses.filter((e: any) => e.created_at >= sessionStart && e.created_at <= sessionEnd) : [];
+                        const total_expense = sessionExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+                        
+                        // Hitung refund dalam rentang waktu sesi
+                        const sessionRefunds = allRefunds ? allRefunds.filter((r: any) => r.created_at >= sessionStart && r.created_at <= sessionEnd) : [];
+                        const total_refund = sessionRefunds.reduce((sum: number, r: any) => sum + Number(r.refund_amount), 0);
+                        
+                        return {
+                            ...session,
+                            staff_name: session.staff_profiles?.full_name,
+                            total_expense,
+                            total_refund
+                        };
+                    });
+                    setCashSessions(sessionsWithTotals);
+                }
             } else if (activeTab === "expenses") {
                 const [expRes, matRes, logRes] = await Promise.all([
                     supabase.from('expenses').select('*').order('created_at', { ascending: expenseSortOrder === 'desc' ? false : true }),
