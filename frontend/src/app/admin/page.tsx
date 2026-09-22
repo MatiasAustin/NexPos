@@ -747,7 +747,7 @@ export default function AdminDashboard() {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newStaff)
+                body: JSON.stringify({ ...newStaff, store_id: profile?.store_id })
             });
             if(res.ok) {
                 toast.success("Staf berhasil ditambahkan!");

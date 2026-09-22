@@ -5,7 +5,7 @@ export class AuthService {
      * Creates a new staff user in Supabase Auth and linking it to staff_profiles.
      * Requires SUPABASE_KEY to be a service_role key.
      */
-    async createStaff(payload: { email: string; password: string; full_name: string; role: 'owner' | 'staff' }) {
+    async createStaff(payload: { email: string; password: string; full_name: string; role: 'owner' | 'staff'; store_id?: string }) {
         // 1. Create user in GoTrue (Supabase Auth)
         const { data: authData, error: authError } = await supabase.auth.admin.createUser({
             email: payload.email,
@@ -23,7 +23,8 @@ export class AuthService {
             .insert({
                 id: authData.user.id,
                 full_name: payload.full_name,
-                role: payload.role
+                role: payload.role,
+                store_id: payload.store_id || null
             })
             .select('*')
             .single();
