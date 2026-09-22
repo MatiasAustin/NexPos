@@ -15,8 +15,8 @@ BEGIN
     RETURNING id INTO v_store_id;
 
     -- 2. Create the staff profile (Owner role)
-    INSERT INTO staff_profiles (id, store_id, name, email, phone, role, is_active)
-    VALUES (p_user_id, v_store_id, p_owner_name, p_email, p_phone, 'owner', true);
+    INSERT INTO staff_profiles (id, store_id, full_name, role, is_active)
+    VALUES (p_user_id, v_store_id, p_owner_name, 'owner', true);
 
     -- 3. Initialize default store settings
     INSERT INTO store_settings (store_id) VALUES (v_store_id);
