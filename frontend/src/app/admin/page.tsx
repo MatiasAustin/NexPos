@@ -1471,6 +1471,32 @@ export default function AdminDashboard() {
                     }]);
                 }
             }
+            // Deduct from active cash drawer if shift is open AND paid with CASH
+            if (newExpense.payment_method === 'CASH') {
+                try {
+                    const { data: activeSessions } = await supabase.from('cash_sessions')
+                        .select('id, expected_cash')
+                        .eq('status', 'open')
+                        .order('opened_at', { ascending: false })
+                        .limit(1);
+                    
+                    if (activeSessions && activeSessions.length > 0) {
+                        const activeSession = activeSessions[0];
+                        await supabase.from('cash_movements').insert({
+                            session_id: activeSession.id,
+                            staff_id: profile?.id,
+                            type: 'expense',
+                            amount: -Number(newExpense.amount),
+                            reason: `Pengeluaran: ${finalDesc}`
+                        });
+                        await supabase.from('cash_sessions').update({ 
+                            expected_cash: Number(activeSession.expected_cash) - Number(newExpense.amount) 
+                        }).eq('id', activeSession.id);
+                    }
+                } catch (err) {
+                    console.error("Gagal memotong uang laci shift aktif:", err);
+                }
+            }
             
             toast.success("Pengeluaran berhasil dicatat.");
             setNewExpense({ description: '', amount: 0, material_id: '', quantity: 0, payment_method: 'CASH', category: 'operasional', buy_unit: 'kg' });
