@@ -816,28 +816,28 @@ export default function AdminDashboard() {
             : Number(newProduct.cogs);
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...newProduct,
-                    price: Number(newProduct.price),
-                    cogs: computedCogs,
-                    stock: Number(newProduct.stock),
-                    ingredients: newProduct.ingredients,
-                    discount_percentage: Number(newProduct.discount_percentage || 0),
-                    options_config: newProduct.options_config || [],
-                    image_url: newProduct.image_url,
-                    operational_cost: opCost
-                })
-            });
-            if(res.ok) {
+            const payload = {
+                name: newProduct.name,
+                category: newProduct.category || storeSettings.categories?.[0] || 'Makanan',
+                price: Number(newProduct.price),
+                cogs: computedCogs,
+                stock: Number(newProduct.stock),
+                ingredients: newProduct.ingredients,
+                discount_percentage: Number(newProduct.discount_percentage || 0),
+                options_config: newProduct.options_config || [],
+                image_url: newProduct.image_url,
+                image_icon: newProduct.image_icon || '☕',
+                operational_cost: opCost,
+                is_active: true
+            };
+            const { error } = await supabase.from('products').insert([payload]);
+            
+            if(!error) {
                 toast.success("Produk berhasil ditambahkan!");
-                setNewProduct({ name: '', category: storeSettings.categories?.[0] || 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '📦', image_url: '', discount_percentage: 0, options_config: [], ingredients: [], operational_cost: OPERATIONAL_COST });
+                setNewProduct({ name: '', category: storeSettings.categories?.[0] || 'Makanan', price: 0, cogs: 0, stock: 0, image_icon: '☕', image_url: '', discount_percentage: 0, options_config: [], ingredients: [], operational_cost: OPERATIONAL_COST });
                 fetchData();
             } else {
-                const err = await res.json();
-                toast.error(err.error || "Gagal menambahkan produk.");
+                toast.error("Gagal menambahkan produk.");
             }
         } catch(error) {
             toast.error("Terjadi kesalahan jaringan.");
