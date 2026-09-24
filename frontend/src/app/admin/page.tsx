@@ -2448,7 +2448,7 @@ export default function AdminDashboard() {
                                                             {session.status.toUpperCase()}
                                                         </span>
                                                     </p>
-                                                    <p className="text-sm text-text-muted mb-1">Kasir ID: {session.staff_id || 'Unknown'}</p>
+                                                    <p className="text-sm text-text-muted mb-1">Kasir: {session.staff_profiles?.full_name || session.staff_id || 'Unknown'}</p>
                                                     <p className="text-xs text-text-muted">
                                                         Buka: {new Date(session.opened_at).toLocaleString('id-ID')}
                                                         {session.closed_at && ` | Tutup: ${new Date(session.closed_at).toLocaleString('id-ID')}`}
