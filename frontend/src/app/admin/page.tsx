@@ -2183,18 +2183,18 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="flex flex-col md:flex-row justify-between items-end">
-                                                <div>
-                                                    <h3 className="font-bold text-text-primary mb-2">Urutkan Waktu</h3>
+                                            <div className="flex flex-col md:flex-row justify-between items-center mt-2">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-bold text-text-primary hidden md:inline">Urutkan:</span>
                                                     <div className="flex bg-surface-hover rounded-xl p-1 border border-border">
-                                                        <button onClick={() => setHistorySortOrder('desc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'desc' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}>Terbaru</button>
-                                                        <button onClick={() => setHistorySortOrder('asc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'asc' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}>Terlama</button>
+                                                        <button onClick={() => setHistorySortOrder('desc')} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'desc' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}>Terbaru</button>
+                                                        <button onClick={() => setHistorySortOrder('asc')} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'asc' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}>Terlama</button>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-4 mt-4 md:mt-0">
                                                     <span className="text-text-muted text-sm">{filteredTransactions.length} transaksi ditemukan</span>
                                                     <button onClick={syncPastDiscounts} className="px-3 py-1.5 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-lg text-xs font-bold hover:bg-orange-500/20 transition-colors flex items-center gap-1">
-                                                        <RefreshCw className="w-3 h-3" /> Sync Label Diskon Lama
+                                                        <RefreshCw className="w-3 h-3" /> Sync Label Diskon
                                                     </button>
                                                 </div>
                                             </div>
