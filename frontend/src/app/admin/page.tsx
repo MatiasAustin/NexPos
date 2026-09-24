@@ -1121,6 +1121,8 @@ export default function AdminDashboard() {
             const { data } = await supabase.from('store_settings').select('id').maybeSingle();
             if (data?.id) {
                 await supabase.from('store_settings').update({ categories: newCategories }).eq('id', data.id);
+            } else {
+                await supabase.from('store_settings').insert([{ categories: newCategories }]);
             }
             // Update localStorage
             const local = JSON.parse(localStorage.getItem("nexpos_store_settings") || "{}");

@@ -302,7 +302,11 @@ export default function PosPage() {
                     if (uniqueMethods.length > 0) setSelectedMethod(uniqueMethods[0]);
                 });
             
-            getActiveProducts().then(prods => setProducts(prods));
+            const fetchProds = async () => {
+                const { data } = await supabase.from('products').select('*').eq('is_active', true).order('created_at', { ascending: false });
+                if (data) setProducts(data);
+            };
+            fetchProds();
             
             // Listen for localStorage changes for incoming customer orders
             const checkOrders = async () => {
