@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart, CreditCard, Banknote, Trash2, Clock, Minus, Plus, LayoutGrid, List, Maximize, ClipboardList } from "lucide-react";
+import { ShoppingCart, CreditCard, Banknote, Trash2, Clock, Minus, Plus, LayoutGrid, List, Maximize, ClipboardList, X } from "lucide-react";
 import { processPayment, getPaymentMethods, getActiveProducts } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -29,6 +29,7 @@ export default function PosPage() {
     
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
     const [showPayment, setShowPayment] = useState(false);
+    const [showDiscountInput, setShowDiscountInput] = useState(false);
     const [amountReceived, setAmountReceived] = useState<string>("");
     const [customerName, setCustomerName] = useState<string>("");
     const [paymentResult, setPaymentResult] = useState<any>(null);
@@ -1447,27 +1448,37 @@ export default function PosPage() {
                         <span className="text-text-muted text-sm md:text-base">Subtotal</span>
                         <span className="font-bold text-lg md:text-xl text-text-secondary">Rp {subTotal.toLocaleString("id-ID")}</span>
                     </div>
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-text-muted text-sm md:text-base">Diskon</span>
-                        <div className="flex gap-2 w-1/2 justify-end">
-                            <select 
-                                value={discountType} 
-                                onChange={(e: any) => { setDiscountType(e.target.value); setDiscountValue(""); }}
-                                className="bg-surface border border-gray-600 text-text-primary rounded p-1 text-sm focus:ring-accent w-16"
-                            >
-                                <option value="nominal">Rp</option>
-                                <option value="percentage">%</option>
-                            </select>
-                            <input 
-                                type="number"
-                                min="0"
-                                value={discountValue}
-                                onChange={(e) => setDiscountValue(e.target.value)}
-                                placeholder={discountType === 'percentage' ? "0-100" : "Nominal"}
-                                className="bg-surface border border-gray-600 text-text-primary rounded p-1 text-sm focus:ring-accent w-full text-right"
-                            />
+                    {!showDiscountInput && discountValue === "" ? (
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-text-muted text-sm md:text-base">Diskon</span>
+                            <button onClick={() => setShowDiscountInput(true)} className="text-accent text-sm font-bold hover:underline border border-accent/20 px-3 py-1 rounded-lg bg-accent/5">+ Tambah Diskon</button>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-text-muted text-sm md:text-base">Diskon</span>
+                            <div className="flex gap-2 w-2/3 justify-end items-center">
+                                <select 
+                                    value={discountType} 
+                                    onChange={(e: any) => { setDiscountType(e.target.value); setDiscountValue(""); }}
+                                    className="bg-surface border border-gray-600 text-text-primary rounded p-1 text-sm focus:ring-accent w-16"
+                                >
+                                    <option value="nominal">Rp</option>
+                                    <option value="percentage">%</option>
+                                </select>
+                                <input 
+                                    type="number"
+                                    min="0"
+                                    value={discountValue}
+                                    onChange={(e) => setDiscountValue(e.target.value)}
+                                    placeholder={discountType === 'percentage' ? "0-100" : "Nominal"}
+                                    className="bg-surface border border-gray-600 text-text-primary rounded p-1 text-sm focus:ring-accent w-full text-right"
+                                />
+                                <button onClick={() => { setShowDiscountInput(false); setDiscountValue(""); }} className="text-red-400 hover:text-red-300 p-1 bg-red-400/10 rounded-lg">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                     {calculatedDiscount > 0 && (
                         <div className="flex justify-between mb-2 text-red-400">
                             <span className="text-sm md:text-base">Potongan</span>
@@ -1550,6 +1561,14 @@ export default function PosPage() {
                                             className="w-full bg-background border border-border rounded-xl p-4 text-xl text-text-primary focus:border-accent focus:ring-1 focus:ring-accent outline-none font-bold"
                                             placeholder="Masukkan jumlah..."
                                         />
+                                        <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+                                            <button onClick={() => setAmountReceived(grandTotal.toString())} className="whitespace-nowrap px-4 py-2 bg-surface-hover hover:bg-border rounded-lg text-sm font-bold transition-colors">Uang Pas</button>
+                                            {[20000, 50000, 100000, 200000].map(amt => (
+                                                <button key={amt} onClick={() => setAmountReceived(amt.toString())} className="whitespace-nowrap px-4 py-2 bg-surface-hover hover:bg-border rounded-lg text-sm font-bold transition-colors">
+                                                    {(amt/1000)}k
+                                                </button>
+                                            ))}
+                                        </div>
                                         {Number(amountReceived) >= grandTotal && (
                                             <div className="mt-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 font-bold text-center">
                                                 Kembalian: Rp {(Number(amountReceived) - grandTotal).toLocaleString("id-ID")}
