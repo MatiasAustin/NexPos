@@ -1130,7 +1130,7 @@ export default function AdminDashboard() {
         try {
             const { data: currentSession, error: fetchErr } = await supabase
                 .from('cash_sessions')
-                .select('expected_cash, opening_cash, total_expense, total_refund')
+                .select('expected_cash, opening_cash')
                 .eq('id', editingSessionId)
                 .single();
                 
