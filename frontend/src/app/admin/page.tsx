@@ -2199,6 +2199,12 @@ export default function AdminDashboard() {
                                                                                 <span>Rp {Number(trx.tax_amount).toLocaleString('id-ID')}</span>
                                                                             </div>
                                                                         )}
+                                                                        {(trx.discount_amount || 0) > 0 && (
+                                                                            <div className="flex justify-between text-orange-400">
+                                                                                <span>Diskon Transaksi</span>
+                                                                                <span>- Rp {Number(trx.discount_amount).toLocaleString('id-ID')}</span>
+                                                                            </div>
+                                                                        )}
                                                                         <div className="flex justify-between">
                                                                             <span>Diterima ({trx.payment_methods?.name || 'Cash'})</span>
                                                                             <span>Rp {Number(trx.amount_received).toLocaleString('id-ID')}</span>
@@ -4216,13 +4222,19 @@ export default function AdminDashboard() {
                             <>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
                                     <span>Subtotal</span>
-                                    <span>Rp {(Number(printTransaction.amount_due) - Number(printTransaction.tax_amount)).toLocaleString('id-ID')}</span>
+                                    <span>Rp {(Number(printTransaction.amount_due) - Number(printTransaction.tax_amount) + Number(printTransaction.discount_amount || 0)).toLocaleString('id-ID')}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
                                     <span>Pajak</span>
                                     <span>Rp {Number(printTransaction.tax_amount).toLocaleString('id-ID')}</span>
                                 </div>
                             </>
+                        )}
+                        {Number(printTransaction.discount_amount || 0) > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                                <span>Diskon</span>
+                                <span>- Rp {Number(printTransaction.discount_amount).toLocaleString('id-ID')}</span>
+                            </div>
                         )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                             <span>TOTAL</span>

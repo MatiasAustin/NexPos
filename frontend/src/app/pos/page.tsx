@@ -901,9 +901,9 @@ export default function PosPage() {
                 payment_method_id: selectedMethod.id,
                 items: cart.map(item => ({
                     product_id: item.product.original_id || item.product.id,
-                    product_name: item.product.variant_details 
+                    product_name: (item.product.variant_details 
                         ? `${item.product.name} (${item.product.variant_details})` 
-                        : item.product.name,
+                        : item.product.name) + ((item.product.discount_percentage || 0) > 0 ? ` [Diskon ${item.product.discount_percentage}%]` : ''),
                     quantity: item.qty,
                     price: item.product.price,
                     cogs: item.product.cogs || 0,
