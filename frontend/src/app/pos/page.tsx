@@ -176,16 +176,20 @@ export default function PosPage() {
 
     useEffect(() => {
         if (!staff?.store_id) return;
-        supabase.from('staff_profiles')
-            .select('*')
-            .eq('store_id', staff.store_id)
-            .order('full_name', { ascending: true })
-            .then(({ data }) => {
+        const fetchStaff = async () => {
+            try {
+                const { data } = await supabase.from('staff_profiles')
+                    .select('*')
+                    .eq('store_id', staff.store_id)
+                    .order('full_name', { ascending: true });
                 if(data && Array.isArray(data)) {
                     setAllStaff(data);
                 }
-            })
-            .catch(console.error);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+        fetchStaff();
     }, [staff?.store_id]);
 
     const handleUsePreviousCash = async () => {
