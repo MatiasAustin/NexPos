@@ -35,6 +35,7 @@ export class CashManagementService {
             const { data: expenses } = await supabase
                 .from('expenses')
                 .select('amount')
+                .eq('store_id', session.store_id)
                 .gte('created_at', session.opened_at);
             session.total_expense = expenses ? expenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0) : 0;
             // Calculate total_refund from refunds table
@@ -42,6 +43,7 @@ export class CashManagementService {
                 .from('refunds')
                 .select('refund_amount')
                 .eq('status', 'APPROVED')
+                .eq('store_id', session.store_id)
                 .gte('created_at', session.opened_at);
             session.total_refund = refunds ? refunds.reduce((sum: number, r: any) => sum + Number(r.refund_amount), 0) : 0;
             return session;
