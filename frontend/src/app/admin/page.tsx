@@ -848,6 +848,39 @@ export default function AdminDashboard() {
     const [refundReason, setRefundReason] = useState('');
     const [refundTarget, setRefundTarget] = useState<any>(null);
 
+    const syncPastDiscounts = async () => {
+        setLoading(true);
+        try {
+            const { data: allProducts } = await supabase.from('products').select('id, name, price, discount_percentage');
+            if (!allProducts) { setLoading(false); return; }
+            let count = 0;
+            
+            const { data: recentItems } = await supabase.from('order_items').select('*').order('created_at', { ascending: false }).limit(2000);
+            if (recentItems) {
+                for (const item of recentItems) {
+                    if (item.product_name && item.product_name.includes('[Diskon')) continue;
+                    
+                    const p = allProducts.find((p: any) => p.id === item.product_id);
+                    if (p && (p.discount_percentage || 0) > 0) {
+                        const discPrice = p.price * (1 - (p.discount_percentage || 0) / 100);
+                        if (Math.abs(item.price_at_time - discPrice) < 5) {
+                            const newName = `${item.product_name} [Diskon ${p.discount_percentage}%]`;
+                            await supabase.from('order_items').update({ product_name: newName }).eq('id', item.id);
+                            count++;
+                        }
+                    }
+                }
+            }
+            toast.success(`Berhasil sinkronisasi ${count} item diskon dari transaksi lalu.`);
+            if(count > 0) {
+                fetchTransactions(historyFilterType);
+            }
+        } catch(e: any) {
+            toast.error(e.message || "Gagal sinkronisasi");
+        }
+        setLoading(false);
+    };
+
     const handleRefund = async (trx: any) => {
         setRefundTarget(trx);
         setRefundReason('');
@@ -2150,14 +2183,21 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <h3 className="font-bold text-text-primary mb-2">Urutkan Waktu</h3>
-                                                <div className="flex bg-surface-hover rounded-xl p-1 border border-border">
-                                                    <button onClick={() => setHistorySortOrder('desc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'desc' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}>Terbaru</button>
-                                                    <button onClick={() => setHistorySortOrder('asc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'asc' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}>Terlama</button>
+                                            <div className="flex flex-col md:flex-row justify-between items-end">
+                                                <div>
+                                                    <h3 className="font-bold text-text-primary mb-2">Urutkan Waktu</h3>
+                                                    <div className="flex bg-surface-hover rounded-xl p-1 border border-border">
+                                                        <button onClick={() => setHistorySortOrder('desc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'desc' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}>Terbaru</button>
+                                                        <button onClick={() => setHistorySortOrder('asc')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${historySortOrder === 'asc' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}>Terlama</button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-4 mt-4 md:mt-0">
+                                                    <span className="text-text-muted text-sm">{filteredTransactions.length} transaksi ditemukan</span>
+                                                    <button onClick={syncPastDiscounts} className="px-3 py-1.5 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-lg text-xs font-bold hover:bg-orange-500/20 transition-colors flex items-center gap-1">
+                                                        <RefreshCw className="w-3 h-3" /> Sync Label Diskon Lama
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <span className="text-text-muted text-sm">{filteredTransactions.length} transaksi ditemukan</span>
                                         </div>
 
                                         <div className="space-y-4">
