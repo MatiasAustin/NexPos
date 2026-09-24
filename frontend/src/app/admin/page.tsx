@@ -311,7 +311,7 @@ export default function AdminDashboard() {
             } else if (activeTab === "audit") {
                 await fetchAuditLogs();
             } else if (activeTab === "staff") {
-                const { data } = await supabase.from('staff_profiles').select('*').order('full_name', { ascending: true });
+                const { data } = await supabase.from('staff_profiles').select('*').eq('store_id', prof.store_id).order('full_name', { ascending: true });
                 if(data) setStaffList(data);
             } else if (activeTab === "inventory") {
                 const [prodRes, matRes, orderItemsRes] = await Promise.all([
@@ -373,8 +373,10 @@ export default function AdminDashboard() {
                     supabase.from('raw_materials').select('*').order('name', { ascending: true }),
                     supabase.from('material_stock_logs').select('*').order('created_at', { ascending: false }).limit(50)
                 ]);
-                setRawMaterials(matRes.data || []);
-                setMaterialStockLogs(logRes.data || []);
+                const storeMaterials = matRes.data || [];
+                setRawMaterials(storeMaterials);
+                const matIds = new Set(storeMaterials.map((m: any) => m.id));
+                setMaterialStockLogs((logRes.data || []).filter((l: any) => matIds.has(l.material_id)));
             } else if (activeTab === "cash_sessions") {
                 const { data, error } = await supabase.from('cash_sessions').select('*, staff_profiles(full_name)').order('opened_at', { ascending: false });
                 if (error) {
@@ -418,8 +420,10 @@ export default function AdminDashboard() {
                     category: (e.category || (e.raw_material_id ? 'bahan_baku' : 'operasional')).toLowerCase()
                 }));
                 setExpenses(normalizedExpenses);
-                setRawMaterials(matRes.data || []);
-                setMaterialStockLogs(logRes.data || []);
+                const storeMaterials = matRes.data || [];
+                setRawMaterials(storeMaterials);
+                const matIds = new Set(storeMaterials.map((m: any) => m.id));
+                setMaterialStockLogs((logRes.data || []).filter((l: any) => matIds.has(l.material_id)));
             }
             
             // Settings always loaded for UI config

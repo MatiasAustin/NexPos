@@ -175,16 +175,18 @@ export default function PosPage() {
     const [selectedStaffId, setSelectedStaffId] = useState<string>("");
 
     useEffect(() => {
-        // Fetch staff list for the dropdown
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff`)
-            .then(res => res.json())
-            .then(data => {
+        if (!staff?.store_id) return;
+        supabase.from('staff_profiles')
+            .select('*')
+            .eq('store_id', staff.store_id)
+            .order('full_name', { ascending: true })
+            .then(({ data }) => {
                 if(data && Array.isArray(data)) {
                     setAllStaff(data);
                 }
             })
             .catch(console.error);
-    }, []);
+    }, [staff?.store_id]);
 
     const handleUsePreviousCash = async () => {
         setLoading(true);
