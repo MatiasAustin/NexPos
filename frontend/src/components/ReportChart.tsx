@@ -13,6 +13,7 @@ interface ChartPoint {
     omset: number;
     pengeluaranOp: number;
     hpp: number;
+    diskon: number;
     laba: number;
 }
 
@@ -45,7 +46,7 @@ interface ReportChartProps {
 export default function ReportChart({ period, customStartDate, customEndDate, referenceDate }: ReportChartProps) {
     const [chartData, setChartData] = useState<ChartPoint[]>([]);
     const [loading, setLoading] = useState(true);
-    const [totals, setTotals] = useState({ omset: 0, pengeluaranOp: 0, hpp: 0, laba: 0 });
+    const [totals, setTotals] = useState({ omset: 0, pengeluaranOp: 0, hpp: 0, diskon: 0, laba: 0 });
     const [periodLabel, setPeriodLabel] = useState('');
     const [expenseCategoryFilter, setExpenseCategoryFilter] = useState<'all'|'operasional'|'bahan_baku'>('all');
 
@@ -101,14 +102,16 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
 
         const { data: transactions } = await supabase
             .from('transactions')
-            .select('id, amount_due, created_at, status')
+            .select('id, amount_due, discount_amount, created_at, status')
             .eq('status', 'Paid')
             .gte('created_at', start.toISOString())
             .lte('created_at', end.toISOString());
 
+        const paidTrxIds = new Set((transactions || []).map(t => t.id));
+
         const { data: orderItems } = await supabase
             .from('order_items')
-            .select('transaction_id, cogs_at_time, quantity, created_at')
+            .select('transaction_id, cogs_at_time, quantity, created_at, product_name, price_at_time')
             .gte('created_at', start.toISOString())
             .lte('created_at', end.toISOString());
 
@@ -118,18 +121,32 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
             .gte('created_at', start.toISOString())
             .lte('created_at', end.toISOString());
 
-        const map: Record<string, { omset: number; pengeluaranOp: number; hpp: number }> = {};
+        const map: Record<string, { omset: number; pengeluaranOp: number; hpp: number; diskon: number }> = {};
 
         for (const trx of transactions || []) {
             const lbl = getPeriodLabel(trx.created_at, period);
-            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0 };
+            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0, diskon: 0 };
             map[lbl].omset += parseFloat(trx.amount_due) || 0;
+            map[lbl].diskon += parseFloat(trx.discount_amount) || 0;
         }
 
         for (const item of orderItems || []) {
+            if (!paidTrxIds.has(item.transaction_id)) continue;
             const lbl = getPeriodLabel(item.created_at, period);
-            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0 };
+            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0, diskon: 0 };
             map[lbl].hpp += (parseFloat(item.cogs_at_time) || 0) * (item.quantity || 1);
+            
+            if (item.product_name) {
+                const match = item.product_name.match(/\[Diskon (\d+(?:\.\d+)?)%\]/);
+                if (match) {
+                    const pct = parseFloat(match[1]);
+                    if (pct > 0 && pct < 100) {
+                        const originalPrice = parseFloat(item.price_at_time) / (1 - pct / 100);
+                        const discountPerItem = originalPrice - parseFloat(item.price_at_time);
+                        map[lbl].diskon += discountPerItem * (item.quantity || 1);
+                    }
+                }
+            }
         }
 
         for (const exp of expenses || []) {
@@ -139,7 +156,7 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
             }
             const dateStr = exp.expense_date || exp.created_at;
             const lbl = getPeriodLabel(dateStr, period);
-            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0 };
+            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0, diskon: 0 };
             map[lbl].pengeluaranOp += parseFloat(exp.amount) || 0;
         }
 
@@ -148,29 +165,30 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
         if (period === 'daily') {
             for (let i = 0; i < 24; i++) {
                 const lbl = `${i.toString().padStart(2, '0')}:00`;
-                points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0) });
+                points.push({ label: lbl, omset: map[lbl]?.omset || 0, diskon: map[lbl]?.diskon || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0) });
             }
         } else if (period === 'weekly') {
             const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
-            points = days.map(d => ({ label: d, omset: map[d]?.omset || 0, pengeluaranOp: map[d]?.pengeluaranOp || 0, hpp: map[d]?.hpp || 0, laba: (map[d]?.omset || 0) - (map[d]?.pengeluaranOp || 0) }));
+            points = days.map(d => ({ label: d, omset: map[d]?.omset || 0, diskon: map[d]?.diskon || 0, pengeluaranOp: map[d]?.pengeluaranOp || 0, hpp: map[d]?.hpp || 0, laba: (map[d]?.omset || 0) - (map[d]?.pengeluaranOp || 0) }));
         } else if (period === 'monthly') {
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             for (let i = 1; i <= daysInMonth; i++) {
                 const d = new Date(now.getFullYear(), now.getMonth(), i);
                 const lbl = `${d.getDate().toString().padStart(2, '0')} ${d.toLocaleString('id-ID', { month: 'short' })}`;
-                points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0) });
+                points.push({ label: lbl, omset: map[lbl]?.omset || 0, diskon: map[lbl]?.diskon || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0) });
             }
         } else if (period === 'yearly') {
             for (let i = 0; i < 12; i++) {
                 const d = new Date(now.getFullYear(), i, 1);
                 const lbl = d.toLocaleString('id-ID', { month: 'short', year: 'numeric' });
-                points.push({ label: lbl, omset: map[lbl]?.omset || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0) });
+                points.push({ label: lbl, omset: map[lbl]?.omset || 0, diskon: map[lbl]?.diskon || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0) });
             }
         } else if (period === 'custom') {
             const sorted = Object.keys(map).sort();
             points = sorted.map(lbl => ({
                 label: lbl,
                 omset: map[lbl].omset,
+                diskon: map[lbl].diskon,
                 pengeluaranOp: map[lbl].pengeluaranOp,
                 hpp: map[lbl].hpp,
                 laba: map[lbl].omset - map[lbl].pengeluaranOp
@@ -180,15 +198,16 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
         const totalOmset = points.reduce((s, p) => s + p.omset, 0);
         const totalPengeluaranOp = points.reduce((s, p) => s + p.pengeluaranOp, 0);
         const totalHpp = points.reduce((s, p) => s + p.hpp, 0);
-        setTotals({ omset: totalOmset, pengeluaranOp: totalPengeluaranOp, hpp: totalHpp, laba: totalOmset - totalPengeluaranOp });
+        const totalDiskon = points.reduce((s, p) => s + p.diskon, 0);
+        setTotals({ omset: totalOmset, pengeluaranOp: totalPengeluaranOp, hpp: totalHpp, diskon: totalDiskon, laba: totalOmset - totalPengeluaranOp });
         setChartData(points);
         setLoading(false);
     };
 
     const exportCSV = () => {
         const rows = [
-            ['Waktu', 'Omset (Rp)', 'Total HPP (Rp)', 'Pengeluaran (Rp)', 'Laba Bersih (Rp)'],
-            ...chartData.map(p => [p.label, p.omset, p.hpp, p.pengeluaranOp, p.laba])
+            ['Waktu', 'Omset (Rp)', 'Total Diskon (Rp)', 'Total HPP (Rp)', 'Pengeluaran (Rp)', 'Laba Bersih (Rp)'],
+            ...chartData.map(p => [p.label, p.omset, p.diskon, p.hpp, p.pengeluaranOp, p.laba])
         ];
         const csv = rows.map(r => r.join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
@@ -246,6 +265,12 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
                                                     </div>
                                                 );
                                             })}
+                                            {payload[0] && payload[0].payload && payload[0].payload.diskon > 0 && (
+                                                <div className="flex justify-between gap-4 text-sm mb-1">
+                                                    <span style={{ color: '#fb923c' }}>Total Diskon:</span>
+                                                    <span className="font-bold text-text-primary">{formatRupiah(payload[0].payload.diskon)}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 }
@@ -263,7 +288,7 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
 
             {!loading && (
                 <>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-border">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6 pt-6 border-t border-border">
                         <div className="text-center border-b md:border-b-0 md:border-r border-border pb-4 md:pb-0">
                             <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Total Omset</p>
                             <p className="text-sm md:text-lg font-extrabold text-accent">{formatRupiah(totals.omset)}</p>
@@ -271,6 +296,10 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
                         <div className="text-center border-b md:border-b-0 md:border-r border-border pb-4 md:pb-0">
                             <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Total HPP</p>
                             <p className="text-sm md:text-lg font-extrabold text-amber-400">{formatRupiah(totals.hpp)}</p>
+                        </div>
+                        <div className="text-center border-b md:border-b-0 md:border-r border-border pb-4 md:pb-0">
+                            <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Total Diskon</p>
+                            <p className="text-sm md:text-lg font-extrabold text-orange-400">{formatRupiah(totals.diskon)}</p>
                         </div>
                         <div className="text-center md:border-r border-border">
                             <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Total Pengeluaran</p>
