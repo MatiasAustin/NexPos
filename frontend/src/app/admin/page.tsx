@@ -440,7 +440,9 @@ export default function AdminDashboard() {
         if(!name) return;
         setLoading(true);
         try {
-            const { error } = await supabase.from('payment_methods').insert([{ name, type: 'transfer', is_active: true }]);
+            const isCash = name.toLowerCase().includes('cash') || name.toLowerCase().includes('tunai');
+            const type = isCash ? 'cash' : 'transfer';
+            const { error } = await supabase.from('payment_methods').insert([{ name, type, is_active: true }]);
             if(error) throw error;
             toast.success("Metode pembayaran ditambahkan!");
             const { data } = await supabase.from('payment_methods').select('*').eq('is_active', true).order('created_at', { ascending: true });
