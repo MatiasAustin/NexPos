@@ -227,6 +227,7 @@ export default function AdminDashboard() {
     // Edit opening cash on shift
     const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
     const [editingOpeningCash, setEditingOpeningCash] = useState<string>('');
+    const [editingActualCash, setEditingActualCash] = useState<string>('');
     
     // Inline add material in expense form
     const [showInlineAddMaterial, setShowInlineAddMaterial] = useState(false);
@@ -1123,26 +1124,51 @@ export default function AdminDashboard() {
         setLoading(false);
     };
 
-    const handleEditOpeningCash = async () => {
-        if (!editingSessionId || !editingOpeningCash) return;
+    const handleEditCashSession = async () => {
+        if (!editingSessionId) return;
         setLoading(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/cash-sessions/${editingSessionId}/opening-cash`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ opening_cash: Number(editingOpeningCash) })
-            });
-            if (res.ok) {
-                toast.success("Modal awal shift berhasil diperbarui.");
-                setEditingSessionId(null);
-                setEditingOpeningCash('');
-                fetchData();
-            } else {
-                const err = await res.json();
-                toast.error(err.error || "Gagal mengupdate modal awal.");
+            const { data: currentSession, error: fetchErr } = await supabase
+                .from('cash_sessions')
+                .select('expected_cash, opening_cash, total_expense, total_refund')
+                .eq('id', editingSessionId)
+                .single();
+                
+            if (fetchErr) throw fetchErr;
+
+            const newOpeningCash = Number(editingOpeningCash);
+            const newActualCash = editingActualCash ? Number(editingActualCash) : null;
+            
+            // Expected cash is dynamic based on opening cash + transactions + expenses
+            // However, this simple system might just be storing expected cash statically.
+            // If opening cash is changed, the expected_cash should shift by the delta.
+            const openingCashDelta = newOpeningCash - (currentSession.opening_cash || 0);
+            const newExpectedCash = (currentSession.expected_cash || 0) + openingCashDelta;
+            
+            const updates: any = {
+                opening_cash: newOpeningCash,
+                expected_cash: newExpectedCash
+            };
+
+            if (newActualCash !== null) {
+                updates.actual_cash = newActualCash;
+                updates.difference = newActualCash - newExpectedCash;
             }
-        } catch(error) {
-            toast.error("Terjadi kesalahan jaringan.");
+
+            const { error: updateErr } = await supabase
+                .from('cash_sessions')
+                .update(updates)
+                .eq('id', editingSessionId);
+
+            if (updateErr) throw updateErr;
+
+            toast.success("Shift berhasil diperbarui.");
+            setEditingSessionId(null);
+            setEditingOpeningCash('');
+            setEditingActualCash('');
+            fetchData();
+        } catch(error: any) {
+            toast.error(error.message || "Gagal mengupdate shift.");
         }
         setLoading(false);
     };
@@ -2429,7 +2455,7 @@ export default function AdminDashboard() {
                                                     </p>
                                                     {profile?.role === 'owner' && (
                                                         <div className="flex flex-wrap gap-2 mt-2">
-                                                            <button onClick={() => { setEditingSessionId(session.id); setEditingOpeningCash(String(session.opening_cash || 0)); }} disabled={loading} className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 bg-accent/10 text-accent border border-accent/20 rounded-full hover:bg-accent-hover/20 w-fit transition-colors">Edit Modal</button>
+                                                            <button onClick={() => { setEditingSessionId(session.id); setEditingOpeningCash(String(session.opening_cash || 0)); setEditingActualCash(session.actual_cash ? String(session.actual_cash) : ''); }} disabled={loading} className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 bg-accent/10 text-accent border border-accent/20 rounded-full hover:bg-accent-hover/20 w-fit transition-colors">Edit Laci</button>
                                                             <button onClick={() => handleDeleteSession(session.id)} disabled={loading} className="text-[10px] uppercase font-bold tracking-wider px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full hover:bg-red-500/20 w-fit transition-colors">Hapus Shift</button>
                                                         </div>
                                                     )}
@@ -2443,8 +2469,8 @@ export default function AdminDashboard() {
                                                     {session.status === 'closed' && (
                                                         <>
                                                             <div className="flex justify-between text-green-400 font-bold border-t border-border mt-1 pt-1"><span>Aktual di Laci (Tutup)</span><span>Rp {Number(session.actual_cash).toLocaleString('id-ID')}</span></div>
-                                                            <div className={`flex justify-between font-bold ${Number(session.difference) < 0 ? 'text-red-400' : 'text-text-secondary'}`}>
-                                                                <span>Selisih</span><span>Rp {Number(session.difference).toLocaleString('id-ID')}</span>
+                                                            <div className={`flex justify-between font-bold ${Number(session.difference ?? (session.actual_cash - session.expected_cash)) < 0 ? 'text-red-400' : 'text-text-secondary'}`}>
+                                                                <span>Selisih</span><span>Rp {Number(session.difference ?? (session.actual_cash - session.expected_cash)).toLocaleString('id-ID')}</span>
                                                             </div>
                                                             {session.discrepancy_reason && <p className="text-xs text-red-400 mt-1 italic">"{session.discrepancy_reason}"</p>}
                                                         </>
@@ -2458,9 +2484,9 @@ export default function AdminDashboard() {
                                     {editingSessionId && (
                                         <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 p-4 backdrop-blur-md overflow-y-auto">
                                             <div className="bg-surface border border-border p-6 rounded-3xl w-full max-w-sm shadow-md mt-16 mb-16">
-                                                <h3 className="font-bold text-xl text-text-primary mb-2">Edit Modal Awal Shift</h3>
-                                                <p className="text-text-muted text-sm mb-5">Ubah jumlah uang modal pembuka shift ini.</p>
-                                                <div className="mb-5">
+                                                <h3 className="font-bold text-xl text-text-primary mb-2">Edit Laci Shift</h3>
+                                                <p className="text-text-muted text-sm mb-5">Ubah jumlah uang modal dan tutup laci shift ini.</p>
+                                                <div className="mb-4">
                                                     <label className="text-sm font-bold text-text-muted block mb-2">Nominal Modal Awal (Rp)</label>
                                                     <input
                                                         type="number"
@@ -2470,9 +2496,19 @@ export default function AdminDashboard() {
                                                         placeholder="Contoh: 500000"
                                                     />
                                                 </div>
+                                                <div className="mb-5">
+                                                    <label className="text-sm font-bold text-text-muted block mb-2">Aktual di Laci (Tutup) (Rp)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={editingActualCash}
+                                                        onChange={e => setEditingActualCash(e.target.value)}
+                                                        className="w-full p-3 bg-surface-hover border border-border rounded-xl text-green-400 outline-none focus:border-accent text-lg font-bold"
+                                                        placeholder="Kosongkan jika belum tutup"
+                                                    />
+                                                </div>
                                                 <div className="flex gap-3">
-                                                    <button onClick={() => { setEditingSessionId(null); setEditingOpeningCash(''); }} className="flex-1 py-2.5 bg-gray-800 text-white rounded-xl font-medium hover:bg-gray-700">Batal</button>
-                                                    <button onClick={handleEditOpeningCash} disabled={loading} className="flex-1 py-3 bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover">{loading ? 'Menyimpan...' : 'Simpan'}</button>
+                                                    <button onClick={() => { setEditingSessionId(null); setEditingOpeningCash(''); setEditingActualCash(''); }} className="flex-1 py-2.5 bg-gray-800 text-white rounded-xl font-medium hover:bg-gray-700">Batal</button>
+                                                    <button onClick={handleEditCashSession} disabled={loading} className="flex-1 py-3 bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover">{loading ? 'Menyimpan...' : 'Simpan'}</button>
                                                 </div>
                                             </div>
                                         </div>
