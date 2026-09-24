@@ -847,6 +847,8 @@ export default function AdminDashboard() {
 
     const [refundReason, setRefundReason] = useState('');
     const [refundTarget, setRefundTarget] = useState<any>(null);
+    const [editTarget, setEditTarget] = useState<any>(null);
+    const [editData, setEditData] = useState({ amount_due: 0, discount_amount: 0, amount_received: 0 });
 
     const syncPastDiscounts = async () => {
         setLoading(true);
@@ -922,6 +924,39 @@ export default function AdminDashboard() {
             }
         } catch(error) {
             toast.error("Terjadi kesalahan sistem saat memproses refund.");
+        }
+        setLoading(false);
+    };
+
+    const handleEditTransactionClick = (trx: any) => {
+        setEditTarget(trx);
+        setEditData({ 
+            amount_due: Number(trx.amount_due), 
+            discount_amount: Number(trx.discount_amount) || 0, 
+            amount_received: Number(trx.amount_received) 
+        });
+    };
+
+    const handleSaveEditTransaction = async () => {
+        setLoading(true);
+        try {
+            const change_given = Math.max(0, editData.amount_received - editData.amount_due);
+            const { error } = await supabase
+                .from('transactions')
+                .update({
+                    amount_due: editData.amount_due,
+                    discount_amount: editData.discount_amount,
+                    amount_received: editData.amount_received,
+                    change_given: change_given
+                })
+                .eq('id', editTarget.id);
+
+            if (error) throw error;
+            toast.success("Transaksi berhasil diperbarui!");
+            setEditTarget(null);
+            fetchTransactions(historyFilterType);
+        } catch(error: any) {
+            toast.error(error.message || "Gagal memperbarui transaksi");
         }
         setLoading(false);
     };
@@ -1944,6 +1979,50 @@ export default function AdminDashboard() {
                                     </div>
                                 </div>
                             )}
+                            
+                            {editTarget && (
+                                <div className="fixed inset-0 bg-black/70 flex items-start justify-center z-50 p-4 overflow-y-auto backdrop-blur-sm">
+                                    <div className="bg-surface border border-border rounded-3xl p-4 md:p-6 w-full max-w-md shadow-md mt-16 mb-16">
+                                        <h3 className="font-bold text-xl text-text-primary mb-1">Edit Transaksi</h3>
+                                        <p className="text-text-muted text-sm mb-5">Transaksi: <span className="text-text-primary font-semibold">{editTarget.order_reference}</span></p>
+                                        
+                                        <div className="space-y-4 mb-6">
+                                            <div>
+                                                <label className="text-sm text-text-muted font-semibold block mb-2">Total Belanja Asli (Amount Due)</label>
+                                                <input 
+                                                    type="number"
+                                                    value={editData.amount_due}
+                                                    onChange={e => setEditData({...editData, amount_due: Number(e.target.value)})}
+                                                    className="w-full p-3 bg-surface-hover border border-border rounded-xl text-text-primary outline-none focus:border-blue-500 font-semibold"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-sm text-text-muted font-semibold block mb-2">Diskon (Nominal)</label>
+                                                <input 
+                                                    type="number"
+                                                    value={editData.discount_amount}
+                                                    onChange={e => setEditData({...editData, discount_amount: Number(e.target.value)})}
+                                                    className="w-full p-3 bg-surface-hover border border-border rounded-xl text-orange-400 outline-none focus:border-blue-500 font-semibold"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-sm text-text-muted font-semibold block mb-2">Uang Diterima</label>
+                                                <input 
+                                                    type="number"
+                                                    value={editData.amount_received}
+                                                    onChange={e => setEditData({...editData, amount_received: Number(e.target.value)})}
+                                                    className="w-full p-3 bg-surface-hover border border-border rounded-xl text-text-primary outline-none focus:border-blue-500 font-semibold"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-3">
+                                            <button onClick={() => setEditTarget(null)} className="flex-1 py-2.5 bg-gray-800 text-white rounded-xl font-medium hover:bg-gray-700">Batal</button>
+                                            <button onClick={handleSaveEditTransaction} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500">Simpan Perubahan</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Tab Loading Skeleton */}
                             {tabLoading ? (
@@ -2287,6 +2366,14 @@ export default function AdminDashboard() {
                                                                         >
                                                                             Refund
                                                                         </button>
+                                                                        {profile?.role === 'owner' && (
+                                                                            <button 
+                                                                                onClick={() => handleEditTransactionClick(trx)}
+                                                                                className="w-full px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl text-sm font-bold hover:bg-blue-500/20 transition-colors"
+                                                                            >
+                                                                                Edit
+                                                                            </button>
+                                                                        )}
 
                                                                         <button 
                                                                             onClick={() => {
