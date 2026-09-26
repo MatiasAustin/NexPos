@@ -28,6 +28,10 @@ export default function PosPage() {
     const [discountValue, setDiscountValue] = useState<string>("");
     
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
+    const [activeQueueNumber, setActiveQueueNumber] = useState<string | null>(null);
+
+    
+
     const [showPayment, setShowPayment] = useState(false);
     const [showDiscountInput, setShowDiscountInput] = useState(false);
     const [amountReceived, setAmountReceived] = useState<string>("");
@@ -62,6 +66,44 @@ export default function PosPage() {
     const [staff, setStaff] = useState<any>(null);
     const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
     const [actualCashInput, setActualCashInput] = useState("");
+
+    // Persist cart to localStorage to prevent losing draft on refresh
+// Persist cart to localStorage to prevent losing draft on refresh
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const savedCart = localStorage.getItem('nexpos_active_cart');
+            if (savedCart) {
+                try {
+                    const parsed = JSON.parse(savedCart);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        setCart(parsed);
+                    }
+                } catch(e) {}
+            }
+            const savedDraft = localStorage.getItem('nexpos_active_draft_info');
+            if (savedDraft) {
+                try {
+                    const info = JSON.parse(savedDraft);
+                    setActiveQueueNumber(info.activeQueueNumber || null);
+                    setCustomerName(info.customerName || "");
+                    setDiscountValue(info.discountValue || "");
+                    setDiscountType(info.discountType || "nominal");
+                } catch(e) {}
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('nexpos_active_cart', JSON.stringify(cart));
+            localStorage.setItem('nexpos_active_draft_info', JSON.stringify({
+                activeQueueNumber,
+                customerName,
+                discountValue,
+                discountType
+            }));
+        }
+    }, [cart, activeQueueNumber, customerName, discountValue, discountType]);
 
     const router = useRouter();
     const toast = useToast();
@@ -325,8 +367,7 @@ export default function PosPage() {
         }
     }, [hasSession]);
 
-    const [activeQueueNumber, setActiveQueueNumber] = useState<string | null>(null);
-
+    
     const handleDeletePendingOrder = async (id: string, queueNumber: string, e: React.MouseEvent) => {
         e.stopPropagation();
         const ok = await confirm({ title: "Batalkan Pesanan", message: "Yakin ingin membatalkan/menghapus pesanan ini?", confirmText: "Ya, Batalkan", variant: "danger" });
@@ -365,10 +406,18 @@ export default function PosPage() {
             
             // Upsert the current draft
             const existingPending = pendingOrders.find((o: any) => o.queue_number === draftOrder.queue_number);
+            let saveErr = null;
             if (existingPending && existingPending.id) {
-                await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
+                const { error } = await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
+                saveErr = error;
             } else {
-                await supabase.from('kiosk_orders').insert([draftOrder]);
+                const { error } = await supabase.from('kiosk_orders').insert([draftOrder]);
+                saveErr = error;
+            }
+            if (saveErr) {
+                toast.error("Gagal menyimpan pesanan sebelumnya sebagai draft: " + saveErr.message);
+            } else {
+                toast.info("Pesanan sebelumnya disimpan sebagai Draft");
             }
             // Immediately refresh pendingOrders so the new draft is visible
             const { data: freshOrders } = await supabase.from('kiosk_orders')
@@ -376,7 +425,6 @@ export default function PosPage() {
                 .in('status', ['pending', 'draft', 'waiting_payment'])
                 .order('created_at', { ascending: false });
             if (freshOrders) setPendingOrders(freshOrders);
-            toast.info("Pesanan sebelumnya disimpan sebagai Draft");
         }
 
         setCart(order.items);
@@ -414,11 +462,19 @@ export default function PosPage() {
             status: 'draft'
         };
         
-        const existingPending = pendingOrders.find((o: any) => o.queue_number === orderRef);
+        const existingPending = pendingOrders.find((o: any) => o.queue_number === activeQueueNumber);
+        let saveErr = null;
         if (existingPending && existingPending.id) {
-            await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
+            const { error } = await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
+            saveErr = error;
         } else {
-            await supabase.from('kiosk_orders').insert([draftOrder]);
+            const { error } = await supabase.from('kiosk_orders').insert([draftOrder]);
+            saveErr = error;
+        }
+        if (saveErr) {
+            toast.error("Gagal menyimpan draft: " + saveErr.message);
+            setLoading(false);
+            return;
         }
         // Immediately refresh pendingOrders so the new draft is visible
         const { data: freshOrders } = await supabase.from('kiosk_orders')
