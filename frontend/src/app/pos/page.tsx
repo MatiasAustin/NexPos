@@ -24,18 +24,73 @@ export default function PosPage() {
     const [isMobileDraftOpen, setIsMobileDraftOpen] = useState(false);
     
     // Discount State
-    const [discountType, setDiscountType] = useState<"nominal" | "percentage">("nominal");
-    const [discountValue, setDiscountValue] = useState<string>("");
+    const [discountType, setDiscountType] = useState<"nominal" | "percentage">(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('nexpos_active_draft_info');
+            if (saved) {
+                try {
+                    const info = JSON.parse(saved);
+                    return info.discountType || "nominal";
+                } catch(e) {}
+            }
+        }
+        return "nominal";
+    });
+    const [discountValue, setDiscountValue] = useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('nexpos_active_draft_info');
+            if (saved) {
+                try {
+                    const info = JSON.parse(saved);
+                    return info.discountValue || "";
+                } catch(e) {}
+            }
+        }
+        return "";
+    });
     
-    const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
-    const [activeQueueNumber, setActiveQueueNumber] = useState<string | null>(null);
+    const [cart, setCart] = useState<{ product: any; qty: number }[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('nexpos_active_cart');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed)) return parsed;
+                } catch(e) {}
+            }
+        }
+        return [];
+    });
+    const [activeQueueNumber, setActiveQueueNumber] = useState<string | null>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('nexpos_active_draft_info');
+            if (saved) {
+                try {
+                    const info = JSON.parse(saved);
+                    return info.activeQueueNumber || null;
+                } catch(e) {}
+            }
+        }
+        return null;
+    });
 
     
 
     const [showPayment, setShowPayment] = useState(false);
     const [showDiscountInput, setShowDiscountInput] = useState(false);
     const [amountReceived, setAmountReceived] = useState<string>("");
-    const [customerName, setCustomerName] = useState<string>("");
+    const [customerName, setCustomerName] = useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('nexpos_active_draft_info');
+            if (saved) {
+                try {
+                    const info = JSON.parse(saved);
+                    return info.customerName || "";
+                } catch(e) {}
+            }
+        }
+        return "";
+    });
     const [paymentResult, setPaymentResult] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [showOptionsModal, setShowOptionsModal] = useState(false);
@@ -67,31 +122,7 @@ export default function PosPage() {
     const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
     const [actualCashInput, setActualCashInput] = useState("");
 
-    // Persist cart to localStorage to prevent losing draft on refresh
-// Persist cart to localStorage to prevent losing draft on refresh
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const savedCart = localStorage.getItem('nexpos_active_cart');
-            if (savedCart) {
-                try {
-                    const parsed = JSON.parse(savedCart);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        setCart(parsed);
-                    }
-                } catch(e) {}
-            }
-            const savedDraft = localStorage.getItem('nexpos_active_draft_info');
-            if (savedDraft) {
-                try {
-                    const info = JSON.parse(savedDraft);
-                    setActiveQueueNumber(info.activeQueueNumber || null);
-                    setCustomerName(info.customerName || "");
-                    setDiscountValue(info.discountValue || "");
-                    setDiscountType(info.discountType || "nominal");
-                } catch(e) {}
-            }
-        }
-    }, []);
+    
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
