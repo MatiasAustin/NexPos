@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { ShoppingCart, CreditCard, Banknote, Trash2, Clock, Minus, Plus, LayoutGrid, List, Maximize, ClipboardList, X } from "lucide-react";
 import { processPayment, getPaymentMethods, getActiveProducts } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -24,73 +24,18 @@ export default function PosPage() {
     const [isMobileDraftOpen, setIsMobileDraftOpen] = useState(false);
     
     // Discount State
-    const [discountType, setDiscountType] = useState<"nominal" | "percentage">(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('nexpos_active_draft_info');
-            if (saved) {
-                try {
-                    const info = JSON.parse(saved);
-                    return info.discountType || "nominal";
-                } catch(e) {}
-            }
-        }
-        return "nominal";
-    });
-    const [discountValue, setDiscountValue] = useState<string>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('nexpos_active_draft_info');
-            if (saved) {
-                try {
-                    const info = JSON.parse(saved);
-                    return info.discountValue || "";
-                } catch(e) {}
-            }
-        }
-        return "";
-    });
+    const [discountType, setDiscountType] = useState<"nominal" | "percentage">("nominal");
+    const [discountValue, setDiscountValue] = useState<string>("");
     
-    const [cart, setCart] = useState<{ product: any; qty: number }[]>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('nexpos_active_cart');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    if (Array.isArray(parsed)) return parsed;
-                } catch(e) {}
-            }
-        }
-        return [];
-    });
-    const [activeQueueNumber, setActiveQueueNumber] = useState<string | null>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('nexpos_active_draft_info');
-            if (saved) {
-                try {
-                    const info = JSON.parse(saved);
-                    return info.activeQueueNumber || null;
-                } catch(e) {}
-            }
-        }
-        return null;
-    });
+    const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
+    const [activeQueueNumber, setActiveQueueNumber] = useState<string | null>(null);
 
     
 
     const [showPayment, setShowPayment] = useState(false);
     const [showDiscountInput, setShowDiscountInput] = useState(false);
     const [amountReceived, setAmountReceived] = useState<string>("");
-    const [customerName, setCustomerName] = useState<string>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('nexpos_active_draft_info');
-            if (saved) {
-                try {
-                    const info = JSON.parse(saved);
-                    return info.customerName || "";
-                } catch(e) {}
-            }
-        }
-        return "";
-    });
+    const [customerName, setCustomerName] = useState<string>("");
     const [paymentResult, setPaymentResult] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [showOptionsModal, setShowOptionsModal] = useState(false);
@@ -124,8 +69,43 @@ export default function PosPage() {
 
     
 
+    
+
+    
+    const isMounted = React.useRef(false);
+    const isLoaded = React.useRef(false);
+
     useEffect(() => {
         if (typeof window !== 'undefined') {
+            const savedCart = localStorage.getItem('nexpos_active_cart');
+            if (savedCart) {
+                try {
+                    const parsed = JSON.parse(savedCart);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        setCart(parsed);
+                    }
+                } catch(e) {}
+            }
+            const savedDraft = localStorage.getItem('nexpos_active_draft_info');
+            if (savedDraft) {
+                try {
+                    const info = JSON.parse(savedDraft);
+                    setActiveQueueNumber(info.activeQueueNumber || null);
+                    setCustomerName(info.customerName || "");
+                    setDiscountValue(info.discountValue || "");
+                    setDiscountType(info.discountType || "nominal");
+                } catch(e) {}
+            }
+            isLoaded.current = true;
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            return;
+        }
+        if (isLoaded.current && typeof window !== 'undefined') {
             localStorage.setItem('nexpos_active_cart', JSON.stringify(cart));
             localStorage.setItem('nexpos_active_draft_info', JSON.stringify({
                 activeQueueNumber,
@@ -135,6 +115,7 @@ export default function PosPage() {
             }));
         }
     }, [cart, activeQueueNumber, customerName, discountValue, discountType]);
+
 
     const router = useRouter();
     const toast = useToast();
