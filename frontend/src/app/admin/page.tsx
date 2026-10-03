@@ -5,7 +5,7 @@ import { getReconciliationReport, getAuditLogs } from "@/lib/api";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 import AppLogo from "@/components/AppLogo";
-import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload, Loader2, Maximize, Wallet, Clock, X } from "lucide-react";
+import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload, Loader2, Maximize, Wallet, Clock, X, Search, Filter } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import ReportChart from "@/components/ReportChart";
@@ -194,6 +194,10 @@ export default function AdminDashboard() {
     const [diffDays, setDiffDays] = useState<number>(1);
     const [totalPeriodItemsSold, setTotalPeriodItemsSold] = useState<number>(0);
     const [productSalesData, setProductSalesData] = useState<any[]>([]);
+    const [selectedProductId, setSelectedProductId] = useState<string>("all");
+    const [productCategoryFilter, setProductCategoryFilter] = useState<string>("all");
+    const [productSearchQuery, setProductSearchQuery] = useState<string>("");
+    const [activeItemSummary, setActiveItemSummary] = useState<{ totalSold: number; cash: number; nonCash: number; totalRevenue: number; hppTotal: number; profit: number } | null>(null);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [historyFilterType, setHistoryFilterType] = useState<"daily" | "weekly" | "monthly" | "yearly" | "custom">("daily");
@@ -607,10 +611,21 @@ export default function AdminDashboard() {
 
     const handleSelectShift = (shiftId: string) => {
         setSelectedShiftId(shiftId);
-        fetchReconciliation(reconciliationPeriod, customDateStart, customDateEnd, shiftId);
+        fetchReconciliation(reconciliationPeriod, customDateStart, customDateEnd, shiftId, selectedProductId);
     };
 
-    const fetchReconciliation = async (period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom', customStart?: string, customEnd?: string, shiftIdFilter?: string) => {
+    const handleSelectItem = (productId: string) => {
+        setSelectedProductId(productId);
+        fetchReconciliation(reconciliationPeriod, customDateStart, customDateEnd, selectedShiftId, productId);
+    };
+
+    const fetchReconciliation = async (
+        period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom',
+        customStart?: string,
+        customEnd?: string,
+        shiftIdFilter?: string,
+        productIdFilter?: string
+    ) => {
         setLoading(true);
         try {
             const now = reconciliationDate;
@@ -691,6 +706,7 @@ export default function AdminDashboard() {
                 .from('order_items')
                 .select(`
                     transaction_id,
+                    product_id,
                     quantity,
                     price_at_time,
                     cogs_at_time,
@@ -715,7 +731,7 @@ export default function AdminDashboard() {
             if (orderItems) {
                 orderItems.forEach((item: any) => {
                     if (!paidTrxIds.has(item.transaction_id)) return;
-                    const pId = item.product?.id || item.product_name || 'unknown';
+                    const pId = item.product?.id || item.product_id || item.product_name || 'unknown';
                     const qty = Number(item.quantity) || 1;
                     const price = Number(item.price_at_time) || 0;
                     const cogs = Number(item.cogs_at_time) || 0;
@@ -743,6 +759,60 @@ export default function AdminDashboard() {
             setProductSalesData(pArray);
             setTotalPeriodItemsSold(totalSold);
 
+            // Fetch store products for dropdown if not loaded
+            const { data: storeProducts } = await supabase.from('products').select('*').order('name', { ascending: true });
+            if (storeProducts && storeProducts.length > 0) {
+                setProducts(storeProducts);
+            }
+
+            // Calculate active item summary if an item is selected
+            const currentProductId = productIdFilter !== undefined ? productIdFilter : selectedProductId;
+            const targetProd = currentProductId !== 'all' 
+                ? ((storeProducts || products || []).find((p: any) => p.id === currentProductId) || pArray.find((p: any) => p.id === currentProductId))
+                : null;
+
+            if (currentProductId !== 'all' && targetProd) {
+                const itemRows = (orderItems || []).filter((item: any) => {
+                    if (!paidTrxIds.has(item.transaction_id)) return false;
+                    const pId = item.product?.id || item.product_id || item.product_name;
+                    return pId === currentProductId || item.product_name === targetProd.name;
+                });
+
+                const trxMap = new Map((paidTrxs || []).map((t: any) => [t.id, (t.payment_methods?.name || '').toLowerCase()]));
+                let itemCash = 0;
+                let itemNonCash = 0;
+                let itemSold = 0;
+                let itemRev = 0;
+                let itemHpp = 0;
+
+                itemRows.forEach((item: any) => {
+                    const qty = Number(item.quantity) || 1;
+                    const price = Number(item.price_at_time) || 0;
+                    const cogs = Number(item.cogs_at_time) || 0;
+                    const rev = qty * price;
+                    itemSold += qty;
+                    itemRev += rev;
+                    itemHpp += qty * cogs;
+                    const m = trxMap.get(item.transaction_id) || '';
+                    if (m.includes('cash') || m.includes('tunai')) {
+                        itemCash += rev;
+                    } else {
+                        itemNonCash += rev;
+                    }
+                });
+
+                setActiveItemSummary({
+                    totalSold: itemSold,
+                    cash: itemCash,
+                    nonCash: itemNonCash,
+                    totalRevenue: itemRev,
+                    hppTotal: itemHpp,
+                    profit: itemRev - itemHpp
+                });
+            } else {
+                setActiveItemSummary(null);
+            }
+
             // 3. Ringkasan Performa Per Shift (if shifts exist in period)
             if (filteredSessions.length > 0) {
                 let allTrxList = paidTrxs;
@@ -760,7 +830,7 @@ export default function AdminDashboard() {
                 if (targetShift) {
                     const { data: broadItems } = await supabase
                         .from('order_items')
-                        .select('transaction_id, quantity, created_at')
+                        .select('transaction_id, product_id, quantity, price_at_time, created_at, product_name')
                         .gte('created_at', start.toISOString())
                         .lte('created_at', end.toISOString());
                     allItemList = broadItems || [];
@@ -806,6 +876,13 @@ export default function AdminDashboard() {
                     });
                     const itemsSold = shiftItems.reduce((sum: number, it: any) => sum + (Number(it.quantity) || 1), 0);
 
+                    const shiftSpecificItems = (currentProductId !== 'all' && targetProd)
+                        ? shiftItems.filter((it: any) => (it.product_id || it.product_name) === currentProductId || it.product_name === targetProd.name)
+                        : shiftItems;
+
+                    const specificItemsSold = shiftSpecificItems.reduce((sum: number, it: any) => sum + (Number(it.quantity) || 1), 0);
+                    const specificItemOmset = shiftSpecificItems.reduce((sum: number, it: any) => sum + ((Number(it.quantity) || 1) * (Number(it.price_at_time) || 0)), 0);
+
                     const shiftExp = (periodExpenses || []).filter((e: any) => {
                         const t = new Date(e.created_at).getTime();
                         return t >= sOpen && t <= sClose;
@@ -825,6 +902,8 @@ export default function AdminDashboard() {
                         non_cash_income: nonCashIncome,
                         total_omset: totalOmset,
                         items_sold: itemsSold,
+                        item_specific_sold: specificItemsSold,
+                        item_specific_omset: specificItemOmset,
                         total_expense: shiftExp,
                         trx_count: shiftTrxs.length
                     };
@@ -2332,6 +2411,35 @@ export default function AdminDashboard() {
                                                     })}
                                                 </select>
                                             </div>
+
+                                            {/* Item / Product Filter Dropdown */}
+                                            <div className="flex items-center gap-2 bg-surface-hover px-3 py-1.5 rounded-xl border border-border h-10">
+                                                <Package className="w-4 h-4 text-purple-400 shrink-0" />
+                                                <span className="text-xs font-semibold text-text-muted whitespace-nowrap">Item:</span>
+                                                <select
+                                                    value={selectedProductId}
+                                                    onChange={(e) => handleSelectItem(e.target.value)}
+                                                    className="bg-transparent text-text-primary text-xs font-bold outline-none cursor-pointer pr-1 max-w-[200px] truncate"
+                                                >
+                                                    <option value="all" className="bg-surface text-text-primary">
+                                                        Semua Item ({(products.length > 0 ? products : productSalesData).length} Produk)
+                                                    </option>
+                                                    {(products.length > 0 ? products : productSalesData).map((p: any) => (
+                                                        <option key={p.id} value={p.id} className="bg-surface text-text-primary">
+                                                            {p.name} {p.category && p.category !== '-' ? `(${p.category})` : ''}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {selectedProductId !== 'all' && (
+                                                    <button
+                                                        onClick={() => handleSelectItem('all')}
+                                                        title="Reset Filter Item"
+                                                        className="p-1 hover:bg-gray-700/60 rounded-full text-text-muted hover:text-white"
+                                                    >
+                                                        <X className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="flex flex-col sm:flex-row items-center gap-3">
                                             {reconciliationPeriod === 'custom' && (
@@ -2350,7 +2458,7 @@ export default function AdminDashboard() {
                                                         className="bg-background text-text-primary text-sm rounded-lg px-3 py-2 border border-border outline-none w-full sm:w-auto min-h-[40px]" 
                                                     />
                                                     <button 
-                                                        onClick={() => { if (customDateStart && customDateEnd) fetchReconciliation('custom', customDateStart, customDateEnd); }}
+                                                        onClick={() => { if (customDateStart && customDateEnd) fetchReconciliation('custom', customDateStart, customDateEnd, undefined, selectedProductId); }}
                                                         className="bg-accent hover:bg-blue-700 text-text-primary font-bold py-2 px-4 rounded-lg text-sm w-full sm:w-auto min-h-[40px]"
                                                     >
                                                         Terapkan
@@ -2362,8 +2470,8 @@ export default function AdminDashboard() {
                                                     <button key={f.k} onClick={() => {
                                                         setSelectedShiftId("all");
                                                         setReconciliationPeriod(f.k as any);
-                                                        if (f.k !== 'custom') fetchReconciliation(f.k as any, undefined, undefined, 'all');
-                                                        else if (customDateStart && customDateEnd) fetchReconciliation('custom', customDateStart, customDateEnd, 'all');
+                                                        if (f.k !== 'custom') fetchReconciliation(f.k as any, undefined, undefined, 'all', selectedProductId);
+                                                        else if (customDateStart && customDateEnd) fetchReconciliation('custom', customDateStart, customDateEnd, 'all', selectedProductId);
                                                     }}
                                                         className={`flex-1 md:flex-none text-center px-2 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${reconciliationPeriod === f.k ? 'bg-accent text-text-primary' : 'text-text-muted hover:text-text-primary'}`}>
                                                         {f.l}
@@ -2411,6 +2519,51 @@ export default function AdminDashboard() {
                                         );
                                     })()}
 
+                                    {/* Active Item Filter Banner */}
+                                    {selectedProductId !== 'all' && (() => {
+                                        const selectedProd = (products || []).find((p: any) => p.id === selectedProductId) || productSalesData.find((p: any) => p.id === selectedProductId);
+                                        if (!selectedProd) return null;
+                                        return (
+                                            <div className="bg-gradient-to-r from-purple-950/40 via-indigo-950/30 to-blue-950/40 border border-purple-500/30 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
+                                                <div className="flex items-start md:items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 mt-0.5 md:mt-0">
+                                                        <Package className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">Filter Item Aktif</span>
+                                                            {selectedProd.category && selectedProd.category !== '-' && (
+                                                                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-gray-800 text-gray-300">
+                                                                    {selectedProd.category}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <h4 className="text-base font-bold text-text-primary flex items-center gap-2">
+                                                            <span>{selectedProd.name}</span>
+                                                            {selectedProd.price && (
+                                                                <span className="text-xs text-text-muted font-normal">
+                                                                    (Harga: Rp {Number(selectedProd.price).toLocaleString('id-ID')})
+                                                                </span>
+                                                            )}
+                                                        </h4>
+                                                        <p className="text-xs text-text-muted mt-0.5">
+                                                            Menampilkan seluruh metrik (omset, HPP, terjual, grafik tren, tunai vs QRIS, dan performa per shift) khusus produk ini.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3 self-end md:self-center">
+                                                    <button
+                                                        onClick={() => handleSelectItem('all')}
+                                                        className="px-3.5 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm border border-border"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                        Kembali ke Semua Item
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
                                     <ReportChart
                                         period={selectedShiftId !== 'all' ? 'custom' : reconciliationPeriod}
                                         customStartDate={selectedShiftId !== 'all' ? (periodShifts.find((s: any) => s.id === selectedShiftId)?.opened_at) : customDateStart}
@@ -2419,210 +2572,402 @@ export default function AdminDashboard() {
                                         selectedShiftTitle={selectedShiftId !== 'all' ? `${periodShifts.find((s: any) => s.id === selectedShiftId)?.staff_profiles?.full_name || 'Kasir'} (${new Date(periodShifts.find((s: any) => s.id === selectedShiftId)?.opened_at || '').toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})})` : undefined}
                                         shiftsCount={selectedShiftId !== 'all' ? 1 : periodShifts.length}
                                         daysCount={selectedShiftId !== 'all' ? 1 : diffDays}
+                                        selectedProductId={selectedProductId !== 'all' ? selectedProductId : undefined}
+                                        selectedProductName={selectedProductId !== 'all' ? ((products || []).find((p: any) => p.id === selectedProductId)?.name || productSalesData.find((p: any) => p.id === selectedProductId)?.name || 'Item') : undefined}
                                     />
 
                                     {/* Per-Shift Performance Breakdown Table (Shown when viewing Semua Shift) */}
-                                    {selectedShiftId === 'all' && shiftPerformanceList.length > 0 && (
-                                        <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
-                                            <div className="p-4 md:p-6 border-b border-border flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                                                <div>
-                                                    <h3 className="font-bold text-xl text-text-primary flex items-center gap-2">
-                                                        <Wallet className="w-5 h-5 text-accent" />
-                                                        Ringkasan Performa Tiap Shift
-                                                    </h3>
-                                                    <p className="text-text-muted text-xs md:text-sm mt-1">
-                                                        Perbandingan pendapatan, item terjual, dan status kasir per shift ({shiftPerformanceList.length} shift tercatat dalam periode ini).
+                                    {selectedShiftId === 'all' && shiftPerformanceList.length > 0 && (() => {
+                                        const selectedProd = selectedProductId !== 'all' 
+                                            ? ((products || []).find((p: any) => p.id === selectedProductId) || productSalesData.find((p: any) => p.id === selectedProductId))
+                                            : null;
+
+                                        return (
+                                            <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
+                                                <div className="p-4 md:p-6 border-b border-border flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                                                    <div>
+                                                        <h3 className="font-bold text-xl text-text-primary flex items-center gap-2">
+                                                            <Wallet className="w-5 h-5 text-accent" />
+                                                            Ringkasan Performa Tiap Shift {selectedProd ? `• Khusus: ${selectedProd.name}` : ''}
+                                                        </h3>
+                                                        <p className="text-text-muted text-xs md:text-sm mt-1">
+                                                            {selectedProd 
+                                                                ? `Distribusi penjualan produk "${selectedProd.name}", omset item, dan kontribusinya per shift kasir.` 
+                                                                : `Perbandingan pendapatan, item terjual, dan status kasir per shift (${shiftPerformanceList.length} shift tercatat dalam periode ini).`}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-left border-collapse text-xs md:text-sm">
+                                                        <thead>
+                                                            <tr className="bg-surface-hover border-b border-border">
+                                                                <th className="p-3 md:p-4 text-xs font-semibold text-text-muted">Kasir / Shift</th>
+                                                                <th className="p-3 md:p-4 text-xs font-semibold text-text-muted">Jam Kerja</th>
+                                                                {selectedProd ? (
+                                                                    <>
+                                                                        <th className="p-3 md:p-4 text-xs font-semibold text-purple-400 text-center">Terjual ({selectedProd.name})</th>
+                                                                        <th className="p-3 md:p-4 text-xs font-semibold text-purple-400 text-right">Omset Item Ini</th>
+                                                                        <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Total Omset Shift</th>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Tunai (Cash)</th>
+                                                                        <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Non-Tunai (QRIS)</th>
+                                                                        <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Total Omset</th>
+                                                                        <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-center">Item Terjual</th>
+                                                                    </>
+                                                                )}
+                                                                <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Pengeluaran</th>
+                                                                <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Selisih Laci</th>
+                                                                <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-center">Aksi</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {shiftPerformanceList.map((row: any) => {
+                                                                const openStr = new Date(row.opened_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                                                                const closeStr = row.closed_at ? new Date(row.closed_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Sekarang';
+                                                                const openDate = new Date(row.opened_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                                                                return (
+                                                                    <tr key={row.id} className="border-b border-border hover:bg-surface-hover transition-colors">
+                                                                        <td className="p-3 md:p-4">
+                                                                            <div className="font-bold text-text-primary flex items-center gap-2">
+                                                                                {row.staff_name}
+                                                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${row.status === 'open' ? 'bg-green-500/20 text-green-400' : 'bg-gray-800 text-gray-300'}`}>
+                                                                                    {row.status === 'open' ? 'BUKA' : 'TUTUP'}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="text-[11px] font-mono text-text-muted">ID: {row.id.substring(0, 8)}</div>
+                                                                        </td>
+                                                                        <td className="p-3 md:p-4 text-text-secondary whitespace-nowrap">
+                                                                            <div>{openStr} - {closeStr}</div>
+                                                                            <div className="text-[10px] text-text-muted">{openDate}</div>
+                                                                        </td>
+                                                                        {selectedProd ? (
+                                                                            <>
+                                                                                <td className="p-3 md:p-4 text-center">
+                                                                                    <span className="px-2.5 py-1 bg-purple-500/15 text-purple-300 border border-purple-500/30 rounded-full font-extrabold text-xs">
+                                                                                        {row.item_specific_sold} pcs
+                                                                                    </span>
+                                                                                </td>
+                                                                                <td className="p-3 md:p-4 text-right font-bold text-purple-400 whitespace-nowrap">
+                                                                                    Rp {row.item_specific_omset.toLocaleString('id-ID')}
+                                                                                </td>
+                                                                                <td className="p-3 md:p-4 text-right font-medium text-text-muted whitespace-nowrap">
+                                                                                    Rp {row.total_omset.toLocaleString('id-ID')}
+                                                                                </td>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <td className="p-3 md:p-4 text-right font-medium text-green-400 whitespace-nowrap">
+                                                                                    Rp {row.cash_income.toLocaleString('id-ID')}
+                                                                                </td>
+                                                                                <td className="p-3 md:p-4 text-right font-medium text-accent whitespace-nowrap">
+                                                                                    Rp {row.non_cash_income.toLocaleString('id-ID')}
+                                                                                </td>
+                                                                                <td className="p-3 md:p-4 text-right font-extrabold text-text-primary whitespace-nowrap">
+                                                                                    Rp {row.total_omset.toLocaleString('id-ID')}
+                                                                                </td>
+                                                                                <td className="p-3 md:p-4 text-center">
+                                                                                    <span className="px-2.5 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full font-bold text-xs">
+                                                                                        {row.items_sold} pcs
+                                                                                    </span>
+                                                                                </td>
+                                                                            </>
+                                                                        )}
+                                                                        <td className="p-3 md:p-4 text-right text-red-400 whitespace-nowrap">
+                                                                            {row.total_expense > 0 ? `-Rp ${row.total_expense.toLocaleString('id-ID')}` : 'Rp 0'}
+                                                                        </td>
+                                                                        <td className="p-3 md:p-4 text-right whitespace-nowrap">
+                                                                            {row.status === 'open' ? (
+                                                                                <span className="text-[11px] text-text-muted italic">Masih Buka</span>
+                                                                            ) : (
+                                                                                <span className={`font-bold ${row.difference < 0 ? 'text-red-400' : row.difference > 0 ? 'text-green-400' : 'text-text-muted'}`}>
+                                                                                    Rp {(row.difference ?? 0).toLocaleString('id-ID')}
+                                                                                </span>
+                                                                            )}
+                                                                        </td>
+                                                                        <td className="p-3 md:p-4 text-center">
+                                                                            <button
+                                                                                onClick={() => handleSelectShift(row.id)}
+                                                                                className="px-3 py-1.5 bg-accent/10 hover:bg-accent text-accent hover:text-white border border-accent/30 rounded-xl text-xs font-bold transition-all whitespace-nowrap"
+                                                                            >
+                                                                                Filter Shift Ini &rarr;
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Item Terjual & Average Stat Cards */}
+                                    {(() => {
+                                        const selectedProd = selectedProductId !== 'all' 
+                                            ? ((products || []).find((p: any) => p.id === selectedProductId) || productSalesData.find((p: any) => p.id === selectedProductId))
+                                            : null;
+                                        const soldCount = selectedProductId !== 'all' ? (activeItemSummary?.totalSold || 0) : totalPeriodItemsSold;
+                                        const shiftsDenominator = Math.max(1, selectedShiftId !== 'all' ? 1 : periodShifts.length);
+                                        const daysDenominator = Math.max(1, selectedShiftId !== 'all' ? 1 : diffDays);
+
+                                        return (
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
+                                                    <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">
+                                                        {selectedProd ? 'Terjual (Item Ini)' : 'Total Item Terjual'}
+                                                    </p>
+                                                    <h4 className="text-xl font-black text-indigo-400">
+                                                        {soldCount} <span className="text-xs font-normal text-text-muted">pcs</span>
+                                                    </h4>
+                                                    <p className="text-[10px] text-text-muted mt-1 truncate">
+                                                        {selectedProd ? `Khusus ${selectedProd.name}` : 'Akumulasi semua produk'}
+                                                    </p>
+                                                </div>
+                                                <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
+                                                    <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Rata-rata / Hari</p>
+                                                    <h4 className="text-xl font-black text-accent">
+                                                        {(soldCount / daysDenominator).toFixed(1)} <span className="text-xs font-normal text-text-muted">pcs/hari</span>
+                                                    </h4>
+                                                    <p className="text-[10px] text-text-muted mt-1">Dihitung dari {daysDenominator} hari</p>
+                                                </div>
+                                                <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
+                                                    <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Rata-rata / Shift</p>
+                                                    <h4 className="text-xl font-black text-emerald-400">
+                                                        {(periodShifts.length > 0 ? (soldCount / shiftsDenominator).toFixed(1) : soldCount)} <span className="text-xs font-normal text-text-muted">pcs/shift</span>
+                                                    </h4>
+                                                    <p className="text-[10px] text-text-muted mt-1">Berdasarkan {shiftsDenominator} shift tercatat</p>
+                                                </div>
+                                                <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
+                                                    <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">
+                                                        {selectedProd ? 'Omset Produk Ini' : 'Rata-rata Omset / Shift'}
+                                                    </p>
+                                                    <h4 className="text-xl font-black text-amber-400">
+                                                        {selectedProd ? (
+                                                            `Rp ${(activeItemSummary?.totalRevenue || 0).toLocaleString('id-ID')}`
+                                                        ) : (
+                                                            `Rp ${Math.round(reconciliation.reduce((s, r) => s + r.pos_total, 0) / shiftsDenominator).toLocaleString('id-ID')}`
+                                                        )}
+                                                    </h4>
+                                                    <p className="text-[10px] text-text-muted mt-1">
+                                                        {selectedProd ? (
+                                                            `Laba kotor: Rp ${(activeItemSummary?.profit || 0).toLocaleString('id-ID')}`
+                                                        ) : (
+                                                            'Pendapatan kotor per shift'
+                                                        )}
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="overflow-x-auto">
-                                                <table className="w-full text-left border-collapse text-xs md:text-sm">
-                                                    <thead>
-                                                        <tr className="bg-surface-hover border-b border-border">
-                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted">Kasir / Shift</th>
-                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted">Jam Kerja</th>
-                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Tunai (Cash)</th>
-                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Non-Tunai (QRIS)</th>
-                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Total Omset</th>
-                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-center">Item Terjual</th>
-                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Pengeluaran</th>
-                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Selisih Laci</th>
-                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-center">Aksi</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {shiftPerformanceList.map((row: any) => {
-                                                            const openStr = new Date(row.opened_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-                                                            const closeStr = row.closed_at ? new Date(row.closed_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Sekarang';
-                                                            const openDate = new Date(row.opened_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-                                                            return (
-                                                                <tr key={row.id} className="border-b border-border hover:bg-surface-hover transition-colors">
-                                                                    <td className="p-3 md:p-4">
-                                                                        <div className="font-bold text-text-primary flex items-center gap-2">
-                                                                            {row.staff_name}
-                                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${row.status === 'open' ? 'bg-green-500/20 text-green-400' : 'bg-gray-800 text-gray-300'}`}>
-                                                                                {row.status === 'open' ? 'BUKA' : 'TUTUP'}
-                                                                            </span>
-                                                                        </div>
-                                                                        <div className="text-[11px] font-mono text-text-muted">ID: {row.id.substring(0, 8)}</div>
-                                                                    </td>
-                                                                    <td className="p-3 md:p-4 text-text-secondary whitespace-nowrap">
-                                                                        <div>{openStr} - {closeStr}</div>
-                                                                        <div className="text-[10px] text-text-muted">{openDate}</div>
-                                                                    </td>
-                                                                    <td className="p-3 md:p-4 text-right font-medium text-green-400 whitespace-nowrap">
-                                                                        Rp {row.cash_income.toLocaleString('id-ID')}
-                                                                    </td>
-                                                                    <td className="p-3 md:p-4 text-right font-medium text-accent whitespace-nowrap">
-                                                                        Rp {row.non_cash_income.toLocaleString('id-ID')}
-                                                                    </td>
-                                                                    <td className="p-3 md:p-4 text-right font-extrabold text-text-primary whitespace-nowrap">
-                                                                        Rp {row.total_omset.toLocaleString('id-ID')}
-                                                                    </td>
-                                                                    <td className="p-3 md:p-4 text-center">
-                                                                        <span className="px-2.5 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full font-bold text-xs">
-                                                                            {row.items_sold} pcs
-                                                                        </span>
-                                                                    </td>
-                                                                    <td className="p-3 md:p-4 text-right text-red-400 whitespace-nowrap">
-                                                                        {row.total_expense > 0 ? `-Rp ${row.total_expense.toLocaleString('id-ID')}` : 'Rp 0'}
-                                                                    </td>
-                                                                    <td className="p-3 md:p-4 text-right whitespace-nowrap">
-                                                                        {row.status === 'open' ? (
-                                                                            <span className="text-[11px] text-text-muted italic">Masih Buka</span>
-                                                                        ) : (
-                                                                            <span className={`font-bold ${row.difference < 0 ? 'text-red-400' : row.difference > 0 ? 'text-green-400' : 'text-text-muted'}`}>
-                                                                                Rp {(row.difference ?? 0).toLocaleString('id-ID')}
-                                                                            </span>
-                                                                        )}
-                                                                    </td>
-                                                                    <td className="p-3 md:p-4 text-center">
-                                                                        <button
-                                                                            onClick={() => handleSelectShift(row.id)}
-                                                                            className="px-3 py-1.5 bg-accent/10 hover:bg-accent text-accent hover:text-white border border-accent/30 rounded-xl text-xs font-bold transition-all whitespace-nowrap"
-                                                                        >
-                                                                            Filter Shift Ini &rarr;
-                                                                        </button>
-                                                                    </td>
+                                        );
+                                    })()}
+
+                                    {/* Data Penjualan Produk (Requested Feature with Average columns, Search & Category Filter) */}
+                                    {(() => {
+                                        const availableCategories = ['all', ...Array.from(new Set(productSalesData.map(p => p.category).filter(Boolean)))];
+                                        const filteredProducts = productSalesData.filter((row: any) => {
+                                            const matchSearch = productSearchQuery === '' || row.name.toLowerCase().includes(productSearchQuery.toLowerCase());
+                                            const matchCategory = productCategoryFilter === 'all' || row.category === productCategoryFilter;
+                                            return matchSearch && matchCategory;
+                                        });
+
+                                        return (
+                                            <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
+                                                <div className="p-4 md:p-6 border-b border-border flex flex-col md:flex-row justify-between md:items-center gap-4">
+                                                    <div>
+                                                        <h3 className="font-bold text-xl text-text-primary flex items-center gap-2">
+                                                            <Package className="w-5 h-5 text-accent" />
+                                                            Ringkasan Penjualan Produk
+                                                        </h3>
+                                                        <p className="text-text-muted text-xs md:text-sm mt-1">
+                                                            Klik tombol <b>Filter Item</b> pada baris produk untuk menganalisis metrik satu item secara spesifik.
+                                                        </p>
+                                                    </div>
+
+                                                    {/* Controls: Search Bar & Category Pills */}
+                                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                                                        {/* Search Input */}
+                                                        <div className="relative">
+                                                            <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                                                            <input
+                                                                type="text"
+                                                                value={productSearchQuery}
+                                                                onChange={(e) => setProductSearchQuery(e.target.value)}
+                                                                placeholder="Cari produk..."
+                                                                className="pl-9 pr-8 py-2 bg-surface-hover border border-border rounded-xl text-xs md:text-sm text-text-primary outline-none focus:border-accent w-full sm:w-48 transition-all"
+                                                            />
+                                                            {productSearchQuery && (
+                                                                <button
+                                                                    onClick={() => setProductSearchQuery('')}
+                                                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-white"
+                                                                >
+                                                                    <X className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Category Pills */}
+                                                        <div className="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full">
+                                                            {availableCategories.map((cat: string) => (
+                                                                <button
+                                                                    key={cat}
+                                                                    onClick={() => setProductCategoryFilter(cat)}
+                                                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                                                                        productCategoryFilter === cat
+                                                                            ? 'bg-accent text-white shadow-sm'
+                                                                            : 'bg-surface-hover text-text-muted hover:text-text-primary border border-border'
+                                                                    }`}
+                                                                >
+                                                                    {cat === 'all' ? 'Semua' : cat}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {filteredProducts.length === 0 ? (
+                                                    <p className="p-8 text-text-muted text-center">
+                                                        {productSalesData.length === 0 ? 'Belum ada penjualan di periode ini.' : 'Tidak ada produk yang cocok dengan pencarian/kategori.'}
+                                                    </p>
+                                                ) : (
+                                                    <div className="overflow-x-auto">
+                                                        <table className="w-full text-left border-collapse text-xs md:text-sm">
+                                                            <thead>
+                                                                <tr className="bg-surface-hover border-b border-border">
+                                                                    <th className="p-3 md:p-4 text-xs font-semibold text-text-muted">Produk</th>
+                                                                    <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-center">Terjual (Total &amp; Avg)</th>
+                                                                    <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Penghasilan Kotor</th>
+                                                                    <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Total HPP</th>
+                                                                    <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Laba Bersih</th>
+                                                                    <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-center">Aksi Filter</th>
                                                                 </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
+                                                            </thead>
+                                                            <tbody>
+                                                                {filteredProducts.map((row: any) => {
+                                                                    const isSelected = selectedProductId === row.id;
+                                                                    return (
+                                                                        <tr key={row.id} className={`border-b border-border transition-colors ${isSelected ? 'bg-purple-950/25 border-l-4 border-l-purple-500' : 'hover:bg-surface-hover'}`}>
+                                                                            <td className="p-3 md:p-4">
+                                                                                <div className="font-bold text-text-primary flex items-center gap-2">
+                                                                                    {row.name}
+                                                                                    {isSelected && (
+                                                                                        <span className="text-[10px] px-2 py-0.5 rounded-full font-extrabold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                                                                            ✓ Sedang Difilter
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="text-xs text-text-muted">{row.category}</div>
+                                                                            </td>
+                                                                            <td className="p-3 md:p-4 text-center">
+                                                                                <div className="inline-flex flex-col items-center">
+                                                                                    <span className={`px-3 py-1 font-bold rounded-full text-xs md:text-sm ${isSelected ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-gray-800 text-white'}`}>
+                                                                                        {row.terjual} pcs
+                                                                                    </span>
+                                                                                    <span className="text-[10px] text-text-muted mt-1 whitespace-nowrap">
+                                                                                        avg: {(row.terjual / Math.max(1, selectedShiftId !== 'all' ? 1 : diffDays)).toFixed(1)}/hari &bull; {(periodShifts.length > 0 ? (row.terjual / (selectedShiftId !== 'all' ? 1 : periodShifts.length)).toFixed(1) : row.terjual)}/shift
+                                                                                    </span>
+                                                                                </div>
+                                                                            </td>
+                                                                            <td className="p-3 md:p-4 text-right font-medium text-accent">Rp {row.kotor.toLocaleString('id-ID')}</td>
+                                                                            <td className="p-3 md:p-4 text-right font-medium text-red-400">- Rp {row.hpp_total.toLocaleString('id-ID')}</td>
+                                                                            <td className="p-3 md:p-4 text-right font-bold text-green-400">Rp {row.bersih.toLocaleString('id-ID')}</td>
+                                                                            <td className="p-3 md:p-4 text-center whitespace-nowrap">
+                                                                                {isSelected ? (
+                                                                                    <button
+                                                                                        onClick={() => handleSelectItem('all')}
+                                                                                        className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-sm"
+                                                                                    >
+                                                                                        <X className="w-3.5 h-3.5" />
+                                                                                        Batal Filter
+                                                                                    </button>
+                                                                                ) : (
+                                                                                    <button
+                                                                                        onClick={() => handleSelectItem(row.id)}
+                                                                                        className="px-3 py-1.5 bg-surface-hover hover:bg-accent/20 text-text-muted hover:text-accent border border-border hover:border-accent/40 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1"
+                                                                                    >
+                                                                                        Filter Item &rarr;
+                                                                                    </button>
+                                                                                )}
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
-                                    )}
-
-                                    {/* Item Terjual & Average Stat Cards */}
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
-                                            <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Total Item Terjual</p>
-                                            <h4 className="text-xl font-black text-indigo-400">{totalPeriodItemsSold} <span className="text-xs font-normal text-text-muted">pcs</span></h4>
-                                            <p className="text-[10px] text-text-muted mt-1">Akumulasi produk terjual</p>
-                                        </div>
-                                        <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
-                                            <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Rata-rata / Hari</p>
-                                            <h4 className="text-xl font-black text-accent">
-                                                {(totalPeriodItemsSold / Math.max(1, selectedShiftId !== 'all' ? 1 : diffDays)).toFixed(1)} <span className="text-xs font-normal text-text-muted">pcs/hari</span>
-                                            </h4>
-                                            <p className="text-[10px] text-text-muted mt-1">Dihitung dari {selectedShiftId !== 'all' ? 1 : diffDays} hari</p>
-                                        </div>
-                                        <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
-                                            <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Rata-rata / Shift</p>
-                                            <h4 className="text-xl font-black text-emerald-400">
-                                                {(periodShifts.length > 0 ? (totalPeriodItemsSold / (selectedShiftId !== 'all' ? 1 : periodShifts.length)).toFixed(1) : totalPeriodItemsSold)} <span className="text-xs font-normal text-text-muted">pcs/shift</span>
-                                            </h4>
-                                            <p className="text-[10px] text-text-muted mt-1">Berdasarkan {selectedShiftId !== 'all' ? 1 : periodShifts.length} shift tercatat</p>
-                                        </div>
-                                        <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
-                                            <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Rata-rata Omset / Shift</p>
-                                            <h4 className="text-xl font-black text-amber-400">
-                                                Rp {Math.round(reconciliation.reduce((s, r) => s + r.pos_total, 0) / Math.max(1, selectedShiftId !== 'all' ? 1 : periodShifts.length)).toLocaleString('id-ID')}
-                                            </h4>
-                                            <p className="text-[10px] text-text-muted mt-1">Pendapatan kotor per shift</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Data Penjualan Produk (Requested Feature with Average columns) */}
-                                    <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
-                                        <div className="p-2 md:p-4 md:p-6 border-b border-border flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                                            <div>
-                                                <h3 className="font-bold text-xl text-text-primary">Ringkasan Penjualan Produk (Terlaris)</h3>
-                                                <p className="text-text-muted text-xs md:text-sm mt-1">Data penjualan, rata-rata terjual per hari &amp; per shift, HPP, serta laba bersih.</p>
-                                            </div>
-                                        </div>
-                                        {productSalesData.length === 0 ? (
-                                            <p className="p-8 text-text-muted text-center">Belum ada penjualan di periode ini.</p>
-                                        ) : (
-                                            <div className="overflow-x-auto">
-                                                <table className="w-full text-left border-collapse text-xs md:text-sm">
-                                                    <thead>
-                                                        <tr className="bg-surface-hover border-b border-border">
-                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted">Produk</th>
-                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-center">Terjual (Total &amp; Avg)</th>
-                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Penghasilan Kotor</th>
-                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Total HPP</th>
-                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Laba Bersih</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {productSalesData.map((row, idx) => (
-                                                            <tr key={idx} className="border-b border-border hover:bg-surface-hover">
-                                                                <td className="p-2 md:p-4">
-                                                                    <div className="font-bold text-text-secondary">{row.name}</div>
-                                                                    <div className="text-xs text-text-muted">{row.category}</div>
-                                                                </td>
-                                                                <td className="p-2 md:p-4 text-center">
-                                                                    <div className="inline-flex flex-col items-center">
-                                                                        <span className="px-3 py-1 bg-gray-800 text-white font-bold rounded-full text-sm">
-                                                                            {row.terjual} pcs
-                                                                        </span>
-                                                                        <span className="text-[10px] text-text-muted mt-1 whitespace-nowrap">
-                                                                            avg: {(row.terjual / Math.max(1, selectedShiftId !== 'all' ? 1 : diffDays)).toFixed(1)}/hari &bull; {(periodShifts.length > 0 ? (row.terjual / (selectedShiftId !== 'all' ? 1 : periodShifts.length)).toFixed(1) : row.terjual)}/shift
-                                                                        </span>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="p-2 md:p-4 text-right font-medium text-accent">Rp {row.kotor.toLocaleString('id-ID')}</td>
-                                                                <td className="p-2 md:p-4 text-right font-medium text-red-400">- Rp {row.hpp_total.toLocaleString('id-ID')}</td>
-                                                                <td className="p-2 md:p-4 text-right font-bold text-green-400">Rp {row.bersih.toLocaleString('id-ID')}</td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        )}
-                                    </div>
+                                        );
+                                    })()}
 
                                     {/* QRIS & Cash Summary */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
-                                            <div>
-                                                <p className="text-text-muted text-sm font-medium">Total Tunai (Cash)</p>
-                                                <h4 className="text-lg font-semibold text-green-400 mt-1">Rp {reconciliation.filter(r => r.method_name.toLowerCase().includes('cash') || r.method_name.toLowerCase().includes('tunai')).reduce((s, r) => s + r.pos_total, 0).toLocaleString('id-ID')}</h4>
+                                    {(() => {
+                                        const selectedProd = selectedProductId !== 'all' 
+                                            ? ((products || []).find((p: any) => p.id === selectedProductId) || productSalesData.find((p: any) => p.id === selectedProductId))
+                                            : null;
+
+                                        const cashTotal = selectedProd
+                                            ? (activeItemSummary?.cash || 0)
+                                            : reconciliation.filter(r => r.method_name.toLowerCase().includes('cash') || r.method_name.toLowerCase().includes('tunai')).reduce((s, r) => s + r.pos_total, 0);
+
+                                        const nonCashTotal = selectedProd
+                                            ? (activeItemSummary?.nonCash || 0)
+                                            : reconciliation.filter(r => !r.method_name.toLowerCase().includes('cash') && !r.method_name.toLowerCase().includes('tunai')).reduce((s, r) => s + r.pos_total, 0);
+
+                                        const grandTotal = selectedProd
+                                            ? (activeItemSummary?.totalRevenue || 0)
+                                            : reconciliation.reduce((s, r) => s + r.pos_total, 0);
+
+                                        return (
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-text-muted text-sm font-medium">
+                                                            Total Tunai (Cash) {selectedProd ? '• Item Ini' : ''}
+                                                        </p>
+                                                        <h4 className="text-lg font-semibold text-green-400 mt-1">Rp {cashTotal.toLocaleString('id-ID')}</h4>
+                                                        {selectedProd && (
+                                                            <p className="text-[10px] text-text-muted mt-0.5">Penjualan tunai {selectedProd.name}</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center text-green-400">
+                                                        <Wallet size={24} />
+                                                    </div>
+                                                </div>
+                                                <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-text-muted text-sm font-medium">
+                                                            Total QRIS / Non-Tunai {selectedProd ? '• Item Ini' : ''}
+                                                        </p>
+                                                        <h4 className="text-lg font-semibold text-accent mt-1">Rp {nonCashTotal.toLocaleString('id-ID')}</h4>
+                                                        {selectedProd && (
+                                                            <p className="text-[10px] text-text-muted mt-0.5">Penjualan QRIS {selectedProd.name}</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center text-accent">
+                                                        <Maximize size={24} />
+                                                    </div>
+                                                </div>
+                                                <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-text-muted text-sm font-medium">
+                                                            {selectedProd ? 'Total Omset • Item Ini' : 'Total Keseluruhan'}
+                                                        </p>
+                                                        <h4 className="text-lg font-semibold text-text-primary mt-1">Rp {grandTotal.toLocaleString('id-ID')}</h4>
+                                                        {selectedProd && (
+                                                            <p className="text-[10px] text-emerald-400 font-semibold mt-0.5">
+                                                                Laba: Rp {(activeItemSummary?.profit || 0).toLocaleString('id-ID')} (HPP: Rp {(activeItemSummary?.hppTotal || 0).toLocaleString('id-ID')})
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    <div className="w-12 h-12 bg-gray-500/10 rounded-full flex items-center justify-center text-text-primary">
+                                                        <FileText size={24} />
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center text-green-400">
-                                                <Wallet size={24} />
-                                            </div>
-                                        </div>
-                                        <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
-                                            <div>
-                                                <p className="text-text-muted text-sm font-medium">Total QRIS / Non-Tunai</p>
-                                                <h4 className="text-lg font-semibold text-accent mt-1">Rp {reconciliation.filter(r => !r.method_name.toLowerCase().includes('cash') && !r.method_name.toLowerCase().includes('tunai')).reduce((s, r) => s + r.pos_total, 0).toLocaleString('id-ID')}</h4>
-                                            </div>
-                                            <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center text-accent">
-                                                <Maximize size={24} />
-                                            </div>
-                                        </div>
-                                        <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
-                                            <div>
-                                                <p className="text-text-muted text-sm font-medium">Total Keseluruhan</p>
-                                                <h4 className="text-lg font-semibold text-text-primary mt-1">Rp {reconciliation.reduce((s, r) => s + r.pos_total, 0).toLocaleString('id-ID')}</h4>
-                                            </div>
-                                            <div className="w-12 h-12 bg-gray-500/10 rounded-full flex items-center justify-center text-text-primary">
-                                                <FileText size={24} />
-                                            </div>
-                                        </div>
-                                    </div>
+                                        );
+                                    })()}
 
                                     {/* Rekonsiliasi Kas Laci Spesifik Shift (Shown when a shift is selected) */}
                                     {selectedShiftId !== 'all' && (() => {

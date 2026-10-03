@@ -45,6 +45,8 @@ interface ReportChartProps {
     selectedShiftTitle?: string;
     shiftsCount?: number;
     daysCount?: number;
+    selectedProductId?: string;
+    selectedProductName?: string;
 }
 
 export default function ReportChart({
@@ -54,7 +56,9 @@ export default function ReportChart({
     referenceDate,
     selectedShiftTitle,
     shiftsCount,
-    daysCount
+    daysCount,
+    selectedProductId,
+    selectedProductName
 }: ReportChartProps) {
     const [chartData, setChartData] = useState<ChartPoint[]>([]);
     const [loading, setLoading] = useState(true);
@@ -64,7 +68,7 @@ export default function ReportChart({
 
     useEffect(() => {
         fetchChartData();
-    }, [period, customStartDate, customEndDate, referenceDate, expenseCategoryFilter, selectedShiftTitle, shiftsCount, daysCount]);
+    }, [period, customStartDate, customEndDate, referenceDate, expenseCategoryFilter, selectedShiftTitle, shiftsCount, daysCount, selectedProductId, selectedProductName]);
 
     const fetchChartData = async () => {
         setLoading(true);
@@ -122,6 +126,10 @@ export default function ReportChart({
             start.setHours(0,0,0,0);
             label = 'Pilih rentang tanggal';
         }
+        const isProductFilterActive = !!(selectedProductId && selectedProductId !== 'all');
+        if (selectedProductName) {
+            label = label ? `${label} • Item: ${selectedProductName}` : `Item: ${selectedProductName}`;
+        }
         setPeriodLabel(label);
 
         const { data: transactions } = await supabase
@@ -135,7 +143,7 @@ export default function ReportChart({
 
         const { data: orderItems } = await supabase
             .from('order_items')
-            .select('transaction_id, cogs_at_time, quantity, created_at, product_name, price_at_time')
+            .select('transaction_id, product_id, cogs_at_time, quantity, created_at, product_name, price_at_time')
             .gte('created_at', start.toISOString())
             .lte('created_at', end.toISOString());
 
@@ -147,42 +155,65 @@ export default function ReportChart({
 
         const map: Record<string, { omset: number; pengeluaranOp: number; hpp: number; diskon: number; itemTerjual: number }> = {};
 
-        for (const trx of transactions || []) {
-            const lbl = getPeriodLabel(trx.created_at, period, isShiftOrSingleDay);
-            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0, diskon: 0, itemTerjual: 0 };
-            map[lbl].omset += parseFloat(trx.amount_due) || 0;
-            map[lbl].diskon += parseFloat(trx.discount_amount) || 0;
+        if (!isProductFilterActive) {
+            for (const trx of transactions || []) {
+                const lbl = getPeriodLabel(trx.created_at, period, isShiftOrSingleDay);
+                if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0, diskon: 0, itemTerjual: 0 };
+                map[lbl].omset += parseFloat(trx.amount_due) || 0;
+                map[lbl].diskon += parseFloat(trx.discount_amount) || 0;
+            }
         }
 
         for (const item of orderItems || []) {
             if (!paidTrxIds.has(item.transaction_id)) continue;
+            
+            if (isProductFilterActive) {
+                const pId = (item as any).product_id;
+                const pName = item.product_name;
+                const matches = pId === selectedProductId || 
+                                pName === selectedProductName ||
+                                (selectedProductName && pName && pName.toLowerCase().includes(selectedProductName.toLowerCase()));
+                if (!matches) continue;
+            }
+
             const lbl = getPeriodLabel(item.created_at, period, isShiftOrSingleDay);
             if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0, diskon: 0, itemTerjual: 0 };
-            map[lbl].hpp += (parseFloat(item.cogs_at_time) || 0) * (item.quantity || 1);
-            map[lbl].itemTerjual += (item.quantity || 1);
             
-            if (item.product_name) {
+            const itemQty = item.quantity || 1;
+            const itemPrice = parseFloat(item.price_at_time) || 0;
+            const itemCogs = parseFloat(item.cogs_at_time) || 0;
+
+            if (isProductFilterActive) {
+                map[lbl].omset += itemPrice * itemQty;
+            }
+
+            map[lbl].hpp += itemCogs * itemQty;
+            map[lbl].itemTerjual += itemQty;
+            
+            if (!isProductFilterActive && item.product_name) {
                 const match = item.product_name.match(/\[Diskon (\d+(?:\.\d+)?)%\]/);
                 if (match) {
                     const pct = parseFloat(match[1]);
                     if (pct > 0 && pct < 100) {
-                        const originalPrice = parseFloat(item.price_at_time) / (1 - pct / 100);
-                        const discountPerItem = originalPrice - parseFloat(item.price_at_time);
-                        map[lbl].diskon += discountPerItem * (item.quantity || 1);
+                        const originalPrice = itemPrice / (1 - pct / 100);
+                        const discountPerItem = originalPrice - itemPrice;
+                        map[lbl].diskon += discountPerItem * itemQty;
                     }
                 }
             }
         }
 
-        for (const exp of expenses || []) {
-            if (expenseCategoryFilter !== 'all') {
-                const expCat = exp.category || 'operasional';
-                if (expCat !== expenseCategoryFilter) continue;
+        if (!isProductFilterActive) {
+            for (const exp of expenses || []) {
+                if (expenseCategoryFilter !== 'all') {
+                    const expCat = exp.category || 'operasional';
+                    if (expCat !== expenseCategoryFilter) continue;
+                }
+                const dateStr = exp.expense_date || exp.created_at;
+                const lbl = getPeriodLabel(dateStr, period, isShiftOrSingleDay);
+                if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0, diskon: 0, itemTerjual: 0 };
+                map[lbl].pengeluaranOp += parseFloat(exp.amount) || 0;
             }
-            const dateStr = exp.expense_date || exp.created_at;
-            const lbl = getPeriodLabel(dateStr, period, isShiftOrSingleDay);
-            if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0, diskon: 0, itemTerjual: 0 };
-            map[lbl].pengeluaranOp += parseFloat(exp.amount) || 0;
         }
 
         let points: any[] = [];
@@ -199,7 +230,7 @@ export default function ReportChart({
                     itemTerjual: map[lbl]?.itemTerjual || 0,
                     pengeluaranOp: map[lbl]?.pengeluaranOp || 0,
                     hpp: map[lbl]?.hpp || 0,
-                    laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0)
+                    laba: isProductFilterActive ? ((map[lbl]?.omset || 0) - (map[lbl]?.hpp || 0)) : ((map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0))
                 });
             }
             Object.keys(map).forEach(lbl => {
@@ -211,26 +242,26 @@ export default function ReportChart({
                         itemTerjual: map[lbl].itemTerjual,
                         pengeluaranOp: map[lbl].pengeluaranOp,
                         hpp: map[lbl].hpp,
-                        laba: map[lbl].omset - map[lbl].pengeluaranOp
+                        laba: isProductFilterActive ? (map[lbl].omset - map[lbl].hpp) : (map[lbl].omset - map[lbl].pengeluaranOp)
                     });
                 }
             });
             points.sort((a, b) => a.label.localeCompare(b.label));
         } else if (period === 'weekly') {
             const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
-            points = days.map(d => ({ label: d, omset: map[d]?.omset || 0, diskon: map[d]?.diskon || 0, itemTerjual: map[d]?.itemTerjual || 0, pengeluaranOp: map[d]?.pengeluaranOp || 0, hpp: map[d]?.hpp || 0, laba: (map[d]?.omset || 0) - (map[d]?.pengeluaranOp || 0) }));
+            points = days.map(d => ({ label: d, omset: map[d]?.omset || 0, diskon: map[d]?.diskon || 0, itemTerjual: map[d]?.itemTerjual || 0, pengeluaranOp: map[d]?.pengeluaranOp || 0, hpp: map[d]?.hpp || 0, laba: isProductFilterActive ? ((map[d]?.omset || 0) - (map[d]?.hpp || 0)) : ((map[d]?.omset || 0) - (map[d]?.pengeluaranOp || 0)) }));
         } else if (period === 'monthly') {
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             for (let i = 1; i <= daysInMonth; i++) {
                 const d = new Date(now.getFullYear(), now.getMonth(), i);
                 const lbl = `${d.getDate().toString().padStart(2, '0')} ${d.toLocaleString('id-ID', { month: 'short' })}`;
-                points.push({ label: lbl, omset: map[lbl]?.omset || 0, diskon: map[lbl]?.diskon || 0, itemTerjual: map[lbl]?.itemTerjual || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0) });
+                points.push({ label: lbl, omset: map[lbl]?.omset || 0, diskon: map[lbl]?.diskon || 0, itemTerjual: map[lbl]?.itemTerjual || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: isProductFilterActive ? ((map[lbl]?.omset || 0) - (map[lbl]?.hpp || 0)) : ((map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0)) });
             }
         } else if (period === 'yearly') {
             for (let i = 0; i < 12; i++) {
                 const d = new Date(now.getFullYear(), i, 1);
                 const lbl = d.toLocaleString('id-ID', { month: 'short', year: 'numeric' });
-                points.push({ label: lbl, omset: map[lbl]?.omset || 0, diskon: map[lbl]?.diskon || 0, itemTerjual: map[lbl]?.itemTerjual || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0) });
+                points.push({ label: lbl, omset: map[lbl]?.omset || 0, diskon: map[lbl]?.diskon || 0, itemTerjual: map[lbl]?.itemTerjual || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: isProductFilterActive ? ((map[lbl]?.omset || 0) - (map[lbl]?.hpp || 0)) : ((map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0)) });
             }
         } else if (period === 'custom') {
             const sorted = Object.keys(map).sort();
@@ -241,7 +272,7 @@ export default function ReportChart({
                 itemTerjual: map[lbl].itemTerjual,
                 pengeluaranOp: map[lbl].pengeluaranOp,
                 hpp: map[lbl].hpp,
-                laba: map[lbl].omset - map[lbl].pengeluaranOp
+                laba: isProductFilterActive ? (map[lbl].omset - map[lbl].hpp) : (map[lbl].omset - map[lbl].pengeluaranOp)
             }));
         }
 
@@ -250,7 +281,8 @@ export default function ReportChart({
         const totalHpp = points.reduce((s, p) => s + p.hpp, 0);
         const totalDiskon = points.reduce((s, p) => s + p.diskon, 0);
         const totalItemTerjual = points.reduce((s, p) => s + p.itemTerjual, 0);
-        setTotals({ omset: totalOmset, pengeluaranOp: totalPengeluaranOp, hpp: totalHpp, diskon: totalDiskon, itemTerjual: totalItemTerjual, laba: totalOmset - totalPengeluaranOp });
+        const totalLaba = isProductFilterActive ? (totalOmset - totalHpp) : (totalOmset - totalPengeluaranOp);
+        setTotals({ omset: totalOmset, pengeluaranOp: totalPengeluaranOp, hpp: totalHpp, diskon: totalDiskon, itemTerjual: totalItemTerjual, laba: totalLaba });
         setChartData(points);
         setLoading(false);
     };
