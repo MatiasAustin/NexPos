@@ -5,7 +5,7 @@ import { getReconciliationReport, getAuditLogs } from "@/lib/api";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 import AppLogo from "@/components/AppLogo";
-import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload, Loader2, Maximize, Wallet } from "lucide-react";
+import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload, Loader2, Maximize, Wallet, Clock, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import ReportChart from "@/components/ReportChart";
@@ -188,6 +188,11 @@ export default function AdminDashboard() {
     const [reconciliationPeriod, setReconciliationPeriod] = useState<"daily" | "weekly" | "monthly" | "yearly" | "custom">("daily");
     const [customDateStart, setCustomDateStart] = useState("");
     const [customDateEnd, setCustomDateEnd] = useState("");
+    const [selectedShiftId, setSelectedShiftId] = useState<string>("all");
+    const [periodShifts, setPeriodShifts] = useState<any[]>([]);
+    const [shiftPerformanceList, setShiftPerformanceList] = useState<any[]>([]);
+    const [diffDays, setDiffDays] = useState<number>(1);
+    const [totalPeriodItemsSold, setTotalPeriodItemsSold] = useState<number>(0);
     const [productSalesData, setProductSalesData] = useState<any[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
@@ -570,6 +575,7 @@ export default function AdminDashboard() {
     };
 
     const shiftReconciliationDate = (dir: number) => {
+        setSelectedShiftId("all");
         setReconciliationDate(prev => {
             const d = new Date(prev);
             if (reconciliationPeriod === 'daily') d.setDate(d.getDate() + dir);
@@ -581,7 +587,7 @@ export default function AdminDashboard() {
     };
     
     useEffect(() => {
-        if (activeTab === "reconciliation" && reconciliationPeriod !== "custom") fetchReconciliation(reconciliationPeriod);
+        if (activeTab === "reconciliation" && reconciliationPeriod !== "custom") fetchReconciliation(reconciliationPeriod, undefined, undefined, 'all');
     }, [reconciliationDate]);
 
     const shiftHistoryDate = (dir: number) => {
@@ -599,7 +605,12 @@ export default function AdminDashboard() {
         if (activeTab === "history" && historyFilterType !== "custom") fetchTransactions(historyFilterType);
     }, [historyDate, historyFilterType]);
 
-    const fetchReconciliation = async (period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom', customStart?: string, customEnd?: string) => {
+    const handleSelectShift = (shiftId: string) => {
+        setSelectedShiftId(shiftId);
+        fetchReconciliation(reconciliationPeriod, customDateStart, customDateEnd, shiftId);
+    };
+
+    const fetchReconciliation = async (period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom', customStart?: string, customEnd?: string, shiftIdFilter?: string) => {
         setLoading(true);
         try {
             const now = reconciliationDate;
@@ -607,60 +618,114 @@ export default function AdminDashboard() {
             let end = new Date(now);
             end.setHours(23, 59, 59, 999);
             
+            let calculatedDiffDays = 1;
+
             if (period === 'daily') {
                 start.setHours(0, 0, 0, 0);
+                calculatedDiffDays = 1;
             } else if (period === 'weekly') {
                 const day = start.getDay();
                 const diff = start.getDate() - day + (day === 0 ? -6 : 1);
                 start = new Date(start.setDate(diff));
                 start.setHours(0, 0, 0, 0);
+                calculatedDiffDays = 7;
             } else if (period === 'monthly') {
                 start.setDate(1);
                 start.setHours(0, 0, 0, 0);
+                end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+                end.setHours(23, 59, 59, 999);
+                calculatedDiffDays = end.getDate();
             } else if (period === 'yearly') {
                 start.setMonth(0, 1);
                 start.setHours(0, 0, 0, 0);
+                end = new Date(start.getFullYear(), 11, 31);
+                end.setHours(23, 59, 59, 999);
+                calculatedDiffDays = 365;
             } else if (period === 'custom' && customStart && customEnd) {
                 start = new Date(customStart);
                 start.setHours(0, 0, 0, 0);
                 end = new Date(customEnd);
                 end.setHours(23, 59, 59, 999);
+                const ms = Math.abs(end.getTime() - start.getTime());
+                calculatedDiffDays = Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)));
             } else if (period === 'custom') {
                 setLoading(false);
                 return; // Wait until dates are selected
             }
 
-            const startDateStr = start.toISOString();
-            const endDateStr = end.toISOString();
+            setDiffDays(calculatedDiffDays);
+
+            // Fetch cash sessions in this period (+ buffer to catch shifts opened slightly before or during)
+            const searchStart = new Date(start.getTime() - 24 * 60 * 60 * 1000);
+            const { data: rawSessions } = await supabase
+                .from('cash_sessions')
+                .select('*, staff_profiles(full_name)')
+                .gte('opened_at', searchStart.toISOString())
+                .lte('opened_at', end.toISOString())
+                .order('opened_at', { ascending: false });
+
+            const filteredSessions = (rawSessions || []).filter((s: any) => {
+                const sOpen = new Date(s.opened_at).getTime();
+                const sClose = s.closed_at ? new Date(s.closed_at).getTime() : Date.now();
+                return sClose >= start.getTime() && sOpen <= end.getTime();
+            });
+
+            setPeriodShifts(filteredSessions);
+
+            const activeShiftId = shiftIdFilter !== undefined ? shiftIdFilter : selectedShiftId;
+            const targetShift = activeShiftId !== 'all' ? filteredSessions.find((s: any) => s.id === activeShiftId) : null;
+
+            if (activeShiftId !== 'all' && !targetShift) {
+                setSelectedShiftId('all');
+            }
+
+            const effectiveStart = targetShift ? targetShift.opened_at : start.toISOString();
+            const effectiveEnd = targetShift ? (targetShift.closed_at || new Date().toISOString()) : end.toISOString();
 
             // 1. Rekonsiliasi Pembayaran
-            const res = await getReconciliationReport(startDateStr, endDateStr);
+            const res = await getReconciliationReport(effectiveStart, effectiveEnd);
             setReconciliation(Array.isArray(res) ? res : []);
 
-            // 2. Data Penjualan Produk
+            // 2. Data Penjualan Produk & Item Terjual
             const { data: orderItems } = await supabase
                 .from('order_items')
                 .select(`
+                    transaction_id,
                     quantity,
                     price_at_time,
                     cogs_at_time,
+                    product_name,
                     product:products (id, name, category)
                 `)
-                .gte('created_at', start.toISOString())
-                .lte('created_at', end.toISOString());
+                .gte('created_at', effectiveStart)
+                .lte('created_at', effectiveEnd);
+
+            const { data: paidTrxs } = await supabase
+                .from('transactions')
+                .select('id, amount_due, status, created_at, payment_methods(name, type)')
+                .gte('created_at', effectiveStart)
+                .lte('created_at', effectiveEnd)
+                .eq('status', 'Paid');
+
+            const paidTrxIds = new Set((paidTrxs || []).map((t: any) => t.id));
 
             const pMap: Record<string, any> = {};
+            let totalSold = 0;
+
             if (orderItems) {
                 orderItems.forEach((item: any) => {
-                    const pId = item.product?.id || 'unknown';
-                    const qty = item.quantity || 1;
+                    if (!paidTrxIds.has(item.transaction_id)) return;
+                    const pId = item.product?.id || item.product_name || 'unknown';
+                    const qty = Number(item.quantity) || 1;
                     const price = Number(item.price_at_time) || 0;
                     const cogs = Number(item.cogs_at_time) || 0;
+
+                    totalSold += qty;
 
                     if (!pMap[pId]) {
                         pMap[pId] = {
                             id: pId,
-                            name: item.product?.name || 'Produk Dihapus',
+                            name: item.product?.name || item.product_name || 'Produk Dihapus',
                             category: item.product?.category || '-',
                             terjual: 0,
                             kotor: 0,
@@ -674,8 +739,101 @@ export default function AdminDashboard() {
                     pMap[pId].bersih += ((price - cogs) * qty);
                 });
             }
-            const pArray = Object.values(pMap).sort((a, b) => b.terjual - a.terjual); // Produk Terlaris at top
+            const pArray = Object.values(pMap).sort((a, b) => b.terjual - a.terjual);
             setProductSalesData(pArray);
+            setTotalPeriodItemsSold(totalSold);
+
+            // 3. Ringkasan Performa Per Shift (if shifts exist in period)
+            if (filteredSessions.length > 0) {
+                let allTrxList = paidTrxs;
+                if (targetShift) {
+                    const { data: broadTrxs } = await supabase
+                        .from('transactions')
+                        .select('id, amount_due, status, created_at, payment_methods(name, type)')
+                        .gte('created_at', start.toISOString())
+                        .lte('created_at', end.toISOString())
+                        .eq('status', 'Paid');
+                    allTrxList = broadTrxs || [];
+                }
+
+                let allItemList: any[] = orderItems || [];
+                if (targetShift) {
+                    const { data: broadItems } = await supabase
+                        .from('order_items')
+                        .select('transaction_id, quantity, created_at')
+                        .gte('created_at', start.toISOString())
+                        .lte('created_at', end.toISOString());
+                    allItemList = broadItems || [];
+                }
+
+                const { data: periodExpenses } = await supabase
+                    .from('expenses')
+                    .select('amount, created_at')
+                    .gte('created_at', start.toISOString())
+                    .lte('created_at', end.toISOString());
+
+                const broadPaidIds = new Set((allTrxList || []).map((t: any) => t.id));
+
+                const perf = filteredSessions.map((s: any) => {
+                    const sOpen = new Date(s.opened_at).getTime();
+                    const sClose = s.closed_at ? new Date(s.closed_at).getTime() : Date.now();
+
+                    const shiftTrxs = (allTrxList || []).filter((tx: any) => {
+                        const t = new Date(tx.created_at).getTime();
+                        return t >= sOpen && t <= sClose;
+                    });
+
+                    const cashIncome = shiftTrxs
+                        .filter((tx: any) => {
+                            const name = (tx.payment_methods?.name || '').toLowerCase();
+                            return name.includes('cash') || name.includes('tunai');
+                        })
+                        .reduce((sum: number, tx: any) => sum + Number(tx.amount_due || 0), 0);
+
+                    const nonCashIncome = shiftTrxs
+                        .filter((tx: any) => {
+                            const name = (tx.payment_methods?.name || '').toLowerCase();
+                            return !name.includes('cash') && !name.includes('tunai');
+                        })
+                        .reduce((sum: number, tx: any) => sum + Number(tx.amount_due || 0), 0);
+
+                    const totalOmset = cashIncome + nonCashIncome;
+
+                    const shiftItems = (allItemList || []).filter((it: any) => {
+                        if (!broadPaidIds.has(it.transaction_id)) return false;
+                        const t = new Date(it.created_at).getTime();
+                        return t >= sOpen && t <= sClose;
+                    });
+                    const itemsSold = shiftItems.reduce((sum: number, it: any) => sum + (Number(it.quantity) || 1), 0);
+
+                    const shiftExp = (periodExpenses || []).filter((e: any) => {
+                        const t = new Date(e.created_at).getTime();
+                        return t >= sOpen && t <= sClose;
+                    }).reduce((sum: number, e: any) => sum + Number(e.amount || 0), 0);
+
+                    return {
+                        id: s.id,
+                        opened_at: s.opened_at,
+                        closed_at: s.closed_at,
+                        status: s.status,
+                        staff_name: s.staff_profiles?.full_name || 'Kasir',
+                        opening_cash: Number(s.opening_cash || 0),
+                        expected_cash: Number(s.expected_cash || 0),
+                        actual_cash: s.actual_cash !== null && s.actual_cash !== undefined ? Number(s.actual_cash) : null,
+                        difference: s.difference !== null && s.difference !== undefined ? Number(s.difference) : null,
+                        cash_income: cashIncome,
+                        non_cash_income: nonCashIncome,
+                        total_omset: totalOmset,
+                        items_sold: itemsSold,
+                        total_expense: shiftExp,
+                        trx_count: shiftTrxs.length
+                    };
+                });
+
+                setShiftPerformanceList(perf);
+            } else {
+                setShiftPerformanceList([]);
+            }
 
         } catch (e) {
             console.error(e);
@@ -2133,7 +2291,7 @@ export default function AdminDashboard() {
                                 <div className="space-y-6">
                                     {/* Global Tab Filter */}
                                     <div className="flex flex-col md:flex-row md:items-center justify-between bg-surface p-4 rounded-2xl border border-border shadow-sm gap-4">
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex flex-wrap items-center gap-4">
                                             <div>
                                                 <h3 className="font-bold text-text-primary">Laporan Keuangan</h3>
                                                 <p className="text-xs text-text-muted">Pilih periode untuk semua metrik di bawah</p>
@@ -2150,6 +2308,30 @@ export default function AdminDashboard() {
                                                     <button onClick={() => shiftReconciliationDate(1)} className="px-4 py-2 hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors flex items-center justify-center w-12">&gt;</button>
                                                 </div>
                                             )}
+
+                                            {/* Shift Filter Dropdown */}
+                                            <div className="flex items-center gap-2 bg-surface-hover px-3 py-1.5 rounded-xl border border-border h-10">
+                                                <Clock className="w-4 h-4 text-accent shrink-0" />
+                                                <span className="text-xs font-semibold text-text-muted whitespace-nowrap">Shift:</span>
+                                                <select
+                                                    value={selectedShiftId}
+                                                    onChange={(e) => handleSelectShift(e.target.value)}
+                                                    className="bg-transparent text-text-primary text-xs font-bold outline-none cursor-pointer pr-1 max-w-[210px] truncate"
+                                                >
+                                                    <option value="all" className="bg-surface text-text-primary">
+                                                        Semua Shift ({periodShifts.length} Shift)
+                                                    </option>
+                                                    {periodShifts.map((s: any) => {
+                                                        const openTime = new Date(s.opened_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                                                        const closeTime = s.closed_at ? new Date(s.closed_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Buka';
+                                                        return (
+                                                            <option key={s.id} value={s.id} className="bg-surface text-text-primary">
+                                                                {s.staff_profiles?.full_name || 'Kasir'} ({openTime} - {closeTime}) {s.status === 'open' ? '🟢 Aktif' : ''}
+                                                            </option>
+                                                        );
+                                                    })}
+                                                </select>
+                                            </div>
                                         </div>
                                         <div className="flex flex-col sm:flex-row items-center gap-3">
                                             {reconciliationPeriod === 'custom' && (
@@ -2178,9 +2360,10 @@ export default function AdminDashboard() {
                                             <div className="flex flex-wrap bg-surface-hover rounded-xl p-1 border border-border w-full md:w-fit">
                                                 {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'},{k:'yearly',l:'Tahunan'},{k:'custom',l:'Kustom'}].map(f => (
                                                     <button key={f.k} onClick={() => {
+                                                        setSelectedShiftId("all");
                                                         setReconciliationPeriod(f.k as any);
-                                                        if (f.k !== 'custom') fetchReconciliation(f.k as any);
-                                                        else if (customDateStart && customDateEnd) fetchReconciliation('custom', customDateStart, customDateEnd);
+                                                        if (f.k !== 'custom') fetchReconciliation(f.k as any, undefined, undefined, 'all');
+                                                        else if (customDateStart && customDateEnd) fetchReconciliation('custom', customDateStart, customDateEnd, 'all');
                                                     }}
                                                         className={`flex-1 md:flex-none text-center px-2 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${reconciliationPeriod === f.k ? 'bg-accent text-text-primary' : 'text-text-muted hover:text-text-primary'}`}>
                                                         {f.l}
@@ -2190,13 +2373,183 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
 
-                                    <ReportChart period={reconciliationPeriod} customStartDate={customDateStart} customEndDate={customDateEnd} referenceDate={reconciliationDate} />
+                                    {/* Active Shift Banner */}
+                                    {selectedShiftId !== 'all' && (() => {
+                                        const activeShift = periodShifts.find((s: any) => s.id === selectedShiftId);
+                                        if (!activeShift) return null;
+                                        return (
+                                            <div className="bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-purple-950/40 border border-blue-500/30 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
+                                                <div className="flex items-start md:items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-accent/20 text-accent flex items-center justify-center shrink-0 mt-0.5 md:mt-0">
+                                                        <Clock className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-accent bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20">Filter Shift Aktif</span>
+                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${activeShift.status === 'open' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-800 text-gray-300'}`}>
+                                                                {activeShift.status === 'open' ? '🟢 SEDANG BUKA' : 'DITUTUP'}
+                                                            </span>
+                                                        </div>
+                                                        <h4 className="text-base font-bold text-text-primary">
+                                                            Kasir: <span className="text-accent">{activeShift.staff_profiles?.full_name || 'Kasir'}</span> &bull; Shift ID: <span className="font-mono text-xs text-text-muted">{activeShift.id.substring(0, 8)}</span>
+                                                        </h4>
+                                                        <p className="text-xs text-text-muted mt-0.5">
+                                                            Waktu Kerja: {new Date(activeShift.opened_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} ({new Date(activeShift.opened_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}) s/d {activeShift.closed_at ? `${new Date(activeShift.closed_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} (${new Date(activeShift.closed_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })})` : 'Sekarang'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3 self-end md:self-center">
+                                                    <button
+                                                        onClick={() => handleSelectShift('all')}
+                                                        className="px-3.5 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm border border-border"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                        Kembali ke Semua Shift
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
 
-                                    {/* Data Penjualan Produk (Requested Feature) */}
+                                    <ReportChart
+                                        period={selectedShiftId !== 'all' ? 'custom' : reconciliationPeriod}
+                                        customStartDate={selectedShiftId !== 'all' ? (periodShifts.find((s: any) => s.id === selectedShiftId)?.opened_at) : customDateStart}
+                                        customEndDate={selectedShiftId !== 'all' ? (periodShifts.find((s: any) => s.id === selectedShiftId)?.closed_at || new Date().toISOString()) : customDateEnd}
+                                        referenceDate={reconciliationDate}
+                                        selectedShiftTitle={selectedShiftId !== 'all' ? `${periodShifts.find((s: any) => s.id === selectedShiftId)?.staff_profiles?.full_name || 'Kasir'} (${new Date(periodShifts.find((s: any) => s.id === selectedShiftId)?.opened_at || '').toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})})` : undefined}
+                                        shiftsCount={selectedShiftId !== 'all' ? 1 : periodShifts.length}
+                                        daysCount={selectedShiftId !== 'all' ? 1 : diffDays}
+                                    />
+
+                                    {/* Per-Shift Performance Breakdown Table (Shown when viewing Semua Shift) */}
+                                    {selectedShiftId === 'all' && shiftPerformanceList.length > 0 && (
+                                        <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
+                                            <div className="p-4 md:p-6 border-b border-border flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                                                <div>
+                                                    <h3 className="font-bold text-xl text-text-primary flex items-center gap-2">
+                                                        <Wallet className="w-5 h-5 text-accent" />
+                                                        Ringkasan Performa Tiap Shift
+                                                    </h3>
+                                                    <p className="text-text-muted text-xs md:text-sm mt-1">
+                                                        Perbandingan pendapatan, item terjual, dan status kasir per shift ({shiftPerformanceList.length} shift tercatat dalam periode ini).
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left border-collapse text-xs md:text-sm">
+                                                    <thead>
+                                                        <tr className="bg-surface-hover border-b border-border">
+                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted">Kasir / Shift</th>
+                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted">Jam Kerja</th>
+                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Tunai (Cash)</th>
+                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Non-Tunai (QRIS)</th>
+                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Total Omset</th>
+                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-center">Item Terjual</th>
+                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Pengeluaran</th>
+                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-right">Selisih Laci</th>
+                                                            <th className="p-3 md:p-4 text-xs font-semibold text-text-muted text-center">Aksi</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {shiftPerformanceList.map((row: any) => {
+                                                            const openStr = new Date(row.opened_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                                                            const closeStr = row.closed_at ? new Date(row.closed_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Sekarang';
+                                                            const openDate = new Date(row.opened_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                                                            return (
+                                                                <tr key={row.id} className="border-b border-border hover:bg-surface-hover transition-colors">
+                                                                    <td className="p-3 md:p-4">
+                                                                        <div className="font-bold text-text-primary flex items-center gap-2">
+                                                                            {row.staff_name}
+                                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${row.status === 'open' ? 'bg-green-500/20 text-green-400' : 'bg-gray-800 text-gray-300'}`}>
+                                                                                {row.status === 'open' ? 'BUKA' : 'TUTUP'}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="text-[11px] font-mono text-text-muted">ID: {row.id.substring(0, 8)}</div>
+                                                                    </td>
+                                                                    <td className="p-3 md:p-4 text-text-secondary whitespace-nowrap">
+                                                                        <div>{openStr} - {closeStr}</div>
+                                                                        <div className="text-[10px] text-text-muted">{openDate}</div>
+                                                                    </td>
+                                                                    <td className="p-3 md:p-4 text-right font-medium text-green-400 whitespace-nowrap">
+                                                                        Rp {row.cash_income.toLocaleString('id-ID')}
+                                                                    </td>
+                                                                    <td className="p-3 md:p-4 text-right font-medium text-accent whitespace-nowrap">
+                                                                        Rp {row.non_cash_income.toLocaleString('id-ID')}
+                                                                    </td>
+                                                                    <td className="p-3 md:p-4 text-right font-extrabold text-text-primary whitespace-nowrap">
+                                                                        Rp {row.total_omset.toLocaleString('id-ID')}
+                                                                    </td>
+                                                                    <td className="p-3 md:p-4 text-center">
+                                                                        <span className="px-2.5 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full font-bold text-xs">
+                                                                            {row.items_sold} pcs
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="p-3 md:p-4 text-right text-red-400 whitespace-nowrap">
+                                                                        {row.total_expense > 0 ? `-Rp ${row.total_expense.toLocaleString('id-ID')}` : 'Rp 0'}
+                                                                    </td>
+                                                                    <td className="p-3 md:p-4 text-right whitespace-nowrap">
+                                                                        {row.status === 'open' ? (
+                                                                            <span className="text-[11px] text-text-muted italic">Masih Buka</span>
+                                                                        ) : (
+                                                                            <span className={`font-bold ${row.difference < 0 ? 'text-red-400' : row.difference > 0 ? 'text-green-400' : 'text-text-muted'}`}>
+                                                                                Rp {(row.difference ?? 0).toLocaleString('id-ID')}
+                                                                            </span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="p-3 md:p-4 text-center">
+                                                                        <button
+                                                                            onClick={() => handleSelectShift(row.id)}
+                                                                            className="px-3 py-1.5 bg-accent/10 hover:bg-accent text-accent hover:text-white border border-accent/30 rounded-xl text-xs font-bold transition-all whitespace-nowrap"
+                                                                        >
+                                                                            Filter Shift Ini &rarr;
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Item Terjual & Average Stat Cards */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
+                                            <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Total Item Terjual</p>
+                                            <h4 className="text-xl font-black text-indigo-400">{totalPeriodItemsSold} <span className="text-xs font-normal text-text-muted">pcs</span></h4>
+                                            <p className="text-[10px] text-text-muted mt-1">Akumulasi produk terjual</p>
+                                        </div>
+                                        <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
+                                            <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Rata-rata / Hari</p>
+                                            <h4 className="text-xl font-black text-accent">
+                                                {(totalPeriodItemsSold / Math.max(1, selectedShiftId !== 'all' ? 1 : diffDays)).toFixed(1)} <span className="text-xs font-normal text-text-muted">pcs/hari</span>
+                                            </h4>
+                                            <p className="text-[10px] text-text-muted mt-1">Dihitung dari {selectedShiftId !== 'all' ? 1 : diffDays} hari</p>
+                                        </div>
+                                        <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
+                                            <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Rata-rata / Shift</p>
+                                            <h4 className="text-xl font-black text-emerald-400">
+                                                {(periodShifts.length > 0 ? (totalPeriodItemsSold / (selectedShiftId !== 'all' ? 1 : periodShifts.length)).toFixed(1) : totalPeriodItemsSold)} <span className="text-xs font-normal text-text-muted">pcs/shift</span>
+                                            </h4>
+                                            <p className="text-[10px] text-text-muted mt-1">Berdasarkan {selectedShiftId !== 'all' ? 1 : periodShifts.length} shift tercatat</p>
+                                        </div>
+                                        <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
+                                            <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Rata-rata Omset / Shift</p>
+                                            <h4 className="text-xl font-black text-amber-400">
+                                                Rp {Math.round(reconciliation.reduce((s, r) => s + r.pos_total, 0) / Math.max(1, selectedShiftId !== 'all' ? 1 : periodShifts.length)).toLocaleString('id-ID')}
+                                            </h4>
+                                            <p className="text-[10px] text-text-muted mt-1">Pendapatan kotor per shift</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Data Penjualan Produk (Requested Feature with Average columns) */}
                                     <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
-                                        <div className="p-2 md:p-4 md:p-6 border-b border-border">
-                                            <h3 className="font-bold text-xl text-text-primary">Ringkasan Penjualan Produk (Terlaris)</h3>
-                                            <p className="text-text-muted text-sm mt-1">Data penjualan, HPP, dan pendapatan bersih berdasarkan periode yang dipilih.</p>
+                                        <div className="p-2 md:p-4 md:p-6 border-b border-border flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                                            <div>
+                                                <h3 className="font-bold text-xl text-text-primary">Ringkasan Penjualan Produk (Terlaris)</h3>
+                                                <p className="text-text-muted text-xs md:text-sm mt-1">Data penjualan, rata-rata terjual per hari &amp; per shift, HPP, serta laba bersih.</p>
+                                            </div>
                                         </div>
                                         {productSalesData.length === 0 ? (
                                             <p className="p-8 text-text-muted text-center">Belum ada penjualan di periode ini.</p>
@@ -2206,7 +2559,7 @@ export default function AdminDashboard() {
                                                     <thead>
                                                         <tr className="bg-surface-hover border-b border-border">
                                                             <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted">Produk</th>
-                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-center">Terjual</th>
+                                                            <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-center">Terjual (Total &amp; Avg)</th>
                                                             <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Penghasilan Kotor</th>
                                                             <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Total HPP</th>
                                                             <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Laba Bersih</th>
@@ -2220,7 +2573,14 @@ export default function AdminDashboard() {
                                                                     <div className="text-xs text-text-muted">{row.category}</div>
                                                                 </td>
                                                                 <td className="p-2 md:p-4 text-center">
-                                                                    <span className="px-3 py-1 bg-gray-800 text-white font-bold rounded-full text-sm">{row.terjual}</span>
+                                                                    <div className="inline-flex flex-col items-center">
+                                                                        <span className="px-3 py-1 bg-gray-800 text-white font-bold rounded-full text-sm">
+                                                                            {row.terjual} pcs
+                                                                        </span>
+                                                                        <span className="text-[10px] text-text-muted mt-1 whitespace-nowrap">
+                                                                            avg: {(row.terjual / Math.max(1, selectedShiftId !== 'all' ? 1 : diffDays)).toFixed(1)}/hari &bull; {(periodShifts.length > 0 ? (row.terjual / (selectedShiftId !== 'all' ? 1 : periodShifts.length)).toFixed(1) : row.terjual)}/shift
+                                                                        </span>
+                                                                    </div>
                                                                 </td>
                                                                 <td className="p-2 md:p-4 text-right font-medium text-accent">Rp {row.kotor.toLocaleString('id-ID')}</td>
                                                                 <td className="p-2 md:p-4 text-right font-medium text-red-400">- Rp {row.hpp_total.toLocaleString('id-ID')}</td>
@@ -2246,8 +2606,8 @@ export default function AdminDashboard() {
                                         </div>
                                         <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-xl flex items-center justify-between">
                                             <div>
-                                                <p className="text-text-muted text-sm font-medium">Total QRIS</p>
-                                                <h4 className="text-lg font-semibold text-accent mt-1">Rp {reconciliation.filter(r => r.method_name.toLowerCase().includes('qris')).reduce((s, r) => s + r.pos_total, 0).toLocaleString('id-ID')}</h4>
+                                                <p className="text-text-muted text-sm font-medium">Total QRIS / Non-Tunai</p>
+                                                <h4 className="text-lg font-semibold text-accent mt-1">Rp {reconciliation.filter(r => !r.method_name.toLowerCase().includes('cash') && !r.method_name.toLowerCase().includes('tunai')).reduce((s, r) => s + r.pos_total, 0).toLocaleString('id-ID')}</h4>
                                             </div>
                                             <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center text-accent">
                                                 <Maximize size={24} />
@@ -2263,6 +2623,42 @@ export default function AdminDashboard() {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Rekonsiliasi Kas Laci Spesifik Shift (Shown when a shift is selected) */}
+                                    {selectedShiftId !== 'all' && (() => {
+                                        const activeShift = periodShifts.find((s: any) => s.id === selectedShiftId);
+                                        if (!activeShift) return null;
+                                        return (
+                                            <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-xl">
+                                                <h3 className="font-bold text-lg text-text-primary mb-4 flex items-center gap-2">
+                                                    <Wallet className="w-5 h-5 text-accent" />
+                                                    Rekonsiliasi Kas Laci (Shift Ini)
+                                                </h3>
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                    <div className="bg-surface-hover p-3 rounded-xl border border-border">
+                                                        <span className="text-xs text-text-muted block">Modal Awal</span>
+                                                        <span className="text-sm md:text-base font-bold text-text-primary">Rp {Number(activeShift.opening_cash || 0).toLocaleString('id-ID')}</span>
+                                                    </div>
+                                                    <div className="bg-surface-hover p-3 rounded-xl border border-border">
+                                                        <span className="text-xs text-text-muted block">Sisa / Target Sistem</span>
+                                                        <span className="text-sm md:text-base font-bold text-accent">Rp {Number(activeShift.expected_cash || 0).toLocaleString('id-ID')}</span>
+                                                    </div>
+                                                    <div className="bg-surface-hover p-3 rounded-xl border border-border">
+                                                        <span className="text-xs text-text-muted block">Aktual di Laci</span>
+                                                        <span className="text-sm md:text-base font-bold text-green-400">
+                                                            {activeShift.actual_cash !== null && activeShift.actual_cash !== undefined ? `Rp ${Number(activeShift.actual_cash).toLocaleString('id-ID')}` : 'Belum Ditutup'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="bg-surface-hover p-3 rounded-xl border border-border">
+                                                        <span className="text-xs text-text-muted block">Selisih Kas</span>
+                                                        <span className={`text-sm md:text-base font-bold ${Number(activeShift.difference || 0) < 0 ? 'text-red-400' : Number(activeShift.difference || 0) > 0 ? 'text-green-400' : 'text-text-secondary'}`}>
+                                                            {activeShift.status === 'open' ? 'Shift Buka' : `Rp ${Number(activeShift.difference || 0).toLocaleString('id-ID')}`}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
 
                                     {/* Rekonsiliasi Pembayaran */}
                                     <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">

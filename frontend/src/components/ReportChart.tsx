@@ -23,9 +23,9 @@ function formatRupiah(n: number) {
     return 'Rp ' + Math.abs(n).toLocaleString('id-ID');
 }
 
-function getPeriodLabel(dateStr: string, mode: PeriodMode): string {
+function getPeriodLabel(dateStr: string, mode: PeriodMode, isHourly = false): string {
     const d = new Date(dateStr);
-    if (mode === 'daily') {
+    if (mode === 'daily' || isHourly) {
         return `${d.getHours().toString().padStart(2, '0')}:00`;
     } else if (mode === 'weekly') {
         const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -42,9 +42,20 @@ interface ReportChartProps {
     customStartDate?: string;
     customEndDate?: string;
     referenceDate?: Date;
+    selectedShiftTitle?: string;
+    shiftsCount?: number;
+    daysCount?: number;
 }
 
-export default function ReportChart({ period, customStartDate, customEndDate, referenceDate }: ReportChartProps) {
+export default function ReportChart({
+    period,
+    customStartDate,
+    customEndDate,
+    referenceDate,
+    selectedShiftTitle,
+    shiftsCount,
+    daysCount
+}: ReportChartProps) {
     const [chartData, setChartData] = useState<ChartPoint[]>([]);
     const [loading, setLoading] = useState(true);
     const [totals, setTotals] = useState({ omset: 0, pengeluaranOp: 0, hpp: 0, diskon: 0, itemTerjual: 0, laba: 0 });
@@ -53,7 +64,7 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
 
     useEffect(() => {
         fetchChartData();
-    }, [period, customStartDate, customEndDate, referenceDate, expenseCategoryFilter]);
+    }, [period, customStartDate, customEndDate, referenceDate, expenseCategoryFilter, selectedShiftTitle, shiftsCount, daysCount]);
 
     const fetchChartData = async () => {
         setLoading(true);
@@ -64,11 +75,13 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
         end.setHours(23, 59, 59, 999);
         
         let label = '';
+        let isShiftOrSingleDay = false;
         if (period === 'daily') {
             start.setHours(0, 0, 0, 0);
             end = new Date(start);
             end.setHours(23, 59, 59, 999);
             label = `Hari Ini (${start.toLocaleDateString('id-ID')})`;
+            isShiftOrSingleDay = true;
         } else if (period === 'weekly') {
             const day = start.getDay();
             const diff = start.getDate() - day + (day === 0 ? -6 : 1);
@@ -93,8 +106,18 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
         } else if (period === 'custom' && customStartDate && customEndDate) {
             start = new Date(customStartDate);
             end = new Date(customEndDate);
-            end.setHours(23, 59, 59, 999);
-            label = `Kustom (${start.toLocaleDateString('id-ID')} - ${end.toLocaleDateString('id-ID')})`;
+            if (!customEndDate.includes('T')) {
+                end.setHours(23, 59, 59, 999);
+            }
+            if (selectedShiftTitle) {
+                label = `Shift: ${selectedShiftTitle}`;
+            } else {
+                label = `Kustom (${start.toLocaleDateString('id-ID')} - ${end.toLocaleDateString('id-ID')})`;
+            }
+            const diffHours = Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60);
+            if (diffHours <= 36) {
+                isShiftOrSingleDay = true;
+            }
         } else if (period === 'custom') {
             start.setHours(0,0,0,0);
             label = 'Pilih rentang tanggal';
@@ -125,7 +148,7 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
         const map: Record<string, { omset: number; pengeluaranOp: number; hpp: number; diskon: number; itemTerjual: number }> = {};
 
         for (const trx of transactions || []) {
-            const lbl = getPeriodLabel(trx.created_at, period);
+            const lbl = getPeriodLabel(trx.created_at, period, isShiftOrSingleDay);
             if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0, diskon: 0, itemTerjual: 0 };
             map[lbl].omset += parseFloat(trx.amount_due) || 0;
             map[lbl].diskon += parseFloat(trx.discount_amount) || 0;
@@ -133,7 +156,7 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
 
         for (const item of orderItems || []) {
             if (!paidTrxIds.has(item.transaction_id)) continue;
-            const lbl = getPeriodLabel(item.created_at, period);
+            const lbl = getPeriodLabel(item.created_at, period, isShiftOrSingleDay);
             if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0, diskon: 0, itemTerjual: 0 };
             map[lbl].hpp += (parseFloat(item.cogs_at_time) || 0) * (item.quantity || 1);
             map[lbl].itemTerjual += (item.quantity || 1);
@@ -157,18 +180,42 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
                 if (expCat !== expenseCategoryFilter) continue;
             }
             const dateStr = exp.expense_date || exp.created_at;
-            const lbl = getPeriodLabel(dateStr, period);
+            const lbl = getPeriodLabel(dateStr, period, isShiftOrSingleDay);
             if (!map[lbl]) map[lbl] = { omset: 0, pengeluaranOp: 0, hpp: 0, diskon: 0, itemTerjual: 0 };
             map[lbl].pengeluaranOp += parseFloat(exp.amount) || 0;
         }
 
         let points: any[] = [];
         
-        if (period === 'daily') {
-            for (let i = 0; i < 24; i++) {
+        if (period === 'daily' || isShiftOrSingleDay) {
+            const startHour = period === 'daily' ? 0 : Math.min(start.getHours(), end.getHours());
+            const endHour = period === 'daily' ? 23 : Math.max(start.getHours(), end.getHours());
+            for (let i = startHour; i <= endHour; i++) {
                 const lbl = `${i.toString().padStart(2, '0')}:00`;
-                points.push({ label: lbl, omset: map[lbl]?.omset || 0, diskon: map[lbl]?.diskon || 0, itemTerjual: map[lbl]?.itemTerjual || 0, pengeluaranOp: map[lbl]?.pengeluaranOp || 0, hpp: map[lbl]?.hpp || 0, laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0) });
+                points.push({
+                    label: lbl,
+                    omset: map[lbl]?.omset || 0,
+                    diskon: map[lbl]?.diskon || 0,
+                    itemTerjual: map[lbl]?.itemTerjual || 0,
+                    pengeluaranOp: map[lbl]?.pengeluaranOp || 0,
+                    hpp: map[lbl]?.hpp || 0,
+                    laba: (map[lbl]?.omset || 0) - (map[lbl]?.pengeluaranOp || 0)
+                });
             }
+            Object.keys(map).forEach(lbl => {
+                if (!points.some(p => p.label === lbl)) {
+                    points.push({
+                        label: lbl,
+                        omset: map[lbl].omset,
+                        diskon: map[lbl].diskon,
+                        itemTerjual: map[lbl].itemTerjual,
+                        pengeluaranOp: map[lbl].pengeluaranOp,
+                        hpp: map[lbl].hpp,
+                        laba: map[lbl].omset - map[lbl].pengeluaranOp
+                    });
+                }
+            });
+            points.sort((a, b) => a.label.localeCompare(b.label));
         } else if (period === 'weekly') {
             const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
             points = days.map(d => ({ label: d, omset: map[d]?.omset || 0, diskon: map[d]?.diskon || 0, itemTerjual: map[d]?.itemTerjual || 0, pengeluaranOp: map[d]?.pengeluaranOp || 0, hpp: map[d]?.hpp || 0, laba: (map[d]?.omset || 0) - (map[d]?.pengeluaranOp || 0) }));
@@ -314,6 +361,16 @@ export default function ReportChart({ period, customStartDate, customEndDate, re
                         <div className="text-center border-b lg:border-b-0 md:border-r border-border pb-4 lg:pb-0">
                             <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Item Terjual</p>
                             <p className="text-sm md:text-lg font-extrabold text-indigo-400">{totals.itemTerjual} pcs</p>
+                            {totals.itemTerjual > 0 && (daysCount || shiftsCount) && (
+                                <div className="text-[10px] text-text-muted mt-1 leading-tight">
+                                    {daysCount !== undefined && daysCount > 0 && (
+                                        <p>avg: <span className="font-semibold text-text-secondary">{(totals.itemTerjual / daysCount).toFixed(1)}</span>/hari</p>
+                                    )}
+                                    {shiftsCount !== undefined && shiftsCount > 0 && (
+                                        <p>avg: <span className="font-semibold text-text-secondary">{(totals.itemTerjual / shiftsCount).toFixed(1)}</span>/shift</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <div className="text-center md:border-r border-border">
                             <p className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-1">Total Pengeluaran</p>
