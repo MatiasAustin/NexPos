@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ShoppingCart, CreditCard, Banknote, Trash2, Clock, Minus, Plus, LayoutGrid, List, Maximize, ClipboardList, X } from "lucide-react";
+import { ShoppingCart, CreditCard, Banknote, Trash2, Clock, Minus, Plus, LayoutGrid, List, Maximize, ClipboardList, X, RefreshCw } from "lucide-react";
 import { processPayment, getPaymentMethods, getActiveProducts } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -133,39 +133,94 @@ export default function PosPage() {
 
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [sessionData, setSessionData] = useState<any>(null);
+    const [isDrawerLoading, setIsDrawerLoading] = useState(false);
 
     const [collapseAddMat, setCollapseAddMat] = useState(false);
     const [collapseListMat, setCollapseListMat] = useState(false);
     const [collapseAddExp, setCollapseAddExp] = useState(false);
     const [collapseListExp, setCollapseListExp] = useState(false);
 
-
-
-    const fetchSessionData = async (id: string) => {
+    const fetchSessionData = async (id: string, isSilent = false) => {
         if (!id) return;
+        if (!isSilent) setIsDrawerLoading(true);
         try {
-            if (!staff?.id) return;
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staff.id}&terminalId=TERM-01&_t=${Date.now()}`, { cache: 'no-store' });
-            if (res.ok) {
-                const sess = await res.json();
-                // Manually query expenses and refunds to get accurate totals
-                const { data: expenses } = await supabase.from('expenses')
-                    .select('amount, description')
-                    .gte('created_at', sess.opened_at || new Date(new Date().setHours(0,0,0,0)).toISOString());
-                sess.total_expense = expenses ? expenses.filter(e => !e.description.startsWith('[')).reduce((sum, e) => sum + Number(e.amount), 0) : 0;
+            // 1. Ambil data session kasir langsung dari Supabase untuk respon instan tanpa delay
+            const { data: dbSession } = await supabase
+                .from('cash_sessions')
+                .select('*')
+                .eq('id', id)
+                .maybeSingle();
 
-                const { data: refunds } = await supabase.from('refunds')
-                    .select('refund_amount')
-                    .eq('status', 'APPROVED')
-                    .gte('created_at', sess.opened_at || new Date(new Date().setHours(0,0,0,0)).toISOString());
-                sess.total_refund = refunds ? refunds.reduce((sum, r) => sum + Number(r.refund_amount), 0) : 0;
+            let sess = dbSession;
+
+            // Fallback ke REST API jika query langsung belum menghasilkan data
+            if (!sess && staff?.id) {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staff.id}&terminalId=TERM-01&_t=${Date.now()}`, { cache: 'no-store' });
+                if (res.ok) {
+                    sess = await res.json();
+                }
+            }
+
+            if (sess) {
+                const sessionStart = sess.opened_at || new Date(new Date().setHours(0,0,0,0)).toISOString();
                 
-                setSessionData(sess);
+                // Ambil data pengeluaran dan refund secara paralel langsung dari Supabase
+                const [expRes, refRes] = await Promise.all([
+                    supabase.from('expenses')
+                        .select('amount, description')
+                        .gte('created_at', sessionStart),
+                    supabase.from('refunds')
+                        .select('refund_amount')
+                        .eq('status', 'APPROVED')
+                        .gte('created_at', sessionStart)
+                ]);
+
+                const expenses = expRes.data || [];
+                const refunds = refRes.data || [];
+
+                sess.total_expense = expenses
+                    .filter((e: any) => !e.description?.startsWith('['))
+                    .reduce((sum: number, e: any) => sum + Number(e.amount || 0), 0);
+
+                sess.total_refund = refunds
+                    .reduce((sum: number, r: any) => sum + Number(r.refund_amount || 0), 0);
+                
+                setSessionData({ ...sess });
             }
         } catch(e) {
-            console.error(e);
+            console.error("Gagal sinkronkan bar laci:", e);
+        } finally {
+            if (!isSilent) setIsDrawerLoading(false);
         }
     };
+
+    // Auto-refresh bar laci kasir secara berkala & Realtime listener
+    useEffect(() => {
+        if (!sessionId) return;
+
+        // Auto-refresh periodik setiap 5 detik agar bar laci selalu sinkron
+        const interval = setInterval(() => {
+            fetchSessionData(sessionId, true);
+        }, 5000);
+
+        // Realtime listener Supabase untuk update instan ketika ada mutasi
+        const channel = supabase.channel(`pos-drawer-${sessionId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_sessions', filter: `id=eq.${sessionId}` }, () => {
+                fetchSessionData(sessionId, true);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
+                fetchSessionData(sessionId, true);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_movements', filter: `session_id=eq.${sessionId}` }, () => {
+                fetchSessionData(sessionId, true);
+            })
+            .subscribe();
+
+        return () => {
+            clearInterval(interval);
+            supabase.removeChannel(channel);
+        };
+    }, [sessionId]);
     const [isCheckingSession, setIsCheckingSession] = useState(true);
     const [storeSettings, setStoreSettings] = useState<any>(null);
     const saasSettings = useSaasSettings();
@@ -659,7 +714,13 @@ export default function PosPage() {
                     // Directly update expected_cash (RLS now disabled on cash_sessions)
                     const { data: sessData } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
                     if (sessData) {
-                        await supabase.from('cash_sessions').update({ expected_cash: Number(sessData.expected_cash) - Number(newExpense.amount) }).eq('id', sessionId);
+                        const newExpected = Number(sessData.expected_cash) - Number(newExpense.amount);
+                        await supabase.from('cash_sessions').update({ expected_cash: newExpected }).eq('id', sessionId);
+                        setSessionData((prev: any) => prev ? ({
+                            ...prev,
+                            expected_cash: newExpected,
+                            total_expense: Number(prev.total_expense || 0) + Number(newExpense.amount)
+                        }) : prev);
                     }
                 } catch (err) {
                     console.error("Gagal mencatat cash movement untuk pengeluaran:", err);
@@ -749,14 +810,25 @@ export default function PosPage() {
                                     updateObj.difference = Number(sessData.actual_cash) - updatedExpected;
                                 }
                                 await supabase.from('cash_sessions').update(updateObj).eq('id', sessData.id);
+                                setSessionData((prev: any) => prev ? ({
+                                    ...prev,
+                                    expected_cash: updatedExpected,
+                                    total_expense: Number(prev.total_expense || 0) + amountDiff
+                                }) : prev);
                             }
                         }
                     } else if (amountDiff !== 0 && sessionId) {
                         const { data: sessData } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
                         if (sessData) {
+                            const updatedExpected = Number(sessData.expected_cash) - amountDiff;
                             await supabase.from('cash_sessions').update({
-                                expected_cash: Number(sessData.expected_cash) - amountDiff
+                                expected_cash: updatedExpected
                             }).eq('id', sessionId);
+                            setSessionData((prev: any) => prev ? ({
+                                ...prev,
+                                expected_cash: updatedExpected,
+                                total_expense: Number(prev.total_expense || 0) + amountDiff
+                            }) : prev);
                         }
                     }
                 } catch (cashErr) {
@@ -1165,8 +1237,11 @@ export default function PosPage() {
                         // Directly update expected_cash (RLS now disabled on cash_sessions)
                         const { data: sessData } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
                         if (sessData) {
-                            await supabase.from('cash_sessions').update({ expected_cash: Number(sessData.expected_cash) + grandTotal }).eq('id', sessionId);
+                            const newExpected = Number(sessData.expected_cash) + grandTotal;
+                            await supabase.from('cash_sessions').update({ expected_cash: newExpected }).eq('id', sessionId);
+                            setSessionData((prev: any) => prev ? ({ ...prev, expected_cash: newExpected }) : prev);
                         }
+                        fetchSessionData(sessionId, true);
                     } catch(err) {
                         console.error("Gagal mencatat mutasi kasir:", err);
                     }
@@ -1278,8 +1353,8 @@ export default function PosPage() {
                             <span className="text-text-muted text-[10px] leading-tight">Kasir</span>
                             <span className="text-text-primary text-xs font-bold">{staff?.full_name}</span>
                         </div>
-                        {sessionData && (
-                            <div className="flex gap-4 ml-2 pl-3 border-l border-border shrink-0 items-center bg-surface-hover/50 p-2 rounded-xl border border-border">
+                        {sessionData ? (
+                            <div className="flex gap-3 md:gap-4 ml-2 pl-3 border-l border-border shrink-0 items-center bg-surface-hover/50 p-2 rounded-xl border border-border">
                                 <div className="flex flex-col">
                                     <span className="text-text-muted text-[10px] leading-tight">Modal Awal</span>
                                     <span className="text-accent text-xs font-bold">Rp {Number(sessionData.opening_cash || 0).toLocaleString('id-ID')}</span>
@@ -1288,18 +1363,37 @@ export default function PosPage() {
                                     <span className="text-text-muted text-[10px] leading-tight">Pengeluaran</span>
                                     <span className="text-red-400 text-xs font-bold">Rp {Number(sessionData.total_expense || 0).toLocaleString('id-ID')}</span>
                                 </div>
-                                <div className="flex flex-col border-l border-border pl-4">
+                                <div className="flex flex-col border-l border-border pl-3 md:pl-4">
                                     <span className="text-text-muted text-[10px] leading-tight">Refund</span>
                                     <span className="text-yellow-400 text-xs font-bold">Rp {Number(sessionData.total_refund || 0).toLocaleString('id-ID')}</span>
                                 </div>
-                                <div className="flex flex-col border-l border-border pl-4">
+                                <div className="flex flex-col border-l border-border pl-3 md:pl-4">
                                     <span className="text-text-muted text-[10px] leading-tight">Laci (Sistem)</span>
                                     <span className="text-green-400 text-xs font-bold">Rp {Number(sessionData.expected_cash || 0).toLocaleString('id-ID')}</span>
                                 </div>
-                                <div className="flex flex-col border-l border-border pl-4">
+                                <div className="flex flex-col border-l border-border pl-3 md:pl-4">
                                     <span className="text-text-muted text-[10px] leading-tight">Selisih (Penjualan Bersih)</span>
                                     <span className="text-purple-400 text-xs font-bold">Rp {Number((sessionData.expected_cash || 0) - (sessionData.opening_cash || 0) + (sessionData.total_expense || 0)).toLocaleString('id-ID')}</span>
                                 </div>
+                                <div className="flex items-center gap-1.5 pl-2 border-l border-border">
+                                    <button
+                                        type="button"
+                                        onClick={() => sessionId && fetchSessionData(sessionId)}
+                                        disabled={isDrawerLoading}
+                                        title="Segarkan data laci kasir"
+                                        className="p-1 hover:bg-surface rounded-lg text-text-muted hover:text-accent transition-colors disabled:opacity-50"
+                                    >
+                                        <RefreshCw className={`w-3.5 h-3.5 ${isDrawerLoading ? 'animate-spin text-accent' : ''}`} />
+                                    </button>
+                                    {isDrawerLoading && (
+                                        <span className="text-[9px] text-accent font-bold animate-pulse hidden sm:inline">Memuat...</span>
+                                    )}
+                                </div>
+                            </div>
+                        ) : hasSession && (
+                            <div className="flex gap-2 ml-2 pl-3 border-l border-border shrink-0 items-center bg-surface-hover/50 p-2 rounded-xl border border-border text-xs text-text-muted">
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin text-accent" />
+                                <span className="text-[11px] font-medium">Menarik data laci...</span>
                             </div>
                         )}
                         <div className="flex gap-2 ml-4 shrink-0">
