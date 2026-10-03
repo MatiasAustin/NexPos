@@ -683,6 +683,12 @@ export default function PosPage() {
         }
         setLoading(true);
         try {
+            // Fetch original expense to calculate amount difference
+            const { data: oldExpense } = await supabase.from('expenses').select('*').eq('id', editingExpense.id).single();
+            const oldAmount = Number(oldExpense?.amount || 0);
+            const newAmount = Number(editingExpense.amount || 0);
+            const amountDiff = newAmount - oldAmount;
+
             const bUnit = editingExpense.buy_unit || 'kg';
             const finalDesc = expCat === 'bahan_baku' && Number(editingExpense.quantity) > 0
                 ? formatExpenseDescription(editingExpense.description, editingExpense.quantity, bUnit)
@@ -705,6 +711,57 @@ export default function PosPage() {
                 if (retry.error) throw retry.error;
             } else if (error) {
                 throw error;
+            }
+
+            // Sync cash drawer / shift if amount or description changed
+            if (amountDiff !== 0 || finalDesc !== oldExpense?.description) {
+                try {
+                    const reasonPattern = `%${oldExpense?.description || ''}%`;
+                    let movQuery = supabase.from('cash_movements')
+                        .select('*')
+                        .eq('type', 'expense');
+                    
+                    if (sessionId) {
+                        movQuery = movQuery.eq('session_id', sessionId);
+                    }
+                    if (oldAmount > 0) {
+                        movQuery = movQuery.eq('amount', -oldAmount);
+                    }
+                    if (oldExpense?.description) {
+                        movQuery = movQuery.ilike('reason', reasonPattern);
+                    }
+                    
+                    const { data: movements } = await movQuery.limit(1);
+                    if (movements && movements.length > 0) {
+                        const mov = movements[0];
+                        await supabase.from('cash_movements').update({
+                            amount: -newAmount,
+                            reason: `Pengeluaran: ${finalDesc}`
+                        }).eq('id', mov.id);
+
+                        if (amountDiff !== 0) {
+                            const targetSessionId = mov.session_id || sessionId;
+                            const { data: sessData } = await supabase.from('cash_sessions').select('id, expected_cash, actual_cash, status').eq('id', targetSessionId).single();
+                            if (sessData) {
+                                const updatedExpected = Number(sessData.expected_cash) - amountDiff;
+                                const updateObj: any = { expected_cash: updatedExpected };
+                                if (sessData.status === 'closed' && sessData.actual_cash !== null && sessData.actual_cash !== undefined) {
+                                    updateObj.difference = Number(sessData.actual_cash) - updatedExpected;
+                                }
+                                await supabase.from('cash_sessions').update(updateObj).eq('id', sessData.id);
+                            }
+                        }
+                    } else if (amountDiff !== 0 && sessionId) {
+                        const { data: sessData } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
+                        if (sessData) {
+                            await supabase.from('cash_sessions').update({
+                                expected_cash: Number(sessData.expected_cash) - amountDiff
+                            }).eq('id', sessionId);
+                        }
+                    }
+                } catch (cashErr) {
+                    console.error("Gagal menyinkronkan uang laci dari edit pengeluaran:", cashErr);
+                }
             }
 
             // If material selected and quantity entered, update material price and stock

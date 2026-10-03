@@ -385,9 +385,10 @@ export default function AdminDashboard() {
                     toast.error("Gagal memuat riwayat shift: " + error.message);
                 }
                 if (data) {
-                    // Ambil seluruh data pengeluaran dan refund untuk menghitung total per sesi
+                    // Ambil seluruh data pengeluaran, refund, dan mutasi kas penjualan untuk menghitung total per sesi
                     const { data: allExpenses } = await supabase.from('expenses').select('created_at, amount, category');
                     const { data: allRefunds } = await supabase.from('refunds').select('created_at, refund_amount').eq('status', 'APPROVED');
+                    const { data: allMovements } = await supabase.from('cash_movements').select('session_id, type, amount');
                     
                     const sessionsWithTotals = data.map((session: any) => {
                         const sessionStart = session.opened_at;
@@ -401,11 +402,19 @@ export default function AdminDashboard() {
                         const sessionRefunds = allRefunds ? allRefunds.filter((r: any) => r.created_at >= sessionStart && r.created_at <= sessionEnd) : [];
                         const total_refund = sessionRefunds.reduce((sum: number, r: any) => sum + Number(r.refund_amount), 0);
                         
+                        // Hitung pendapatan tunai dari cash_movements bertipe sale jika tersedia
+                        const sessionMovements = allMovements ? allMovements.filter((m: any) => m.session_id === session.id) : [];
+                        const saleMovements = sessionMovements.filter((m: any) => m.type === 'sale');
+                        const total_cash_income = saleMovements.length > 0
+                            ? saleMovements.reduce((sum: number, m: any) => sum + Number(m.amount), 0)
+                            : Math.max(0, Number(session.expected_cash - session.opening_cash + total_expense + total_refund));
+
                         return {
                             ...session,
                             staff_name: session.staff_profiles?.full_name,
                             total_expense,
-                            total_refund
+                            total_refund,
+                            total_cash_income
                         };
                     });
                     setCashSessions(sessionsWithTotals);
@@ -1642,6 +1651,12 @@ export default function AdminDashboard() {
         }
         setLoading(true);
         try {
+            // Fetch original expense to calculate amount difference
+            const { data: oldExpense } = await supabase.from('expenses').select('*').eq('id', editingExpense.id).single();
+            const oldAmount = Number(oldExpense?.amount || 0);
+            const newAmount = Number(editingExpense.amount || 0);
+            const amountDiff = newAmount - oldAmount;
+
             const bUnit = editingExpense.buy_unit || 'kg';
             const finalDesc = expCat === 'bahan_baku' && Number(editingExpense.quantity) > 0
                 ? formatExpenseDescription(editingExpense.description, editingExpense.quantity, bUnit)
@@ -1665,6 +1680,59 @@ export default function AdminDashboard() {
                 if (retry.error) throw retry.error;
             } else if (error) {
                 throw error;
+            }
+
+            // Sync cash drawer / shift if amount or description changed
+            if (amountDiff !== 0 || finalDesc !== oldExpense?.description) {
+                try {
+                    const reasonPattern = `%${oldExpense?.description || ''}%`;
+                    let movQuery = supabase.from('cash_movements')
+                        .select('*')
+                        .eq('type', 'expense');
+                    
+                    if (oldAmount > 0) {
+                        movQuery = movQuery.eq('amount', -oldAmount);
+                    }
+                    if (oldExpense?.description) {
+                        movQuery = movQuery.ilike('reason', reasonPattern);
+                    }
+                    
+                    const { data: movements } = await movQuery.limit(1);
+                    if (movements && movements.length > 0) {
+                        const mov = movements[0];
+                        await supabase.from('cash_movements').update({
+                            amount: -newAmount,
+                            reason: `Pengeluaran: ${finalDesc}`
+                        }).eq('id', mov.id);
+
+                        if (amountDiff !== 0) {
+                            const { data: sessData } = await supabase.from('cash_sessions').select('id, expected_cash, actual_cash, status').eq('id', mov.session_id).single();
+                            if (sessData) {
+                                const updatedExpected = Number(sessData.expected_cash) - amountDiff;
+                                const updateObj: any = { expected_cash: updatedExpected };
+                                if (sessData.status === 'closed' && sessData.actual_cash !== null && sessData.actual_cash !== undefined) {
+                                    updateObj.difference = Number(sessData.actual_cash) - updatedExpected;
+                                }
+                                await supabase.from('cash_sessions').update(updateObj).eq('id', sessData.id);
+                            }
+                        }
+                    } else if (amountDiff !== 0) {
+                        // Fallback: adjust active open session if any
+                        const { data: activeSessions } = await supabase.from('cash_sessions')
+                            .select('id, expected_cash')
+                            .eq('status', 'open')
+                            .order('opened_at', { ascending: false })
+                            .limit(1);
+                        if (activeSessions && activeSessions.length > 0) {
+                            const activeSession = activeSessions[0];
+                            await supabase.from('cash_sessions').update({
+                                expected_cash: Number(activeSession.expected_cash) - amountDiff
+                            }).eq('id', activeSession.id);
+                        }
+                    }
+                } catch (cashErr) {
+                    console.error("Gagal menyinkronkan uang laci dari edit pengeluaran:", cashErr);
+                }
             }
 
             // If material selected and quantity entered, update material price and stock
@@ -2462,7 +2530,7 @@ export default function AdminDashboard() {
 </div>
                                                 <div className="flex flex-col gap-1 text-sm bg-surface-hover/50 p-3 rounded-xl border border-border min-w-[200px]">
                                                     <div className="flex justify-between text-text-muted"><span>Modal Awal (Buka)</span><span>Rp {Number(session.opening_cash).toLocaleString('id-ID')}</span></div>
-                                                    <div className="flex justify-between text-green-400"><span>Pendapatan (Cash)</span><span>+Rp {Number(session.expected_cash - session.opening_cash + (session.total_expense || 0) + (session.total_refund || 0)).toLocaleString('id-ID')}</span></div>
+                                                    <div className="flex justify-between text-green-400"><span>Pendapatan (Cash)</span><span>+Rp {Number(session.total_cash_income !== undefined ? session.total_cash_income : (session.expected_cash - session.opening_cash + (session.total_expense || 0) + (session.total_refund || 0))).toLocaleString('id-ID')}</span></div>
                                                     <div className="flex justify-between text-red-400"><span>Pengeluaran (Cash)</span><span>-Rp {Number(session.total_expense || 0).toLocaleString('id-ID')}</span></div>
                                                     <div className="flex justify-between text-yellow-400"><span>Refund</span><span>-Rp {Number(session.total_refund || 0).toLocaleString('id-ID')}</span></div>
                                                     <div className="flex justify-between text-accent"><span>Sisa/Target (Sistem)</span><span>Rp {Number(session.expected_cash).toLocaleString('id-ID')}</span></div>
