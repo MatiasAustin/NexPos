@@ -449,65 +449,28 @@ export default function PosPage() {
         const ok = await confirm({ title: "Batalkan Pesanan", message: "Yakin ingin membatalkan/menghapus pesanan ini?", confirmText: "Ya, Batalkan", variant: "danger" });
         if (!ok) return;
 
-        try {
-            const { error } = await supabase.from('kiosk_orders').delete().eq('id', id);
-            if (error) throw error;
-            toast.success("Draft pesanan berhasil dibatalkan.");
-            setPendingOrders(prev => prev.filter((o: any) => o.id !== id));
-            
-            // If the active queue number or draft matches the deleted one, clear the cart.
-            if (activeDraftId === id || activeQueueNumber === queueNumber) {
-                clearCart();
-            }
-        } catch (e: any) {
-            toast.error(e.message);
+        // Optimistically remove from state immediately (0ms UI latency)
+        setPendingOrders(prev => prev.filter((o: any) => o.id !== id));
+        if (activeDraftId === id || activeQueueNumber === queueNumber) {
+            clearCart();
         }
+        toast.success("Draft pesanan berhasil dibatalkan.");
+
+        // Delete from database in background
+        supabase.from('kiosk_orders').delete().eq('id', id).then(({ error }) => {
+            if (error) console.error("Gagal menghapus draft di database:", error);
+        });
     };
 
-    const loadCustomerOrder = async (order: any, idx: number) => {
-        if (cart.length > 0 && activeDraftId !== order.id) {
-            // Save current cart as draft before switching
-            const prevQueueNumber = activeQueueNumber || `Draft-${Date.now().toString().slice(-4)}`;
-            const draftOrder: any = {
-                queue_number: prevQueueNumber,
-                customer_name: customerName,
-                items: cart,
-                total: grandTotal,
-                discount_amount: calculatedDiscount,
-                status: 'draft',
-                store_id: staff?.store_id || null,
-                updated_at: new Date().toISOString()
-            };
-            
-            let saveErr = null;
-            if (activeDraftId) {
-                const { error } = await supabase.from('kiosk_orders').update(draftOrder).eq('id', activeDraftId);
-                saveErr = error;
-            } else {
-                const existingPending = pendingOrders.find((o: any) => o.queue_number === prevQueueNumber);
-                if (existingPending && existingPending.id) {
-                    const { error } = await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
-                    saveErr = error;
-                } else {
-                    const { error } = await supabase.from('kiosk_orders').insert([draftOrder]);
-                    saveErr = error;
-                }
-            }
-            if (saveErr) {
-                toast.error("Gagal menyimpan pesanan sebelumnya sebagai draft: " + saveErr.message);
-            } else {
-                toast.info("Pesanan sebelumnya disimpan sebagai Draft");
-            }
-            // Immediately refresh pendingOrders so the new draft is visible
-            let query = supabase.from('kiosk_orders')
-                .select('*')
-                .in('status', ['pending', 'draft', 'waiting_payment'])
-                .order('created_at', { ascending: false });
-            if (staff?.store_id) query = query.or(`store_id.eq.${staff.store_id},store_id.is.null`);
-            const { data: freshOrders } = await query;
-            if (freshOrders) setPendingOrders(freshOrders);
-        }
+    const loadCustomerOrder = (order: any, idx: number) => {
+        const prevCart = cart;
+        const prevActiveDraftId = activeDraftId;
+        const prevQueueNumber = activeQueueNumber;
+        const prevCustomerName = customerName;
+        const prevGrandTotal = grandTotal;
+        const prevCalculatedDiscount = calculatedDiscount;
 
+        // Load new order into cart immediately (0ms UI latency)
         setCart(order.items || []);
         setActiveDraftId(order.id);
         setActiveQueueNumber(order.queue_number || null);
@@ -519,6 +482,38 @@ export default function PosPage() {
             setDiscountValue("");
         }
         toast.success(`Draft pesanan ${order.queue_number || ''} dimuat`);
+
+        // If there was an existing cart, save it as draft in background
+        if (prevCart.length > 0 && prevActiveDraftId !== order.id) {
+            const saveRef = prevQueueNumber || `Draft-${Date.now().toString().slice(-4)}`;
+            const draftOrder: any = {
+                queue_number: saveRef,
+                customer_name: prevCustomerName,
+                items: prevCart,
+                total: prevGrandTotal,
+                discount_amount: prevCalculatedDiscount,
+                status: 'draft',
+                store_id: staff?.store_id || null,
+                updated_at: new Date().toISOString()
+            };
+
+            (async () => {
+                try {
+                    if (prevActiveDraftId) {
+                        await supabase.from('kiosk_orders').update(draftOrder).eq('id', prevActiveDraftId);
+                    } else {
+                        const existingPending = pendingOrders.find((o: any) => o.queue_number === saveRef);
+                        if (existingPending && existingPending.id) {
+                            await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
+                        } else {
+                            await supabase.from('kiosk_orders').insert([draftOrder]);
+                        }
+                    }
+                } catch(e) {
+                    console.error("Gagal simpan pesanan sebelumnya:", e);
+                }
+            })();
+        }
     };
 
     const handleSaveDraft = async () => {
@@ -526,18 +521,10 @@ export default function PosPage() {
         
         let orderRef = activeQueueNumber;
         if (!orderRef || orderRef.startsWith('Draft')) {
-            const todayStart = new Date();
-            todayStart.setHours(0, 0, 0, 0);
-
-            // Fetch today's kiosk_orders to find highest queue number
-            const { data: dbOrders } = await supabase
-                .from('kiosk_orders')
-                .select('queue_number')
-                .gte('created_at', todayStart.toISOString());
-                
+            // Find max queue number from in-memory state (0ms latency, no blocking DB query)
             let maxNum = 0;
-            if (dbOrders && dbOrders.length > 0) {
-                dbOrders.forEach((o: any) => {
+            if (pendingOrders && pendingOrders.length > 0) {
+                pendingOrders.forEach((o: any) => {
                     const num = parseInt(o.queue_number, 10);
                     if (!isNaN(num) && num > maxNum) maxNum = num;
                 });
@@ -563,41 +550,7 @@ export default function PosPage() {
             store_id: staff?.store_id || null,
             updated_at: new Date().toISOString()
         };
-        
-        let saveErr = null;
-        let savedId = activeDraftId;
-        
-        if (activeDraftId) {
-            const { error } = await supabase.from('kiosk_orders').update(draftOrder).eq('id', activeDraftId);
-            saveErr = error;
-        } else {
-            const existingPending = pendingOrders.find((o: any) => o.queue_number === activeQueueNumber || o.queue_number === orderRef);
-            if (existingPending && existingPending.id) {
-                const { error } = await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
-                saveErr = error;
-                savedId = existingPending.id;
-            } else {
-                const { data: inserted, error } = await supabase.from('kiosk_orders').insert([draftOrder]).select('id').single();
-                saveErr = error;
-                if (inserted) savedId = inserted.id;
-            }
-        }
-        
-        if (saveErr) {
-            toast.error("Gagal menyimpan draft: " + saveErr.message);
-            setLoading(false);
-            return;
-        }
-        
-        // Immediately refresh pendingOrders so the new draft is visible
-        let query = supabase.from('kiosk_orders')
-            .select('*')
-            .in('status', ['pending', 'draft', 'waiting_payment'])
-            .order('created_at', { ascending: false });
-        if (staff?.store_id) query = query.or(`store_id.eq.${staff.store_id},store_id.is.null`);
-        const { data: freshOrders } = await query;
-        if (freshOrders) setPendingOrders(freshOrders);
-        
+
         const draftItems = cart.map(i => ({
             product_name: i.product.name,
             quantity: i.qty,
@@ -616,6 +569,7 @@ export default function PosPage() {
             status: 'BELUM LUNAS'
         };
 
+        // 1. Instantly display draft receipt modal and clear active cart (0ms delay)
         setPaymentResult({
             isDraft: true,
             order_reference: orderRef,
@@ -623,10 +577,37 @@ export default function PosPage() {
             payment_method_name: "BELUM LUNAS",
             transaction: printTx
         });
-
         toast.success("Draft pesanan tersimpan di database");
         clearCart();
         setShowPayment(true);
+
+        // 2. Optimistically add/update draft in pendingOrders state (0ms delay)
+        const tempId = activeDraftId || `draft-${Date.now()}`;
+        setPendingOrders(prev => {
+            const filtered = prev.filter(o => o.id !== tempId && o.queue_number !== orderRef);
+            return [{ id: tempId, ...draftOrder, created_at: new Date().toISOString() }, ...filtered];
+        });
+
+        // 3. Persist to Supabase in the background
+        (async () => {
+            try {
+                if (activeDraftId) {
+                    await supabase.from('kiosk_orders').update(draftOrder).eq('id', activeDraftId);
+                } else {
+                    const existingPending = pendingOrders.find((o: any) => o.queue_number === activeQueueNumber || o.queue_number === orderRef);
+                    if (existingPending && existingPending.id) {
+                        await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
+                    } else {
+                        const { data: inserted, error } = await supabase.from('kiosk_orders').insert([draftOrder]).select('id').single();
+                        if (inserted) {
+                            setPendingOrders(prev => prev.map(o => o.id === tempId ? { ...o, id: inserted.id } : o));
+                        }
+                    }
+                }
+            } catch (err: any) {
+                console.error("Gagal sinkronisasi draft ke database:", err);
+            }
+        })();
     };
 
     const fetchExpensesAndMaterials = async () => {
@@ -1292,47 +1273,43 @@ export default function PosPage() {
                 const draftIdToDelete = activeDraftId;
                 const queueToDelete = activeQueueNumber;
 
-                try {
-                    if (draftIdToDelete) {
-                        await supabase.from('kiosk_orders').delete().eq('id', draftIdToDelete);
-                    }
-                    if (queueToDelete) {
-                        await supabase.from('kiosk_orders').delete().eq('queue_number', queueToDelete);
-                    }
-                } catch (delErr) {
-                    console.error("Gagal menghapus data draft dari database:", delErr);
-                }
-
-                // Update local state
+                // 1. Optimistically clear active cart & remove from pendingOrders instantly (0ms delay)
                 setPendingOrders(prev => prev.filter((o: any) => 
                     (draftIdToDelete ? o.id !== draftIdToDelete : true) &&
                     (queueToDelete ? o.queue_number !== queueToDelete : true)
                 ));
-
                 clearCart();
+                setLoading(false); // Stop loading immediately so cashier sees receipt modal with zero delay!
 
-                // Update Session Expected Cash if payment is CASH
+                // 2. Perform draft deletion concurrently in background (non-blocking)
+                Promise.all([
+                    draftIdToDelete ? supabase.from('kiosk_orders').delete().eq('id', draftIdToDelete) : Promise.resolve(),
+                    queueToDelete ? supabase.from('kiosk_orders').delete().eq('queue_number', queueToDelete) : Promise.resolve()
+                ]).catch(delErr => console.error("Gagal menghapus data draft dari database:", delErr));
+
+                // 3. Update Session Expected Cash in background if payment is CASH (non-blocking)
                 if (selectedMethod?.type?.toLowerCase() === 'cash' && sessionId && staff) {
-                    try {
-                        // Insert cash movement (RLS now disabled)
-                        await supabase.from('cash_movements').insert({
-                            session_id: sessionId,
-                            staff_id: staff.id,
-                            type: 'sale',
-                            amount: grandTotal
-                        });
-                        // Directly update expected_cash (RLS now disabled on cash_sessions)
-                        const { data: sessData } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
-                        if (sessData) {
-                            const newExpected = Number(sessData.expected_cash) + grandTotal;
-                            await supabase.from('cash_sessions').update({ expected_cash: newExpected }).eq('id', sessionId);
-                            setSessionData((prev: any) => prev ? ({ ...prev, expected_cash: newExpected }) : prev);
+                    (async () => {
+                        try {
+                            await supabase.from('cash_movements').insert({
+                                session_id: sessionId,
+                                staff_id: staff.id,
+                                type: 'sale',
+                                amount: grandTotal
+                            });
+                            const { data: sessData } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
+                            if (sessData) {
+                                const newExpected = Number(sessData.expected_cash) + grandTotal;
+                                await supabase.from('cash_sessions').update({ expected_cash: newExpected }).eq('id', sessionId);
+                                setSessionData((prev: any) => prev ? ({ ...prev, expected_cash: newExpected }) : prev);
+                            }
+                            fetchSessionData(sessionId, true);
+                        } catch(err) {
+                            console.error("Gagal mencatat mutasi kasir:", err);
                         }
-                        fetchSessionData(sessionId, true);
-                    } catch(err) {
-                        console.error("Gagal mencatat mutasi kasir:", err);
-                    }
+                    })();
                 }
+                return;
             }
         } catch (error: any) {
             toast.error(error.response?.data?.error || "Payment Failed");
