@@ -28,6 +28,7 @@ export default function PosPage() {
     const [discountValue, setDiscountValue] = useState<string>("");
     
     const [cart, setCart] = useState<{ product: any; qty: number }[]>([]);
+    const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
     const [activeQueueNumber, setActiveQueueNumber] = useState<string | null>(null);
 
     
@@ -90,6 +91,7 @@ export default function PosPage() {
             if (savedDraft) {
                 try {
                     const info = JSON.parse(savedDraft);
+                    setActiveDraftId(info.activeDraftId || null);
                     setActiveQueueNumber(info.activeQueueNumber || null);
                     setCustomerName(info.customerName || "");
                     setDiscountValue(info.discountValue || "");
@@ -108,13 +110,14 @@ export default function PosPage() {
         if (isLoaded.current && typeof window !== 'undefined') {
             localStorage.setItem('nexpos_active_cart', JSON.stringify(cart));
             localStorage.setItem('nexpos_active_draft_info', JSON.stringify({
+                activeDraftId,
                 activeQueueNumber,
                 customerName,
                 discountValue,
                 discountType
             }));
         }
-    }, [cart, activeQueueNumber, customerName, discountValue, discountType]);
+    }, [cart, activeDraftId, activeQueueNumber, customerName, discountValue, discountType]);
 
 
     const router = useRouter();
@@ -418,13 +421,19 @@ export default function PosPage() {
             };
             fetchProds();
             
-            // Listen for localStorage changes for incoming customer orders
+            // Listen for incoming customer orders and drafts from Supabase
             const checkOrders = async () => {
                 try {
-                    const { data, error } = await supabase.from('kiosk_orders')
+                    let query = supabase.from('kiosk_orders')
                         .select('*')
                         .in('status', ['pending', 'draft', 'waiting_payment'])
                         .order('created_at', { ascending: false });
+                    
+                    if (staff?.store_id) {
+                        query = query.or(`store_id.eq.${staff.store_id},store_id.is.null`);
+                    }
+
+                    const { data, error } = await query;
                     if (data) setPendingOrders(data);
                 } catch(e) {}
             };
@@ -432,7 +441,7 @@ export default function PosPage() {
             const interval = setInterval(checkOrders, 3000);
             return () => clearInterval(interval);
         }
-    }, [hasSession]);
+    }, [hasSession, staff?.store_id]);
 
     
     const handleDeletePendingOrder = async (id: string, queueNumber: string, e: React.MouseEvent) => {
@@ -443,11 +452,11 @@ export default function PosPage() {
         try {
             const { error } = await supabase.from('kiosk_orders').delete().eq('id', id);
             if (error) throw error;
-            toast.success("Pesanan berhasil dibatalkan.");
+            toast.success("Draft pesanan berhasil dibatalkan.");
             setPendingOrders(prev => prev.filter((o: any) => o.id !== id));
             
-            // If the active queue number matches the deleted one, clear the cart.
-            if (activeQueueNumber === queueNumber) {
+            // If the active queue number or draft matches the deleted one, clear the cart.
+            if (activeDraftId === id || activeQueueNumber === queueNumber) {
                 clearCart();
             }
         } catch (e: any) {
@@ -456,30 +465,33 @@ export default function PosPage() {
     };
 
     const loadCustomerOrder = async (order: any, idx: number) => {
-        if (cart.length > 0) {
-            // Save current cart as draft
-            const currentSubTotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
-            const currentTaxRate = storeSettings?.tax_enabled ? Number(storeSettings?.tax_rate || 0) : 0;
-            const currentTaxAmount = (currentSubTotal * currentTaxRate) / 100;
-            
-            const draftOrder = {
-                queue_number: activeQueueNumber || `Draft-${Date.now().toString().slice(-4)}`,
+        if (cart.length > 0 && activeDraftId !== order.id) {
+            // Save current cart as draft before switching
+            const prevQueueNumber = activeQueueNumber || `Draft-${Date.now().toString().slice(-4)}`;
+            const draftOrder: any = {
+                queue_number: prevQueueNumber,
                 customer_name: customerName,
                 items: cart,
                 total: grandTotal,
                 discount_amount: calculatedDiscount,
-                status: 'draft'
+                status: 'draft',
+                store_id: staff?.store_id || null,
+                updated_at: new Date().toISOString()
             };
             
-            // Upsert the current draft
-            const existingPending = pendingOrders.find((o: any) => o.queue_number === draftOrder.queue_number);
             let saveErr = null;
-            if (existingPending && existingPending.id) {
-                const { error } = await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
+            if (activeDraftId) {
+                const { error } = await supabase.from('kiosk_orders').update(draftOrder).eq('id', activeDraftId);
                 saveErr = error;
             } else {
-                const { error } = await supabase.from('kiosk_orders').insert([draftOrder]);
-                saveErr = error;
+                const existingPending = pendingOrders.find((o: any) => o.queue_number === prevQueueNumber);
+                if (existingPending && existingPending.id) {
+                    const { error } = await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
+                    saveErr = error;
+                } else {
+                    const { error } = await supabase.from('kiosk_orders').insert([draftOrder]);
+                    saveErr = error;
+                }
             }
             if (saveErr) {
                 toast.error("Gagal menyimpan pesanan sebelumnya sebagai draft: " + saveErr.message);
@@ -487,14 +499,17 @@ export default function PosPage() {
                 toast.info("Pesanan sebelumnya disimpan sebagai Draft");
             }
             // Immediately refresh pendingOrders so the new draft is visible
-            const { data: freshOrders } = await supabase.from('kiosk_orders')
+            let query = supabase.from('kiosk_orders')
                 .select('*')
                 .in('status', ['pending', 'draft', 'waiting_payment'])
                 .order('created_at', { ascending: false });
+            if (staff?.store_id) query = query.or(`store_id.eq.${staff.store_id},store_id.is.null`);
+            const { data: freshOrders } = await query;
             if (freshOrders) setPendingOrders(freshOrders);
         }
 
-        setCart(order.items);
+        setCart(order.items || []);
+        setActiveDraftId(order.id);
         setActiveQueueNumber(order.queue_number || null);
         setCustomerName(order.customer_name || "");
         if (order.discount_amount) {
@@ -503,6 +518,7 @@ export default function PosPage() {
         } else {
             setDiscountValue("");
         }
+        toast.success(`Draft pesanan ${order.queue_number || ''} dimuat`);
     };
 
     const handleSaveDraft = async () => {
@@ -510,44 +526,76 @@ export default function PosPage() {
         
         let orderRef = activeQueueNumber;
         if (!orderRef || orderRef.startsWith('Draft')) {
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+
+            // Fetch today's kiosk_orders to find highest queue number
+            const { data: dbOrders } = await supabase
+                .from('kiosk_orders')
+                .select('queue_number')
+                .gte('created_at', todayStart.toISOString());
+                
+            let maxNum = 0;
+            if (dbOrders && dbOrders.length > 0) {
+                dbOrders.forEach((o: any) => {
+                    const num = parseInt(o.queue_number, 10);
+                    if (!isNaN(num) && num > maxNum) maxNum = num;
+                });
+            }
+
             const today = new Date().toISOString().split('T')[0];
             const counterData = JSON.parse(localStorage.getItem("nexpos_queue_counter") || "{}");
-            let nextNumber = 1;
-            if (counterData.date === today) {
-                nextNumber = (counterData.count || 0) + 1;
+            if (counterData.date === today && (counterData.count || 0) > maxNum) {
+                maxNum = counterData.count;
             }
+            const nextNumber = maxNum + 1;
             localStorage.setItem("nexpos_queue_counter", JSON.stringify({ date: today, count: nextNumber }));
             orderRef = nextNumber.toString().padStart(3, '0');
         }
         
-        const draftOrder = {
+        const draftOrder: any = {
             queue_number: orderRef,
             customer_name: customerName,
             items: cart,
             total: grandTotal,
             discount_amount: calculatedDiscount,
-            status: 'draft'
+            status: 'draft',
+            store_id: staff?.store_id || null,
+            updated_at: new Date().toISOString()
         };
         
-        const existingPending = pendingOrders.find((o: any) => o.queue_number === activeQueueNumber);
         let saveErr = null;
-        if (existingPending && existingPending.id) {
-            const { error } = await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
+        let savedId = activeDraftId;
+        
+        if (activeDraftId) {
+            const { error } = await supabase.from('kiosk_orders').update(draftOrder).eq('id', activeDraftId);
             saveErr = error;
         } else {
-            const { error } = await supabase.from('kiosk_orders').insert([draftOrder]);
-            saveErr = error;
+            const existingPending = pendingOrders.find((o: any) => o.queue_number === activeQueueNumber || o.queue_number === orderRef);
+            if (existingPending && existingPending.id) {
+                const { error } = await supabase.from('kiosk_orders').update(draftOrder).eq('id', existingPending.id);
+                saveErr = error;
+                savedId = existingPending.id;
+            } else {
+                const { data: inserted, error } = await supabase.from('kiosk_orders').insert([draftOrder]).select('id').single();
+                saveErr = error;
+                if (inserted) savedId = inserted.id;
+            }
         }
+        
         if (saveErr) {
             toast.error("Gagal menyimpan draft: " + saveErr.message);
             setLoading(false);
             return;
         }
+        
         // Immediately refresh pendingOrders so the new draft is visible
-        const { data: freshOrders } = await supabase.from('kiosk_orders')
+        let query = supabase.from('kiosk_orders')
             .select('*')
             .in('status', ['pending', 'draft', 'waiting_payment'])
             .order('created_at', { ascending: false });
+        if (staff?.store_id) query = query.or(`store_id.eq.${staff.store_id},store_id.is.null`);
+        const { data: freshOrders } = await query;
         if (freshOrders) setPendingOrders(freshOrders);
         
         const draftItems = cart.map(i => ({
@@ -576,7 +624,7 @@ export default function PosPage() {
             transaction: printTx
         });
 
-        toast.success("Pesanan disimpan");
+        toast.success("Draft pesanan tersimpan di database");
         clearCart();
         setShowPayment(true);
     };
@@ -1059,9 +1107,15 @@ export default function PosPage() {
 
     const clearCart = () => {
         setCart([]);
+        setActiveDraftId(null);
         setActiveQueueNumber(null);
         setCustomerName("");
         setDiscountValue("");
+        setDiscountType("nominal");
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('nexpos_active_cart');
+            localStorage.removeItem('nexpos_active_draft_info');
+        }
     };
 
     const updateCartQty = (key: string, newQty: number) => {
@@ -1079,6 +1133,26 @@ export default function PosPage() {
     const taxRate = storeSettings?.tax_enabled ? Number(storeSettings?.tax_rate || 0) : 0;
     const taxAmount = (discountedSubTotal * taxRate) / 100;
     const grandTotal = discountedSubTotal + taxAmount;
+
+    // Auto-sync active draft changes to database so data is never lost
+    useEffect(() => {
+        if (!activeDraftId || cart.length === 0) return;
+        const timer = setTimeout(async () => {
+            try {
+                await supabase.from('kiosk_orders').update({
+                    items: cart,
+                    total: grandTotal,
+                    discount_amount: calculatedDiscount,
+                    customer_name: customerName,
+                    store_id: staff?.store_id || null,
+                    updated_at: new Date().toISOString()
+                }).eq('id', activeDraftId);
+            } catch (err) {
+                console.error("Auto-sync draft error:", err);
+            }
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, [cart, grandTotal, calculatedDiscount, customerName, activeDraftId, staff?.store_id]);
 
     const handlePayment = async () => {
         if (!selectedMethod) {
@@ -1124,7 +1198,8 @@ export default function PosPage() {
                     discount_amount: payload.discount_amount || 0,
                     customer_name: payload.customer_name || null,
                     status,
-                    payment_method_id: payload.payment_method_id
+                    payment_method_id: payload.payment_method_id,
+                    store_id: staff?.store_id || null
                 })
                 .select('*')
                 .single();
@@ -1139,7 +1214,8 @@ export default function PosPage() {
                     quantity: item.quantity,
                     price_at_time: item.price,
                     cogs_at_time: item.cogs || 0,
-                    modifiers: item.modifiers || []
+                    modifiers: item.modifiers || [],
+                    store_id: staff?.store_id || null
                 }));
                 await supabase.from('order_items').insert(orderItems);
             }
@@ -1211,18 +1287,29 @@ export default function PosPage() {
                 }
             });
             if (result.status === "Paid" || result.status === "Pending") {
-                clearCart();
-                // Update Supabase kiosk_orders to paid
-                if (activeQueueNumber) {
-                    const existingPending = pendingOrders.find((o: any) => o.queue_number === activeQueueNumber);
-                    if (existingPending && existingPending.id) {
-                        await supabase.from('kiosk_orders').update({ status: 'paid' }).eq('id', existingPending.id);
+                // DELETE DRAFT FROM kiosk_orders AS REQUESTED BY USER:
+                // "tapi setelah payment data draft ini terhapus, masuk ke transaksi"
+                const draftIdToDelete = activeDraftId;
+                const queueToDelete = activeQueueNumber;
+
+                try {
+                    if (draftIdToDelete) {
+                        await supabase.from('kiosk_orders').delete().eq('id', draftIdToDelete);
                     }
+                    if (queueToDelete) {
+                        await supabase.from('kiosk_orders').delete().eq('queue_number', queueToDelete);
+                    }
+                } catch (delErr) {
+                    console.error("Gagal menghapus data draft dari database:", delErr);
                 }
-                
+
                 // Update local state
-                const newPending = pendingOrders.filter((o: any) => o.queue_number !== activeQueueNumber);
-                setPendingOrders(newPending);
+                setPendingOrders(prev => prev.filter((o: any) => 
+                    (draftIdToDelete ? o.id !== draftIdToDelete : true) &&
+                    (queueToDelete ? o.queue_number !== queueToDelete : true)
+                ));
+
+                clearCart();
 
                 // Update Session Expected Cash if payment is CASH
                 if (selectedMethod?.type?.toLowerCase() === 'cash' && sessionId && staff) {
@@ -1459,9 +1546,19 @@ export default function PosPage() {
                                         <div key={order.id} className="relative group flex-shrink-0 min-w-[150px]">
                                             <button 
                                                 onClick={() => loadCustomerOrder(order, idx)}
-                                                className="w-full h-full bg-surface px-4 py-3 rounded-xl border border-accent/20 text-white font-bold hover:bg-bg-gray-800 shadow-sm transition-colors text-left flex flex-col"
+                                                className={`w-full h-full bg-surface px-4 py-3 rounded-xl border font-bold hover:bg-surface-hover shadow-sm transition-colors text-left flex flex-col ${
+                                                    activeDraftId === order.id ? 'border-accent ring-2 ring-accent/50 bg-accent/10' : 'border-accent/20 text-white'
+                                                }`}
                                             >
-                                                <span className="text-accent text-xs mb-1">{order.queue_number || order.id}</span>
+                                                <div className="flex items-center justify-between w-full">
+                                                    <span className="text-accent text-xs mb-1">{order.queue_number || order.id.slice(0, 5)}</span>
+                                                    {activeDraftId === order.id && (
+                                                        <span className="text-[10px] bg-accent/30 text-accent px-1.5 py-0.5 rounded font-normal">Aktif</span>
+                                                    )}
+                                                </div>
+                                                {order.customer_name && (
+                                                    <span className="text-xs text-text-secondary truncate mb-0.5">{order.customer_name}</span>
+                                                )}
                                                 <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
                                             </button>
                                             <button
@@ -2653,7 +2750,7 @@ export default function PosPage() {
                             {/* DRAFT ORDERS NOTIFICATION */}
                             {pendingOrders.filter((o: any) => o.status === 'draft').length > 0 && (
                                 <div className="p-4 bg-accent/10 border border-accent/20 rounded-2xl">
-                                    <h3 className="font-bold text-accent mb-3 flex items-center gap-2">📝 Draft Tersimpan</h3>
+                                    <h3 className="font-bold text-accent mb-3 flex items-center gap-2">📝 Draft Pesanan (Belum Bayar)</h3>
                                     <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
                                         {pendingOrders.filter((o: any) => o.status === 'draft').map((order: any, idx: number) => (
                                             <div key={order.id} className="relative group flex-shrink-0 min-w-[140px]">
@@ -2662,14 +2759,25 @@ export default function PosPage() {
                                                         loadCustomerOrder(order, pendingOrders.findIndex((p: any) => p.id === order.id));
                                                         setIsMobileDraftOpen(false);
                                                     }}
-                                                    className="w-full h-full bg-background px-4 py-3 rounded-xl border border-accent/20 text-text-primary font-bold text-left flex flex-col"
+                                                    className={`w-full h-full bg-background px-4 py-3 rounded-xl border text-text-primary font-bold text-left flex flex-col ${
+                                                        activeDraftId === order.id ? 'border-accent ring-2 ring-accent/50 bg-accent/10' : 'border-accent/20'
+                                                    }`}
                                                 >
-                                                    <span className="text-accent text-xs mb-1">{order.queue_number || order.id}</span>
+                                                    <div className="flex items-center justify-between w-full">
+                                                        <span className="text-accent text-xs mb-1">{order.queue_number || order.id.slice(0, 5)}</span>
+                                                        {activeDraftId === order.id && (
+                                                            <span className="text-[10px] bg-accent/30 text-accent px-1.5 py-0.5 rounded font-normal">Aktif</span>
+                                                        )}
+                                                    </div>
+                                                    {order.customer_name && (
+                                                        <span className="text-xs text-text-secondary truncate mb-0.5">{order.customer_name}</span>
+                                                    )}
                                                     <span>Rp {(order.total || 0).toLocaleString('id-ID')}</span>
                                                 </button>
-                                                <button
+                                                <button 
                                                     onClick={(e) => handleDeletePendingOrder(order.id, order.queue_number, e)}
                                                     className="absolute -top-2 -right-2 bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-soft"
+                                                    title="Hapus Draft"
                                                 >
                                                     &#10005;
                                                 </button>

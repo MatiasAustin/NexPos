@@ -83,6 +83,25 @@ export default function CustomerPage() {
                             setCustomerName("");
                         }, 5000);
                     }
+                } else {
+                    // If draft was deleted from kiosk_orders after payment, check transactions
+                    const { data: tx } = await supabase
+                        .from('transactions')
+                        .select('id, status')
+                        .ilike('order_reference', `%Q${queueNumber}-%`)
+                        .eq('status', 'Paid')
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (tx) {
+                        setOrderStatus('paid');
+                        setTimeout(() => {
+                            setOrderStatus('idle');
+                            setQueueNumber(null);
+                            setCart([]);
+                            setCustomerName("");
+                        }, 5000);
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -140,12 +159,13 @@ export default function CustomerPage() {
             const nextNumber = (count || 0) + 1;
             const generatedQueueNumber = nextNumber.toString().padStart(3, '0');
         
-            const newOrder = {
+            const newOrder: any = {
                 queue_number: generatedQueueNumber,
                 customer_name: customerName,
                 items: cart,
                 total: grandTotal,
-                status: 'pending'
+                status: 'pending',
+                store_id: storeSettings?.store_id || null
             };
 
             const { error: insertError } = await supabase.from('kiosk_orders').insert([newOrder]);
