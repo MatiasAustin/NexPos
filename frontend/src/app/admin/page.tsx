@@ -395,24 +395,39 @@ export default function AdminDashboard() {
                 }
                 if (data) {
                     // Ambil seluruh data pengeluaran, refund, dan mutasi kas penjualan untuk menghitung total per sesi
-                    const { data: allExpenses } = await supabase.from('expenses').select('created_at, amount, category');
+                    const { data: allExpenses } = await supabase.from('expenses').select('created_at, expense_date, amount, category');
                     const { data: allRefunds } = await supabase.from('refunds').select('created_at, refund_amount').eq('status', 'APPROVED');
                     const { data: allMovements } = await supabase.from('cash_movements').select('session_id, type, amount');
                     
                     const sessionsWithTotals = data.map((session: any) => {
                         const sessionStart = session.opened_at;
                         const sessionEnd = session.closed_at || new Date().toISOString();
+                        const sOpen = new Date(sessionStart).getTime();
+                        const sClose = new Date(sessionEnd).getTime();
                         
-                        // Hitung pengeluaran (cash) dalam rentang waktu sesi
-                        const sessionExpenses = allExpenses ? allExpenses.filter((e: any) => e.created_at >= sessionStart && e.created_at <= sessionEnd) : [];
-                        const total_expense = sessionExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+                        // Hitung pengeluaran (cash) dalam rentang waktu sesi dari tabel expenses
+                        const sessionExpenses = allExpenses ? allExpenses.filter((e: any) => {
+                            const t = e.expense_date ? new Date(e.expense_date).getTime() : (e.created_at ? new Date(e.created_at).getTime() : 0);
+                            return t >= sOpen && t <= sClose;
+                        }) : [];
+                        const table_expense = sessionExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
                         
+                        // Hitung pengeluaran dari cash_movements bertipe expense/cash_out untuk sesi ini
+                        const sessionMovements = allMovements ? allMovements.filter((m: any) => m.session_id === session.id) : [];
+                        const mov_expense = sessionMovements
+                            .filter((m: any) => m.type === 'expense' || m.type === 'cash_out')
+                            .reduce((sum: number, m: any) => sum + Math.abs(Number(m.amount || 0)), 0);
+
+                        const total_expense = Math.max(table_expense, mov_expense);
+
                         // Hitung refund dalam rentang waktu sesi
-                        const sessionRefunds = allRefunds ? allRefunds.filter((r: any) => r.created_at >= sessionStart && r.created_at <= sessionEnd) : [];
+                        const sessionRefunds = allRefunds ? allRefunds.filter((r: any) => {
+                            const t = new Date(r.created_at).getTime();
+                            return t >= sOpen && t <= sClose;
+                        }) : [];
                         const total_refund = sessionRefunds.reduce((sum: number, r: any) => sum + Number(r.refund_amount), 0);
                         
                         // Hitung pendapatan tunai dari cash_movements bertipe sale jika tersedia
-                        const sessionMovements = allMovements ? allMovements.filter((m: any) => m.session_id === session.id) : [];
                         const saleMovements = sessionMovements.filter((m: any) => m.type === 'sale');
                         const total_cash_income = saleMovements.length > 0
                             ? saleMovements.reduce((sum: number, m: any) => sum + Number(m.amount), 0)
@@ -711,6 +726,7 @@ export default function AdminDashboard() {
                     price_at_time,
                     cogs_at_time,
                     product_name,
+                    created_at,
                     product:products (id, name, category)
                 `)
                 .gte('created_at', effectiveStart)
@@ -815,32 +831,59 @@ export default function AdminDashboard() {
 
             // 3. Ringkasan Performa Per Shift (if shifts exist in period)
             if (filteredSessions.length > 0) {
-                let allTrxList = paidTrxs;
-                if (targetShift) {
-                    const { data: broadTrxs } = await supabase
-                        .from('transactions')
-                        .select('id, amount_due, status, created_at, payment_methods(name, type)')
-                        .gte('created_at', start.toISOString())
-                        .lte('created_at', end.toISOString())
-                        .eq('status', 'Paid');
-                    allTrxList = broadTrxs || [];
-                }
+                // Determine broad start & end to fully cover overnight/overlapping shifts in filteredSessions
+                const minShiftOpen = Math.min(...filteredSessions.map((s: any) => new Date(s.opened_at).getTime()));
+                const maxShiftClose = Math.max(...filteredSessions.map((s: any) => s.closed_at ? new Date(s.closed_at).getTime() : Date.now()));
+                const broadStart = new Date(Math.min(start.getTime(), minShiftOpen)).toISOString();
+                const broadEnd = new Date(Math.max(end.getTime(), maxShiftClose)).toISOString();
 
+                let allTrxList = paidTrxs || [];
                 let allItemList: any[] = orderItems || [];
-                if (targetShift) {
-                    const { data: broadItems } = await supabase
-                        .from('order_items')
-                        .select('transaction_id, product_id, quantity, price_at_time, created_at, product_name')
-                        .gte('created_at', start.toISOString())
-                        .lte('created_at', end.toISOString());
-                    allItemList = broadItems || [];
+
+                // Always fetch broad transactions and items if shifts span beyond effectiveStart/effectiveEnd, or if viewing all shifts
+                if (broadStart < effectiveStart || broadEnd > effectiveEnd || selectedShiftId === 'all') {
+                    const [broadTrxRes, broadItemRes] = await Promise.all([
+                        supabase
+                            .from('transactions')
+                            .select('id, amount_due, status, created_at, payment_methods(name, type)')
+                            .gte('created_at', broadStart)
+                            .lte('created_at', broadEnd)
+                            .eq('status', 'Paid'),
+                        supabase
+                            .from('order_items')
+                            .select('transaction_id, product_id, quantity, price_at_time, created_at, product_name')
+                            .gte('created_at', broadStart)
+                            .lte('created_at', broadEnd)
+                    ]);
+                    if (broadTrxRes.data) allTrxList = broadTrxRes.data;
+                    if (broadItemRes.data) allItemList = broadItemRes.data;
                 }
 
-                const { data: periodExpenses } = await supabase
-                    .from('expenses')
-                    .select('amount, created_at')
-                    .gte('created_at', start.toISOString())
-                    .lte('created_at', end.toISOString());
+                // Fetch expenses in the broad timeframe by created_at and expense_date
+                const [expByCreatedRes, expByDateRes] = await Promise.all([
+                    supabase
+                        .from('expenses')
+                        .select('id, amount, created_at, expense_date, description')
+                        .gte('created_at', broadStart)
+                        .lte('created_at', broadEnd),
+                    supabase
+                        .from('expenses')
+                        .select('id, amount, created_at, expense_date, description')
+                        .gte('expense_date', broadStart)
+                        .lte('expense_date', broadEnd)
+                ]);
+
+                const expMap = new Map();
+                (expByCreatedRes.data || []).forEach((e: any) => expMap.set(e.id || `${e.amount}_${e.created_at}`, e));
+                (expByDateRes.data || []).forEach((e: any) => expMap.set(e.id || `${e.amount}_${e.expense_date}`, e));
+                const periodExpenses = Array.from(expMap.values());
+
+                // Also fetch cash movements for all sessions in this period
+                const sessionIds = filteredSessions.map((s: any) => s.id);
+                const { data: sessionMovements } = await supabase
+                    .from('cash_movements')
+                    .select('session_id, type, amount, created_at')
+                    .in('session_id', sessionIds);
 
                 const broadPaidIds = new Set((allTrxList || []).map((t: any) => t.id));
 
@@ -852,6 +895,7 @@ export default function AdminDashboard() {
                         const t = new Date(tx.created_at).getTime();
                         return t >= sOpen && t <= sClose;
                     });
+                    const shiftTrxIdSet = new Set(shiftTrxs.map((tx: any) => tx.id));
 
                     const cashIncome = shiftTrxs
                         .filter((tx: any) => {
@@ -869,10 +913,15 @@ export default function AdminDashboard() {
 
                     const totalOmset = cashIncome + nonCashIncome;
 
+                    // Match shift items by transaction IDs, or fallback to timestamp within shift
                     const shiftItems = (allItemList || []).filter((it: any) => {
-                        if (!broadPaidIds.has(it.transaction_id)) return false;
-                        const t = new Date(it.created_at).getTime();
-                        return t >= sOpen && t <= sClose;
+                        if (it.transaction_id && shiftTrxIdSet.has(it.transaction_id)) return true;
+                        if (it.transaction_id && !broadPaidIds.has(it.transaction_id)) return false;
+                        if (it.created_at) {
+                            const t = new Date(it.created_at).getTime();
+                            return t >= sOpen && t <= sClose;
+                        }
+                        return false;
                     });
                     const itemsSold = shiftItems.reduce((sum: number, it: any) => sum + (Number(it.quantity) || 1), 0);
 
@@ -883,10 +932,18 @@ export default function AdminDashboard() {
                     const specificItemsSold = shiftSpecificItems.reduce((sum: number, it: any) => sum + (Number(it.quantity) || 1), 0);
                     const specificItemOmset = shiftSpecificItems.reduce((sum: number, it: any) => sum + ((Number(it.quantity) || 1) * (Number(it.price_at_time) || 0)), 0);
 
-                    const shiftExp = (periodExpenses || []).filter((e: any) => {
-                        const t = new Date(e.created_at).getTime();
+                    // Expenses from expenses table
+                    const tableExp = (periodExpenses || []).filter((e: any) => {
+                        const t = e.expense_date ? new Date(e.expense_date).getTime() : (e.created_at ? new Date(e.created_at).getTime() : 0);
                         return t >= sOpen && t <= sClose;
                     }).reduce((sum: number, e: any) => sum + Number(e.amount || 0), 0);
+
+                    // Expenses from cash movements tied to this session
+                    const movExp = (sessionMovements || [])
+                        .filter((m: any) => m.session_id === s.id && (m.type === 'expense' || m.type === 'cash_out'))
+                        .reduce((sum: number, m: any) => sum + Math.abs(Number(m.amount || 0)), 0);
+
+                    const shiftExp = Math.max(tableExp, movExp);
 
                     return {
                         id: s.id,
@@ -1803,7 +1860,9 @@ export default function AdminDashboard() {
                 category: expCat,
                 raw_material_id: expCat === 'bahan_baku' ? (newExpense.material_id || null) : null,
                 quantity: expCat === 'bahan_baku' && Number(newExpense.quantity) > 0 ? Number(newExpense.quantity) : null,
-                buy_unit: expCat === 'bahan_baku' && Number(newExpense.quantity) > 0 ? bUnit : null
+                buy_unit: expCat === 'bahan_baku' && Number(newExpense.quantity) > 0 ? bUnit : null,
+                store_id: profile?.store_id || null,
+                expense_date: new Date().toISOString()
             };
 
             let { error } = await supabase.from('expenses').insert([insertPayload]);
@@ -1860,7 +1919,8 @@ export default function AdminDashboard() {
                             staff_id: profile?.id,
                             type: 'expense',
                             amount: -Number(newExpense.amount),
-                            reason: `Pengeluaran: ${finalDesc}`
+                            reason: `Pengeluaran: ${finalDesc}`,
+                            store_id: profile?.store_id || null
                         });
                         await supabase.from('cash_sessions').update({ 
                             expected_cash: Number(activeSession.expected_cash) - Number(newExpense.amount) 

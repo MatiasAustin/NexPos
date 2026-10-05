@@ -683,7 +683,9 @@ export default function PosPage() {
                 category: expCat,
                 raw_material_id: expCat === 'bahan_baku' ? (newExpense.material_id || null) : null,
                 quantity: expCat === 'bahan_baku' && Number(newExpense.quantity) > 0 ? Number(newExpense.quantity) : null,
-                buy_unit: expCat === 'bahan_baku' && Number(newExpense.quantity) > 0 ? bUnit : null
+                buy_unit: expCat === 'bahan_baku' && Number(newExpense.quantity) > 0 ? bUnit : null,
+                store_id: staff?.store_id || null,
+                expense_date: new Date().toISOString()
             };
 
             let { data: expData, error } = await supabase.from('expenses').insert([insertPayload]).select();
@@ -738,7 +740,8 @@ export default function PosPage() {
                         staff_id: staff.id,
                         type: 'expense',
                         amount: -Number(newExpense.amount),
-                        reason: `Pengeluaran: ${finalDesc}`
+                        reason: `Pengeluaran: ${finalDesc}`,
+                        store_id: staff?.store_id || null
                     });
                     // Directly update expected_cash (RLS now disabled on cash_sessions)
                     const { data: sessData } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
