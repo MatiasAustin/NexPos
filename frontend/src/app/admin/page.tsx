@@ -49,6 +49,123 @@ const CategoryDropdown = ({ value, onChange, categories, onAdd, onRemove }: { va
     );
 };
 
+const RawMaterialDropdown = ({ 
+    value, 
+    ingredientName, 
+    rawMaterials, 
+    onChange 
+}: { 
+    value: string; 
+    ingredientName?: string; 
+    rawMaterials: any[]; 
+    onChange: (materialId: string, materialName?: string, unitCost?: number) => void;
+}) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [search, setSearch] = useState('');
+
+    const selectedMat = rawMaterials.find(m => 
+        (value && m.id === value) || 
+        (!value && ingredientName && m.name && m.name.toLowerCase().trim() === ingredientName.toLowerCase().trim())
+    );
+
+    const filtered = rawMaterials.filter(m => 
+        (m.name || '').toLowerCase().includes(search.toLowerCase()) || 
+        (m.unit || '').toLowerCase().includes(search.toLowerCase())
+    );
+
+    return (
+        <div className="relative w-full">
+            <button
+                type="button"
+                onClick={() => { setIsOpen(!isOpen); setSearch(''); }}
+                className="w-full p-2.5 bg-background border border-border rounded-xl text-text-primary text-left text-sm flex justify-between items-center outline-none focus:border-accent hover:border-accent/60 transition-colors shadow-sm"
+            >
+                <span className="truncate pr-2">
+                    {selectedMat ? (
+                        <span className="font-semibold text-text-primary">
+                            📦 {selectedMat.name} <span className="text-text-muted font-normal text-xs">({selectedMat.unit})</span>
+                        </span>
+                    ) : value ? (
+                        <span className="font-semibold text-text-primary">
+                            📦 {ingredientName || "Bahan Terpilih"}
+                        </span>
+                    ) : ingredientName ? (
+                        <span className="font-medium text-text-secondary">
+                            ✏️ Manual: {ingredientName}
+                        </span>
+                    ) : (
+                        <span className="text-text-muted">-- Manual (Ketik Nama) --</span>
+                    )}
+                </span>
+                <span className="text-text-muted text-xs shrink-0 select-none">▼</span>
+            </button>
+
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-[60]" onClick={() => setIsOpen(false)} />
+                    <div className="absolute top-full mt-1.5 left-0 w-full min-w-[260px] bg-surface border border-border rounded-xl shadow-2xl z-[70] overflow-hidden flex flex-col">
+                        <div className="p-2 border-b border-border bg-surface-hover">
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="🔍 Cari bahan baku..."
+                                className="w-full bg-background rounded-lg px-3 py-2 text-xs text-text-primary outline-none border border-border focus:border-accent"
+                                autoFocus
+                            />
+                        </div>
+                        <div className="overflow-y-auto max-h-56 divide-y divide-border/30">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onChange('', '');
+                                    setIsOpen(false);
+                                }}
+                                className={`w-full text-left px-3.5 py-2.5 text-xs hover:bg-surface-hover transition-colors flex items-center justify-between ${
+                                    !value && !selectedMat ? 'bg-accent/10 text-accent font-bold' : 'text-text-secondary'
+                                }`}
+                            >
+                                <span>✏️ -- Manual (Ketik Nama Sendiri) --</span>
+                                {!value && !selectedMat && <span className="text-accent font-bold">✓</span>}
+                            </button>
+                            {filtered.map(m => {
+                                const isSelected = selectedMat?.id === m.id;
+                                return (
+                                    <button
+                                        key={m.id}
+                                        type="button"
+                                        onClick={() => {
+                                            onChange(m.id, m.name, Number(m.last_price_per_unit || 0));
+                                            setIsOpen(false);
+                                        }}
+                                        className={`w-full text-left px-3.5 py-2.5 text-xs hover:bg-surface-hover transition-colors flex items-center justify-between ${
+                                            isSelected ? 'bg-accent/10 text-accent font-bold' : 'text-text-primary'
+                                        }`}
+                                    >
+                                        <div className="truncate pr-2">
+                                            <span className="font-semibold">{m.name}</span>
+                                            <span className="text-text-muted text-[11px] ml-1.5">({m.unit})</span>
+                                        </div>
+                                        <div className="text-right shrink-0 text-[11px] text-text-muted whitespace-nowrap">
+                                            {m.last_price_per_unit ? `Rp ${Number(m.last_price_per_unit).toLocaleString('id-ID')}` : ''}
+                                            {isSelected && <span className="text-accent ml-1 font-bold">✓</span>}
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                            {filtered.length === 0 && (
+                                <div className="p-3 text-center text-text-muted text-xs">
+                                    Bahan tidak ditemukan
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
+
 
 const MaterialConverterHelper = ({ targetUnit, onApply }: { targetUnit: string, onApply: (price: number) => void }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -2174,14 +2291,21 @@ export default function AdminDashboard() {
             const newIngs = [...prev.ingredients];
             newIngs[index] = { ...newIngs[index], [field]: value };
             
-            // Auto calculate cost if qty changes and material is selected
-            if (field === 'qty' || field === 'raw_material_id') {
-                const materialId = field === 'raw_material_id' ? value : newIngs[index].raw_material_id;
-                const qty = field === 'qty' ? value : newIngs[index].qty;
-                const mat = rawMaterials.find(m => m.id === materialId);
+            // Auto calculate cost and sync material name if material or qty changes
+            if (field === 'raw_material_id') {
+                const mat = rawMaterials.find(m => m.id === value);
                 if (mat) {
-                    newIngs[index].cost = Number(qty) * Number(mat.last_price_per_unit || 0);
+                    newIngs[index].raw_material_id = mat.id;
                     newIngs[index].name = mat.name;
+                    newIngs[index].cost = Number(newIngs[index].qty || 0) * Number(mat.last_price_per_unit || 0);
+                } else {
+                    newIngs[index].raw_material_id = '';
+                }
+            } else if (field === 'qty') {
+                const matId = newIngs[index].raw_material_id;
+                const mat = rawMaterials.find(m => m.id === matId);
+                if (mat) {
+                    newIngs[index].cost = Number(value || 0) * Number(mat.last_price_per_unit || 0);
                 }
             }
             
@@ -2197,6 +2321,38 @@ export default function AdminDashboard() {
         });
     };
 
+    const openEditProduct = (p: any) => {
+        const rawIngs = Array.isArray(p.ingredients) ? p.ingredients : [];
+        const normalizedIngredients = rawIngs.map((ing: any) => {
+            const matched = rawMaterials.find(m => 
+                (ing.raw_material_id && m.id === ing.raw_material_id) ||
+                (ing.id && m.id === ing.id) ||
+                (ing.name && m.name && m.name.toLowerCase().trim() === ing.name.toLowerCase().trim())
+            );
+
+            const raw_material_id = matched ? matched.id : (ing.raw_material_id || ing.id || '');
+            const name = matched ? matched.name : (ing.name || '');
+            const qty = ing.qty !== undefined && ing.qty !== null ? Number(ing.qty) : 0;
+            const cost = ing.cost !== undefined && ing.cost !== null 
+                ? Number(ing.cost) 
+                : (matched ? qty * Number(matched.last_price_per_unit || 0) : 0);
+
+            return {
+                ...ing,
+                raw_material_id,
+                name,
+                qty,
+                cost
+            };
+        });
+
+        setEditingProduct({
+            ...p,
+            ingredients: normalizedIngredients,
+            options_config: Array.isArray(p.options_config) ? p.options_config : []
+        });
+    };
+
     const addIngredientEdit = () => {
         setEditingProduct((prev: any) => ({
             ...prev,
@@ -2209,14 +2365,21 @@ export default function AdminDashboard() {
             const newIngs = [...(prev.ingredients || [])];
             newIngs[index] = { ...newIngs[index], [field]: value };
             
-            // Auto calculate cost if qty changes and material is selected
-            if (field === 'qty' || field === 'raw_material_id') {
-                const materialId = field === 'raw_material_id' ? value : newIngs[index].raw_material_id;
-                const qty = field === 'qty' ? value : newIngs[index].qty;
-                const mat = rawMaterials.find(m => m.id === materialId);
+            // Auto calculate cost and sync material name if material or qty changes
+            if (field === 'raw_material_id') {
+                const mat = rawMaterials.find(m => m.id === value);
                 if (mat) {
-                    newIngs[index].cost = Number(qty) * Number(mat.last_price_per_unit || 0);
+                    newIngs[index].raw_material_id = mat.id;
                     newIngs[index].name = mat.name;
+                    newIngs[index].cost = Number(newIngs[index].qty || 0) * Number(mat.last_price_per_unit || 0);
+                } else {
+                    newIngs[index].raw_material_id = '';
+                }
+            } else if (field === 'qty') {
+                const matId = newIngs[index].raw_material_id;
+                const mat = rawMaterials.find(m => m.id === matId);
+                if (mat) {
+                    newIngs[index].cost = Number(value || 0) * Number(mat.last_price_per_unit || 0);
                 }
             }
 
@@ -3430,29 +3593,72 @@ export default function AdminDashboard() {
                                         
                                         <div className="mb-6 p-4 md:p-5 bg-surface-hover border border-border rounded-xl">
                                             <div className="flex justify-between items-center mb-4">
-                                                <h4 className="font-bold text-text-secondary">Bahan Baku (Opsional)</h4>
-                                                <button type="button" onClick={addIngredient} className="text-sm px-4 py-2 whitespace-nowrap.5 bg-accent/10 text-accent border border-accent/20 font-bold rounded-lg hover:bg-accent-hover/20">+ Tambah</button>
+                                                <div>
+                                                    <h4 className="font-bold text-text-secondary">Bahan Baku (Opsional)</h4>
+                                                    <p className="text-xs text-text-muted mt-0.5">Pilih dari master bahan baku atau ketik manual</p>
+                                                </div>
+                                                <button type="button" onClick={addIngredient} className="text-sm px-4 py-2 bg-accent/10 text-accent border border-accent/20 font-bold rounded-lg hover:bg-accent-hover/20 transition-colors">+ Tambah</button>
                                             </div>
                                             {newProduct.ingredients.map((ing, i) => (
-                                                <div key={i} className="flex gap-2 items-center mb-3 flex-wrap">
-                                                    <select
-                                                        value={ing.raw_material_id || (ing as any).id || ''}
-                                                        onChange={(e) => updateIngredient(i, 'raw_material_id', e.target.value)}
-                                                        className="flex-1 p-2 bg-background border border-border rounded-lg text-text-primary outline-none"
-                                                    >
-                                                        <option value="">-- Manual (Ketik Nama) --</option>
-                                                        {rawMaterials.map(m => (
-                                                            <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
-                                                        ))}
-                                                    </select>
-                                                    {!ing.raw_material_id && (
-                                                        <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredient(i, 'name', e.target.value)} className="w-1/3 p-2 bg-background border border-border rounded-lg text-text-primary outline-none" required />
-                                                    )}
-                                                    {ing.raw_material_id && (
-                                                        <input type="number" placeholder="Qty/Porsi" value={ing.qty || ''} onChange={(e) => updateIngredient(i, 'qty', Number(e.target.value))} className="w-24 p-2 bg-background border border-border rounded-lg text-text-primary outline-none" required step="any" />
-                                                    )}
-                                                    <input type="number" placeholder="Biaya (Rp)" value={ing.cost || ''} onChange={(e) => updateIngredient(i, 'cost', Number(e.target.value))} className="w-28 p-2 bg-background border border-border rounded-lg text-text-primary outline-none" required />
-                                                    <button type="button" onClick={() => removeIngredient(i)} className="text-red-400 p-2 hover:bg-red-500/10 rounded-lg">Hapus</button>
+                                                <div key={i} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center mb-3 p-3 sm:p-2 bg-surface sm:bg-background/50 border border-border rounded-xl">
+                                                    <div className="flex-1 min-w-[200px]">
+                                                        <RawMaterialDropdown
+                                                            value={ing.raw_material_id || (ing as any).id || ''}
+                                                            ingredientName={ing.name}
+                                                            rawMaterials={rawMaterials}
+                                                            onChange={(matId, matName, unitCost) => {
+                                                                updateIngredient(i, 'raw_material_id', matId);
+                                                                if (matName) updateIngredient(i, 'name', matName);
+                                                                if (unitCost !== undefined && ing.qty) {
+                                                                    updateIngredient(i, 'cost', Number(ing.qty) * unitCost);
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    
+                                                    <div className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
+                                                        {!ing.raw_material_id ? (
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Nama Bahan"
+                                                                value={ing.name || ''}
+                                                                onChange={(e) => updateIngredient(i, 'name', e.target.value)}
+                                                                className="flex-1 sm:w-36 p-2.5 bg-background border border-border rounded-xl text-text-primary text-sm outline-none focus:border-accent"
+                                                                required
+                                                            />
+                                                        ) : (
+                                                            <div className="flex items-center gap-1 flex-1 sm:w-28">
+                                                                <input
+                                                                    type="number"
+                                                                    placeholder="Qty/Porsi"
+                                                                    value={ing.qty || ''}
+                                                                    onChange={(e) => updateIngredient(i, 'qty', Number(e.target.value))}
+                                                                    className="w-full p-2.5 bg-background border border-border rounded-xl text-text-primary text-sm outline-none focus:border-accent"
+                                                                    required
+                                                                    step="any"
+                                                                />
+                                                            </div>
+                                                        )}
+
+                                                        <div className="flex items-center gap-1 flex-1 sm:w-32">
+                                                            <input
+                                                                type="number"
+                                                                placeholder="Biaya (Rp)"
+                                                                value={ing.cost !== undefined ? ing.cost : ''}
+                                                                onChange={(e) => updateIngredient(i, 'cost', Number(e.target.value))}
+                                                                className="w-full p-2.5 bg-background border border-border rounded-xl text-text-primary text-sm outline-none focus:border-accent"
+                                                                required
+                                                            />
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeIngredient(i)}
+                                                            className="text-red-400 p-2.5 hover:bg-red-500/10 rounded-xl text-sm shrink-0 transition-colors font-medium"
+                                                        >
+                                                            Hapus
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ))}
                                             {newProduct.ingredients.length > 0 && (
@@ -3567,7 +3773,7 @@ export default function AdminDashboard() {
                                                                 <div className="flex flex-wrap gap-2 justify-center">
                                                                     <button onClick={() => setAdjustingProductStock(p)} className="px-2 py-1 text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-600 hover:text-white transition-colors">+/- Stok</button>
                                                                     <button onClick={() => handleViewProductHistory(p)} className="px-2 py-1 text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-600 hover:text-text-primary transition-colors">Riwayat</button>
-                                                                    <button onClick={() => setEditingProduct({ ...p, options_config: Array.isArray(p.options_config) ? p.options_config : [] })} className="px-2 py-1 text-xs font-bold bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent hover:text-text-primary transition-colors">Edit</button>
+                                                                    <button onClick={() => openEditProduct(p)} className="px-2 py-1 text-xs font-bold bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent hover:text-text-primary transition-colors">Edit</button>
                                                                     <button onClick={() => handleDeleteProduct(p)} className="px-2 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Hapus</button>
                                                                 </div>
                                                             </td>
@@ -3692,29 +3898,72 @@ export default function AdminDashboard() {
 
                                                     <div className="mb-6 p-4 md:p-5 bg-surface-hover border border-border rounded-xl">
                                                         <div className="flex justify-between items-center mb-4">
-                                                            <h4 className="font-bold text-text-secondary">Bahan Baku (Opsional)</h4>
-                                                            <button type="button" onClick={addIngredientEdit} className="text-sm px-4 py-2 whitespace-nowrap.5 bg-accent/10 text-accent border border-accent/20 font-bold rounded-lg hover:bg-accent-hover/20">+ Tambah</button>
+                                                            <div>
+                                                                <h4 className="font-bold text-text-secondary">Bahan Baku (Opsional)</h4>
+                                                                <p className="text-xs text-text-muted mt-0.5">Pilih dari master bahan baku atau ketik manual</p>
+                                                            </div>
+                                                            <button type="button" onClick={addIngredientEdit} className="text-sm px-4 py-2 bg-accent/10 text-accent border border-accent/20 font-bold rounded-lg hover:bg-accent-hover/20 transition-colors">+ Tambah</button>
                                                         </div>
                                                         {(editingProduct.ingredients || []).map((ing: any, i: number) => (
-                                                            <div key={i} className="flex gap-2 items-center mb-3 flex-wrap">
-                                                                <select
-                                                                    value={ing.raw_material_id || (ing as any).id || ''}
-                                                                    onChange={(e) => updateIngredientEdit(i, 'raw_material_id', e.target.value)}
-                                                                    className="flex-1 p-2 bg-background border border-border rounded-lg text-text-primary outline-none"
-                                                                >
-                                                                    <option value="">-- Manual (Ketik Nama) --</option>
-                                                                    {rawMaterials.map(m => (
-                                                                        <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>
-                                                                    ))}
-                                                                </select>
-                                                                {!ing.raw_material_id && (
-                                                                    <input type="text" placeholder="Bahan" value={ing.name} onChange={(e) => updateIngredientEdit(i, 'name', e.target.value)} className="w-1/3 p-2 bg-background border border-border rounded-lg text-text-primary outline-none" required />
-                                                                )}
-                                                                {ing.raw_material_id && (
-                                                                    <input type="number" placeholder="Qty/Porsi" value={ing.qty || ''} onChange={(e) => updateIngredientEdit(i, 'qty', Number(e.target.value))} className="w-24 p-2 bg-background border border-border rounded-lg text-text-primary outline-none" required step="any" />
-                                                                )}
-                                                                <input type="number" placeholder="Biaya (Rp)" value={ing.cost || ''} onChange={(e) => updateIngredientEdit(i, 'cost', Number(e.target.value))} className="w-28 p-2 bg-background border border-border rounded-lg text-text-primary outline-none" required />
-                                                                <button type="button" onClick={() => removeIngredientEdit(i)} className="text-red-400 p-2 hover:bg-red-500/10 rounded-lg">Hapus</button>
+                                                            <div key={i} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center mb-3 p-3 sm:p-2 bg-surface sm:bg-background/50 border border-border rounded-xl">
+                                                                <div className="flex-1 min-w-[200px]">
+                                                                    <RawMaterialDropdown
+                                                                        value={ing.raw_material_id || (ing as any).id || ''}
+                                                                        ingredientName={ing.name}
+                                                                        rawMaterials={rawMaterials}
+                                                                        onChange={(matId, matName, unitCost) => {
+                                                                            updateIngredientEdit(i, 'raw_material_id', matId);
+                                                                            if (matName) updateIngredientEdit(i, 'name', matName);
+                                                                            if (unitCost !== undefined && ing.qty) {
+                                                                                updateIngredientEdit(i, 'cost', Number(ing.qty) * unitCost);
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                                
+                                                                <div className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
+                                                                    {!ing.raw_material_id ? (
+                                                                        <input
+                                                                            type="text"
+                                                                            placeholder="Nama Bahan"
+                                                                            value={ing.name || ''}
+                                                                            onChange={(e) => updateIngredientEdit(i, 'name', e.target.value)}
+                                                                            className="flex-1 sm:w-36 p-2.5 bg-background border border-border rounded-xl text-text-primary text-sm outline-none focus:border-accent"
+                                                                            required
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="flex items-center gap-1 flex-1 sm:w-28">
+                                                                            <input
+                                                                                type="number"
+                                                                                placeholder="Qty/Porsi"
+                                                                                value={ing.qty || ''}
+                                                                                onChange={(e) => updateIngredientEdit(i, 'qty', Number(e.target.value))}
+                                                                                className="w-full p-2.5 bg-background border border-border rounded-xl text-text-primary text-sm outline-none focus:border-accent"
+                                                                                required
+                                                                                step="any"
+                                                                            />
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div className="flex items-center gap-1 flex-1 sm:w-32">
+                                                                        <input
+                                                                            type="number"
+                                                                            placeholder="Biaya (Rp)"
+                                                                            value={ing.cost !== undefined ? ing.cost : ''}
+                                                                            onChange={(e) => updateIngredientEdit(i, 'cost', Number(e.target.value))}
+                                                                            className="w-full p-2.5 bg-background border border-border rounded-xl text-text-primary text-sm outline-none focus:border-accent"
+                                                                            required
+                                                                        />
+                                                                    </div>
+
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeIngredientEdit(i)}
+                                                                        className="text-red-400 p-2.5 hover:bg-red-500/10 rounded-xl text-sm shrink-0 transition-colors font-medium"
+                                                                    >
+                                                                        Hapus
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>
