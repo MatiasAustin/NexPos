@@ -301,6 +301,7 @@ router.delete('/expenses/:id', async (req, res) => {
                 .ilike('reason', reasonPattern);
             
             if (sessionId) movQuery = movQuery.eq('session_id', sessionId);
+            if (expense.store_id) movQuery = movQuery.eq('store_id', expense.store_id);
             
             const { data: movements } = await movQuery;
             
@@ -327,18 +328,29 @@ router.delete('/expenses/:id', async (req, res) => {
 
 router.get('/admin/cash-sessions', async (req, res) => {
     try {
-        const { data, error } = await supabase.from('cash_sessions').select('*').order('opened_at', { ascending: false });
+        const { storeId } = req.query;
+        let query = supabase.from('cash_sessions').select('*').order('opened_at', { ascending: false });
+        if (storeId) {
+            query = query.eq('store_id', storeId);
+        }
+        const { data, error } = await query;
         if (error) throw error;
         
         // Fetch all expenses and refunds (source of truth)
-        const { data: allExpenses } = await supabase.from('expenses').select('created_at, amount');
-        const { data: allRefunds } = await supabase.from('refunds').select('created_at, refund_amount').in('status', ['APPROVED', 'approved', 'Approved']);
+        let expQuery = supabase.from('expenses').select('created_at, amount, store_id');
+        let refQuery = supabase.from('refunds').select('created_at, refund_amount, store_id').in('status', ['APPROVED', 'approved', 'Approved']);
+        if (storeId) {
+            expQuery = expQuery.eq('store_id', storeId);
+            refQuery = refQuery.eq('store_id', storeId);
+        }
+        const { data: allExpenses } = await expQuery;
+        const { data: allRefunds } = await refQuery;
         
         const sessionsWithTotals = data.map(session => {
             const sessionStart = session.opened_at;
             const sessionEnd = session.closed_at || new Date().toISOString();
-            const sessionExpenses = allExpenses ? allExpenses.filter(e => e.created_at >= sessionStart && e.created_at <= sessionEnd) : [];
-            const sessionRefunds = allRefunds ? allRefunds.filter(r => r.created_at >= sessionStart && r.created_at <= sessionEnd) : [];
+            const sessionExpenses = allExpenses ? allExpenses.filter(e => (!session.store_id || !e.store_id || e.store_id === session.store_id) && e.created_at >= sessionStart && e.created_at <= sessionEnd) : [];
+            const sessionRefunds = allRefunds ? allRefunds.filter(r => (!session.store_id || !r.store_id || r.store_id === session.store_id) && r.created_at >= sessionStart && r.created_at <= sessionEnd) : [];
             const total_expense = sessionExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
             const total_refund = sessionRefunds.reduce((sum, r) => sum + Number(r.refund_amount), 0);
             return {

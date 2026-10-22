@@ -272,19 +272,23 @@ export default function PosPage() {
     const saasSettings = useSaasSettings();
 
     useEffect(() => {
-        const loadSettings = async () => {
-            const local = localStorage.getItem("nexpos_store_settings");
+        const loadSettings = async (storeId?: string) => {
+            const storeKey = storeId ? `nexpos_store_settings_${storeId}` : "nexpos_store_settings";
+            const local = localStorage.getItem(storeKey) || localStorage.getItem("nexpos_store_settings");
             if (local) setStoreSettings(JSON.parse(local));
             
             try {
-                const { data } = await supabase.from('store_settings').select('*').limit(1).maybeSingle();
+                let query = supabase.from('store_settings').select('*');
+                if (storeId) {
+                    query = query.eq('store_id', storeId);
+                }
+                const { data } = await query.limit(1).maybeSingle();
                 if (data) {
                     setStoreSettings(data);
-                    localStorage.setItem("nexpos_store_settings", JSON.stringify(data));
+                    localStorage.setItem(storeKey, JSON.stringify(data));
                 }
             } catch(e) {}
         };
-        loadSettings();
 
         // Check Auth & Session
         const checkAuth = async () => {
@@ -302,6 +306,7 @@ export default function PosPage() {
                 
             if (profile) {
                 setStaff(profile);
+                loadSettings(profile.store_id);
                 await checkActiveSession(profile.id);
             } else {
                 router.push('/login');
@@ -351,10 +356,14 @@ export default function PosPage() {
     const handleUsePreviousCash = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('cash_sessions')
                 .select('actual_cash, expected_cash')
-                .eq('status', 'closed')
+                .eq('status', 'closed');
+            if (staff?.store_id) {
+                query = query.eq('store_id', staff.store_id);
+            }
+            const { data, error } = await query
                 .order('closed_at', { ascending: false })
                 .limit(1)
                 .single();
@@ -384,7 +393,8 @@ export default function PosPage() {
                 opening_cash: Number(openingCash),
                 expected_cash: Number(openingCash),
                 status: 'open',
-                opened_at: new Date().toISOString()
+                opened_at: new Date().toISOString(),
+                store_id: staff?.store_id || null
             }]).select().single();
 
             if (error) throw error;
@@ -446,20 +456,27 @@ export default function PosPage() {
     useEffect(() => {
         if (hasSession && staff) {
             // Fetch directly from Supabase to ensure real-time accuracy and bypass API cache
-            supabase.from('payment_methods').select('*').eq('is_active', true).order('created_at', { ascending: true })
-                .then(({ data }) => {
-                    const methods = data || [];
-                    const uniqueMethods = methods.reduce((acc: any[], current: any) => {
-                        const x = acc.find(item => item.name === current.name);
-                        if (!x) return acc.concat([current]);
-                        return acc;
-                    }, []);
-                    setPaymentMethods(uniqueMethods);
-                    if (uniqueMethods.length > 0) setSelectedMethod(uniqueMethods[0]);
-                });
+            let pmQuery = supabase.from('payment_methods').select('*').eq('is_active', true).order('created_at', { ascending: true });
+            if (staff.store_id) {
+                pmQuery = pmQuery.or(`store_id.eq.${staff.store_id},store_id.is.null`);
+            }
+            pmQuery.then(({ data }) => {
+                const methods = data || [];
+                const uniqueMethods = methods.reduce((acc: any[], current: any) => {
+                    const x = acc.find(item => item.name === current.name);
+                    if (!x) return acc.concat([current]);
+                    return acc;
+                }, []);
+                setPaymentMethods(uniqueMethods);
+                if (uniqueMethods.length > 0) setSelectedMethod(uniqueMethods[0]);
+            });
             
             const fetchProds = async () => {
-                const { data } = await supabase.from('products').select('*').eq('is_active', true).order('created_at', { ascending: false });
+                let prodQuery = supabase.from('products').select('*').eq('is_active', true).order('created_at', { ascending: false });
+                if (staff.store_id) {
+                    prodQuery = prodQuery.eq('store_id', staff.store_id);
+                }
+                const { data } = await prodQuery;
                 if (data) setProducts(data);
             };
             fetchProds();
@@ -662,10 +679,20 @@ export default function PosPage() {
 
     const fetchExpensesAndMaterials = async () => {
         try {
+            let expQuery = supabase.from('expenses').select('*').order('created_at', { ascending: false });
+            let matQuery = supabase.from('raw_materials').select('*').order('name', { ascending: true });
+            let logQuery = supabase.from('material_stock_logs').select('*').order('created_at', { ascending: false }).limit(100);
+
+            if (staff?.store_id) {
+                expQuery = expQuery.eq('store_id', staff.store_id);
+                matQuery = matQuery.eq('store_id', staff.store_id);
+                logQuery = logQuery.eq('store_id', staff.store_id);
+            }
+
             const [expRes, matRes, logRes] = await Promise.all([
-                supabase.from('expenses').select('*').order('created_at', { ascending: false }),
-                supabase.from('raw_materials').select('*').order('name', { ascending: true }),
-                supabase.from('material_stock_logs').select('*').order('created_at', { ascending: false }).limit(100)
+                expQuery,
+                matQuery,
+                logQuery
             ]);
             const normalized = (expRes.data || []).map((e: any) => ({
                 ...e,
@@ -695,7 +722,8 @@ export default function PosPage() {
                 unit: inlineNewMaterial.unit,
                 current_stock: 0,
                 last_price_per_unit: Number(inlineNewMaterial.last_price_per_unit) || 0,
-                updated_by_name: staff?.full_name
+                updated_by_name: staff?.full_name,
+                store_id: staff?.store_id || null
             }]).select().single();
             if (error) throw error;
             toast.success(`Bahan baku "${inlineNewMaterial.name}" berhasil ditambahkan!`);
@@ -776,7 +804,8 @@ export default function PosPage() {
                         current_stock: newStock,
                         price: Number(unitPrice.toFixed(2)),
                         staff_name: staff?.full_name,
-                        note: `Dari Pengeluaran: ${finalDesc}`
+                        note: `Dari Pengeluaran: ${finalDesc}`,
+                        store_id: staff?.store_id || null
                     }]);
                 }
             }
@@ -864,6 +893,9 @@ export default function PosPage() {
                         .select('*')
                         .eq('type', 'expense');
                     
+                    if (staff?.store_id) {
+                        movQuery = movQuery.eq('store_id', staff.store_id);
+                    }
                     if (sessionId) {
                         movQuery = movQuery.eq('session_id', sessionId);
                     }
@@ -884,7 +916,11 @@ export default function PosPage() {
 
                         if (amountDiff !== 0) {
                             const targetSessionId = mov.session_id || sessionId;
-                            const { data: sessData } = await supabase.from('cash_sessions').select('id, expected_cash, actual_cash, status').eq('id', targetSessionId).single();
+                            let sessQuery = supabase.from('cash_sessions').select('id, expected_cash, actual_cash, status').eq('id', targetSessionId);
+                            if (staff?.store_id) {
+                                sessQuery = sessQuery.eq('store_id', staff.store_id);
+                            }
+                            const { data: sessData } = await sessQuery.single();
                             if (sessData) {
                                 const updatedExpected = Number(sessData.expected_cash) - amountDiff;
                                 const updateObj: any = { expected_cash: updatedExpected };
@@ -900,7 +936,11 @@ export default function PosPage() {
                             }
                         }
                     } else if (amountDiff !== 0 && sessionId) {
-                        const { data: sessData } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
+                        let sessQuery = supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId);
+                        if (staff?.store_id) {
+                            sessQuery = sessQuery.eq('store_id', staff.store_id);
+                        }
+                        const { data: sessData } = await sessQuery.single();
                         if (sessData) {
                             const updatedExpected = Number(sessData.expected_cash) - amountDiff;
                             await supabase.from('cash_sessions').update({
@@ -945,7 +985,8 @@ export default function PosPage() {
                         current_stock: Number(material.current_stock),
                         price: Number(unitPrice.toFixed(2)),
                         staff_name: staff?.full_name,
-                        note: `Edit Pengeluaran: ${finalDesc}`
+                        note: `Edit Pengeluaran: ${finalDesc}`,
+                        store_id: staff?.store_id || null
                     }]);
                 }
             }
@@ -1023,7 +1064,8 @@ export default function PosPage() {
                 current_stock: newStock,
                 price: updatePayload.last_price_per_unit || Number(stockAdjustment.price) || null,
                 staff_name: staff?.full_name,
-                note: stockAdjustment.note ? `${stockAdjustment.note} (${stockAdjustment.delta} ${adjUnit})` : `Update Stok (${stockAdjustment.delta} ${adjUnit})`
+                note: stockAdjustment.note ? `${stockAdjustment.note} (${stockAdjustment.delta} ${adjUnit})` : `Update Stok (${stockAdjustment.delta} ${adjUnit})`,
+                store_id: staff?.store_id || null
             }]);
 
             const action = effectiveDelta >= 0 ? `+${effectiveDelta}` : `${effectiveDelta}`;
@@ -1044,7 +1086,8 @@ export default function PosPage() {
                 unit: newMaterial.unit,
                 current_stock: Number(newMaterial.current_stock),
                 last_price_per_unit: Number(newMaterial.last_price_per_unit),
-                updated_by_name: staff?.full_name
+                updated_by_name: staff?.full_name,
+                store_id: staff?.store_id || null
             }]);
             if (error) throw error;
             toast.success("Bahan Baku berhasil ditambahkan.");
@@ -1301,7 +1344,8 @@ export default function PosPage() {
                             delta: -delta,
                             current_stock: newStock,
                             note: `Terjual: ${Array.from(new Set(prodNames)).join(', ')} (Ref: ${orderRef})`,
-                            staff_name: staff?.full_name || 'System'
+                            staff_name: staff?.full_name || 'System',
+                            store_id: staff?.store_id || null
                         }]);
                     }
                 })
@@ -1350,7 +1394,10 @@ export default function PosPage() {
                                 session_id: sessionId,
                                 staff_id: staff.id,
                                 type: 'sale',
-                                amount: grandTotal
+                                amount: grandTotal,
+                                reason: `Penjualan Kasir #${result?.id || orderRef}`,
+                                transaction_id: result?.id || null,
+                                store_id: staff?.store_id || null
                             });
                             const { data: sessData } = await supabase.from('cash_sessions').select('expected_cash').eq('id', sessionId).single();
                             if (sessData) {

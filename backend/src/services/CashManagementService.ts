@@ -3,6 +3,12 @@ import { supabase } from '../config/database';
 export class CashManagementService {
     
     async openSession(staffId: string, terminalId: string, openingCash: number) {
+        let storeId: string | null = null;
+        try {
+            const { data: staff } = await supabase.from('staff_profiles').select('store_id').eq('id', staffId).single();
+            if (staff?.store_id) storeId = staff.store_id;
+        } catch(e) {}
+
         const { data, error } = await supabase
             .from('cash_sessions')
             .insert({
@@ -10,7 +16,8 @@ export class CashManagementService {
                 terminal_id: terminalId,
                 opening_cash: openingCash,
                 expected_cash: openingCash,
-                status: 'open'
+                status: 'open',
+                store_id: storeId
             })
             .select('*')
             .single();
@@ -59,11 +66,20 @@ export class CashManagementService {
         reason?: string;
         note?: string;
         transaction_id?: string;
+        store_id?: string;
     }) {
+        let storeId = payload.store_id;
+        if (!storeId && payload.session_id) {
+            try {
+                const { data: sess } = await supabase.from('cash_sessions').select('store_id').eq('id', payload.session_id).single();
+                if (sess?.store_id) storeId = sess.store_id;
+            } catch(e) {}
+        }
+
         // 1. Insert Movement
         const { error: moveError } = await supabase
             .from('cash_movements')
-            .insert(payload);
+            .insert({ ...payload, store_id: storeId || null });
 
         if (moveError) throw moveError;
 
