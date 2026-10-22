@@ -473,4 +473,216 @@ router.get('/audit-logs', async (req, res) => {
     res.json(data);
 });
 
+// =======================
+// MULTI-STORE & STORE SWITCH
+// =======================
+router.get('/user-stores/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // 1. Check if superadmin
+        const { data: superAdmin } = await supabase.from('super_admins').select('user_id').eq('user_id', userId).maybeSingle();
+        if (superAdmin) {
+            const { data: allStores } = await supabase.from('stores').select('*').order('name', { ascending: true });
+            const { data: prof } = await supabase.from('staff_profiles').select('store_id').eq('id', userId).maybeSingle();
+            return res.json({
+                current_store_id: prof?.store_id || null,
+                stores: (allStores || []).map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    role: 'owner',
+                    is_active: s.id === prof?.store_id
+                }))
+            });
+        }
+
+        // 2. Fetch current staff profile
+        const { data: profile } = await supabase.from('staff_profiles').select('store_id, role').eq('id', userId).maybeSingle();
+        const currentStoreId = profile?.store_id;
+
+        // 3. Stores owned by user
+        const { data: ownedStores } = await supabase.from('stores').select('*').eq('owner_id', userId);
+
+        // 4. Stores from store_members
+        let memberStores: any[] = [];
+        try {
+            const { data: mems } = await supabase
+                .from('store_members')
+                .select('role, stores(id, name, subscription_plan, status)')
+                .eq('user_id', userId);
+            if (mems) {
+                memberStores = mems
+                    .filter(m => m.stores)
+                    .map(m => ({ ...(m.stores as any), memberRole: m.role }));
+            }
+        } catch(e) {}
+
+        // 5. Current store details if not already in owned/member
+        let currentStoreObj: any = null;
+        if (currentStoreId) {
+            const { data: cs } = await supabase.from('stores').select('*').eq('id', currentStoreId).maybeSingle();
+            if (cs) currentStoreObj = cs;
+        }
+
+        // Combine and deduplicate
+        const storeMap = new Map<string, any>();
+
+        if (ownedStores) {
+            for (const s of ownedStores) {
+                storeMap.set(s.id, {
+                    id: s.id,
+                    name: s.name,
+                    role: 'owner',
+                    is_active: s.id === currentStoreId
+                });
+            }
+        }
+
+        for (const s of memberStores) {
+            if (!storeMap.has(s.id)) {
+                storeMap.set(s.id, {
+                    id: s.id,
+                    name: s.name,
+                    role: s.memberRole || 'staff',
+                    is_active: s.id === currentStoreId
+                });
+            }
+        }
+
+        if (currentStoreObj && !storeMap.has(currentStoreObj.id)) {
+            storeMap.set(currentStoreObj.id, {
+                id: currentStoreObj.id,
+                name: currentStoreObj.name,
+                role: profile?.role || 'staff',
+                is_active: true
+            });
+        }
+
+        res.json({
+            current_store_id: currentStoreId,
+            stores: Array.from(storeMap.values())
+        });
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.post('/switch-store', async (req, res) => {
+    try {
+        const { userId, targetStoreId } = req.body;
+        if (!userId || !targetStoreId) {
+            return res.status(400).json({ error: 'userId and targetStoreId are required' });
+        }
+
+        // 1. Get store details
+        const { data: store, error: storeErr } = await supabase.from('stores').select('*').eq('id', targetStoreId).single();
+        if (storeErr || !store) {
+            return res.status(404).json({ error: 'Toko tidak ditemukan' });
+        }
+
+        // 2. Check if user has access (owner_id, store_members, staff_profiles, or super_admin)
+        let hasAccess = false;
+        let role = 'staff';
+
+        const { data: superAdmin } = await supabase.from('super_admins').select('user_id').eq('user_id', userId).maybeSingle();
+        if (superAdmin) {
+            hasAccess = true;
+            role = 'owner';
+        } else if (store.owner_id === userId) {
+            hasAccess = true;
+            role = 'owner';
+        } else {
+            // Check store_members
+            const { data: member } = await supabase.from('store_members').select('*').eq('user_id', userId).eq('store_id', targetStoreId).maybeSingle();
+            if (member) {
+                hasAccess = true;
+                role = member.role || 'staff';
+            } else {
+                // Check current staff profile
+                const { data: prof } = await supabase.from('staff_profiles').select('*').eq('id', userId).maybeSingle();
+                if (prof && prof.store_id === targetStoreId) {
+                    hasAccess = true;
+                    role = prof.role || 'staff';
+                }
+            }
+        }
+
+        if (!hasAccess) {
+            return res.status(403).json({ error: 'Anda tidak memiliki akses ke toko ini' });
+        }
+
+        // 3. Update staff_profiles
+        const updateData: any = { store_id: targetStoreId };
+        if (role) updateData.role = role;
+        const { data: updatedProfile, error: updateErr } = await supabase
+            .from('staff_profiles')
+            .update(updateData)
+            .eq('id', userId)
+            .select('*')
+            .single();
+
+        if (updateErr) throw updateErr;
+
+        // 4. Record to store_members if exists
+        try {
+            await supabase.from('store_members').upsert({
+                user_id: userId,
+                store_id: targetStoreId,
+                role
+            }, { onConflict: 'user_id,store_id' });
+        } catch(e) {}
+
+        res.json({
+            success: true,
+            store_id: targetStoreId,
+            store_name: store.name,
+            profile: updatedProfile
+        });
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.post('/stores/create', async (req, res) => {
+    try {
+        const { userId, name, subscription_plan } = req.body;
+        if (!userId || !name) {
+            return res.status(400).json({ error: 'userId and name are required' });
+        }
+
+        // 1. Create store
+        const { data: newStore, error: storeErr } = await supabase
+            .from('stores')
+            .insert({
+                name,
+                owner_id: userId,
+                subscription_plan: subscription_plan || 'pro',
+                status: 'active'
+            })
+            .select('*')
+            .single();
+
+        if (storeErr) throw storeErr;
+
+        // 2. Create default store_settings
+        await supabase.from('store_settings').insert({
+            store_id: newStore.id,
+            receipt_header: name
+        });
+
+        // 3. Add to store_members
+        try {
+            await supabase.from('store_members').insert({
+                user_id: userId,
+                store_id: newStore.id,
+                role: 'owner'
+            });
+        } catch(e) {}
+
+        res.status(201).json(newStore);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 export default router;

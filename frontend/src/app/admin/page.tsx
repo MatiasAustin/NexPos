@@ -13,6 +13,7 @@ import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
 import { LoadingSpinner, SkeletonCard, SkeletonTable } from "@/components/Loading";
 import ProductOptionsEditor from "@/components/ProductOptionsEditor";
+import StoreSwitcher from "@/components/StoreSwitcher";
 import { parseExpenseQtyAndUnit, formatExpenseDescription, cleanExpenseDescription } from "@/lib/expenseHelpers";
 import { useSaasSettings } from "@/contexts/SaasSettingsContext";
 
@@ -2639,14 +2640,17 @@ export default function AdminDashboard() {
                         </button>
                     </div>
 
-                    {/* Staff / Admin Profile Badge */}
-                    <div className="flex items-center gap-3 bg-surface border border-border px-4 py-2 rounded-full">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-bold text-text-primary shadow-sm">
-                            {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : 'A'}
-                        </div>
-                        <div className="flex flex-col hidden sm:flex">
-                            <span className="text-sm font-bold leading-tight text-text-primary">{profile?.full_name || 'Admin System'}</span>
-                            <span className="text-[10px] text-accent font-bold uppercase tracking-wider">{profile?.role || 'Owner Access'}</span>
+                    {/* Store Switcher & Staff / Admin Profile Badge */}
+                    <div className="flex items-center gap-2.5 md:gap-3">
+                        <StoreSwitcher currentStoreId={profile?.store_id} />
+                        <div className="flex items-center gap-3 bg-surface border border-border px-3.5 py-1.5 md:px-4 md:py-2 rounded-xl sm:rounded-full shadow-sm">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-bold text-white shadow-sm">
+                                {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : 'A'}
+                            </div>
+                            <div className="flex flex-col hidden sm:flex">
+                                <span className="text-sm font-bold leading-tight text-text-primary">{profile?.full_name || 'Admin System'}</span>
+                                <span className="text-[10px] text-accent font-bold uppercase tracking-wider">{profile?.role || 'Owner Access'}</span>
+                            </div>
                         </div>
                     </div>
                 </div>

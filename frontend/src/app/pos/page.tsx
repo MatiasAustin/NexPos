@@ -11,6 +11,7 @@ import AppLogo from "@/components/AppLogo";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
 import { LoadingSpinner } from "@/components/Loading";
+import StoreSwitcher from "@/components/StoreSwitcher";
 import { parseExpenseQtyAndUnit, formatExpenseDescription, cleanExpenseDescription } from "@/lib/expenseHelpers";
 import { useSaasSettings } from "@/contexts/SaasSettingsContext";
 
@@ -1428,6 +1429,9 @@ export default function PosPage() {
             <div className="flex min-h-screen bg-background items-center justify-center p-4">
                 <ConfirmDialog />
                 <div className="bg-surface p-4 md:p-8 rounded-2xl w-full max-w-[400px] shadow-md border border-border text-center">
+                    <div className="mb-4 flex justify-center">
+                        <StoreSwitcher currentStoreId={staff?.store_id} />
+                    </div>
                     <Banknote className="w-12 h-12 text-accent mx-auto mb-4" />
                     <h2 className="text-lg font-semibold mb-2 text-text-primary">Buka Shift Kasir</h2>
                     <p className="text-text-muted mb-6 text-sm">Pilih nama kasir dan masukkan modal uang fisik awal (Opening Cash).</p>
@@ -1510,8 +1514,10 @@ export default function PosPage() {
                         </div>
                     </div>
                     
-                    {/* Staff Profile in POS Header */}
-                    <div className="bg-background border border-border p-2 pr-4 rounded-full font-semibold flex items-center gap-3 text-sm shadow-sm overflow-x-auto whitespace-nowrap hide-scrollbar max-w-full">
+                    {/* Store Switcher & Staff Profile in POS Header */}
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                        <StoreSwitcher currentStoreId={staff?.store_id} />
+                        <div className="bg-background border border-border p-2 pr-4 rounded-full font-semibold flex items-center gap-3 text-sm shadow-sm overflow-x-auto whitespace-nowrap hide-scrollbar max-w-full">
                         <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center text-accent shrink-0">
                             <Banknote className="w-5 h-5" />
                         </div>
@@ -1583,6 +1589,7 @@ export default function PosPage() {
                             </button>
                         </div>
                     </div>
+                </div>
                 </div>
 
                 <div className="p-4 md:p-6 flex-1 overflow-y-auto no-scrollbar">

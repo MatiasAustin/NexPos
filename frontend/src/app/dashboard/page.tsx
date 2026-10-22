@@ -8,6 +8,7 @@ import { ShoppingCart, LayoutDashboard, MonitorSmartphone, Power } from "lucide-
 import { useSaasSettings } from "@/contexts/SaasSettingsContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import AppLogo from "@/components/AppLogo";
+import StoreSwitcher from "@/components/StoreSwitcher";
 
 export default function Home() {
   const router = useRouter();
@@ -37,7 +38,8 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-text-primary">
-      <div className="absolute top-6 right-6 z-50">
+      <div className="absolute top-6 right-6 z-50 flex items-center gap-2.5 sm:gap-3">
+        <StoreSwitcher />
         <ThemeToggle />
       </div>
 
