@@ -5,10 +5,11 @@ import { getReconciliationReport, getAuditLogs } from "@/lib/api";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 import AppLogo from "@/components/AppLogo";
-import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload, Loader2, Maximize, Wallet, Clock, X, Search, Filter } from "lucide-react";
+import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck, Users, Package, FileText, Settings, Upload, Loader2, Maximize, Wallet, Clock, X, Search, Filter, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import ReportChart from "@/components/ReportChart";
+import ReportTargetCard from "@/components/ReportTargetCard";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
 import { LoadingSpinner, SkeletonCard, SkeletonTable } from "@/components/Loading";
@@ -375,7 +376,10 @@ export default function AdminDashboard() {
         tax_rate: 0,
         logo_size: 60,
         qris_size: 120,
-        categories: ["Makanan", "Minuman", "Snack"]
+        categories: ["Makanan", "Minuman", "Snack"],
+        target_daily: 0,
+        target_weekly: 0,
+        target_monthly: 0
     });
 
     const saasSettings = useSaasSettings();
@@ -427,6 +431,30 @@ export default function AdminDashboard() {
 
             // Fetch current store settings
             const { data: storeData } = await supabase.from('stores').select('*').eq('id', prof.store_id).single();
+            try {
+                let stQuery = supabase.from('store_settings').select('*');
+                if (prof.store_id) stQuery = stQuery.eq('store_id', prof.store_id);
+                const { data: sData } = await stQuery.limit(1).maybeSingle();
+                const cachedTargets = localStorage.getItem(`nexpos_targets_${prof.store_id || 'default'}`);
+                const parsedCached = cachedTargets ? JSON.parse(cachedTargets) : null;
+                if (sData) {
+                    setStoreSettings(prev => ({
+                        ...prev,
+                        ...sData,
+                        target_daily: Number(sData.target_daily) || parsedCached?.daily || prev.target_daily || 0,
+                        target_weekly: Number(sData.target_weekly) || parsedCached?.weekly || prev.target_weekly || 0,
+                        target_monthly: Number(sData.target_monthly) || parsedCached?.monthly || prev.target_monthly || 0,
+                    }));
+                } else if (parsedCached) {
+                    setStoreSettings(prev => ({
+                        ...prev,
+                        target_daily: parsedCached.daily || 0,
+                        target_weekly: parsedCached.weekly || 0,
+                        target_monthly: parsedCached.monthly || 0,
+                    }));
+                }
+            } catch(e) {}
+
             const allowedStaffTabs = ['reconciliation', 'history', 'cash_sessions', 'raw_materials', 'inventory', 'expenses'];
             if (prof.role !== 'owner' && !allowedStaffTabs.includes(activeTab)) {
                 setActiveTab('reconciliation');
@@ -475,7 +503,8 @@ export default function AdminDashboard() {
                 try {
                     const { data } = await supabase.from('store_settings').select('*').limit(1).maybeSingle();
                     if (data) {
-                        setStoreSettings({
+                        setStoreSettings(prev => ({
+                            ...prev,
                             logo_base64: data.logo_base64 || "",
                             qris_image_base64: data.qris_image_base64 || "",
                             qris_enabled: !!data.qris_enabled,
@@ -487,8 +516,11 @@ export default function AdminDashboard() {
                             tax_rate: Number(data.tax_rate) || 11,
                             logo_size: Number(data.logo_size) || 100,
                             qris_size: Number(data.qris_size) || 120,
-                            categories: data.categories || ["Makanan", "Minuman", "Snack"]
-                        });
+                            categories: data.categories || ["Makanan", "Minuman", "Snack"],
+                            target_daily: Number(data.target_daily) || prev.target_daily || 0,
+                            target_weekly: Number(data.target_weekly) || prev.target_weekly || 0,
+                            target_monthly: Number(data.target_monthly) || prev.target_monthly || 0
+                        }));
                     }
                     
                     const { data: payMethods } = await supabase.from('payment_methods').select('*').eq('is_active', true).order('created_at', { ascending: true });
@@ -661,6 +693,46 @@ export default function AdminDashboard() {
             toast.error("Gagal menyimpan: " + (e.message || "Pastikan script SQL dijalankan."));
         }
         setLoading(false);
+    };
+
+    const handleSaveTargets = async (daily: number, weekly: number, monthly: number) => {
+        const updated = {
+            ...storeSettings,
+            target_daily: daily,
+            target_weekly: weekly,
+            target_monthly: monthly
+        };
+        setStoreSettings(updated);
+
+        const storeKey = profile?.store_id ? `nexpos_store_settings_${profile.store_id}` : "nexpos_store_settings";
+        localStorage.setItem(storeKey, JSON.stringify(updated));
+        localStorage.setItem(`nexpos_targets_${profile?.store_id || 'default'}`, JSON.stringify({ daily, weekly, monthly }));
+
+        try {
+            let query = supabase.from('store_settings').select('id');
+            if (profile?.store_id) query = query.eq('store_id', profile.store_id);
+            const { data: existing } = await query.maybeSingle();
+
+            if (existing?.id) {
+                const { error } = await supabase.from('store_settings').update({
+                    target_daily: daily,
+                    target_weekly: weekly,
+                    target_monthly: monthly
+                }).eq('id', existing.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('store_settings').insert([{
+                    store_id: profile?.store_id || null,
+                    target_daily: daily,
+                    target_weekly: weekly,
+                    target_monthly: monthly
+                }]);
+                if (error) throw error;
+            }
+        } catch(err: any) {
+            console.warn("DB update for targets failed (fallback to localStorage):", err);
+        }
+        toast.success("Target penjualan toko berhasil disimpan!");
     };
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2854,6 +2926,22 @@ export default function AdminDashboard() {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Target Penjualan Toko (Harian / Mingguan / Bulanan) */}
+                                    <ReportTargetCard
+                                        period={selectedShiftId !== 'all' ? 'custom' : reconciliationPeriod}
+                                        currentRevenue={selectedProductId !== 'all' 
+                                            ? (activeItemSummary?.totalRevenue || 0)
+                                            : reconciliation.reduce((s, r) => s + r.pos_total, 0)
+                                        }
+                                        storeId={profile?.store_id}
+                                        targetDaily={storeSettings.target_daily || 0}
+                                        targetWeekly={storeSettings.target_weekly || 0}
+                                        targetMonthly={storeSettings.target_monthly || 0}
+                                        daysCount={diffDays}
+                                        referenceDate={reconciliationDate}
+                                        onSaveTargets={handleSaveTargets}
+                                    />
 
                                     {/* Active Shift Banner */}
                                     {selectedShiftId !== 'all' && (() => {
@@ -5128,6 +5216,55 @@ export default function AdminDashboard() {
                                                             )}
                                                         </div>
                                                     </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Target Penjualan Settings */}
+                                        <div className="p-2 md:p-4 md:p-8 bg-surface rounded-2xl border border-border shadow-xl">
+                                            <h3 className="font-bold text-xl mb-6 text-text-primary border-b border-border pb-4 flex items-center gap-2">
+                                                <Target className="w-5 h-5 text-accent" /> Target Penjualan Toko
+                                            </h3>
+                                            <p className="text-xs text-text-muted -mt-4 mb-6">
+                                                Atur sasaran omset toko Anda untuk dievaluasi otomatis pada Laporan Keuangan (Harian, Mingguan, Bulanan).
+                                            </p>
+                                            
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-text-secondary mb-2">Target Harian (Rp)</label>
+                                                    <input 
+                                                        type="number" 
+                                                        min="0"
+                                                        step="1000"
+                                                        value={storeSettings.target_daily || ""}
+                                                        onChange={e => setStoreSettings({...storeSettings, target_daily: Number(e.target.value)})}
+                                                        className="w-full bg-background border border-border rounded-xl p-4 text-text-primary focus:border-accent outline-none font-bold"
+                                                        placeholder="Contoh: 1500000"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-bold text-text-secondary mb-2">Target Mingguan (Rp)</label>
+                                                    <input 
+                                                        type="number" 
+                                                        min="0"
+                                                        step="1000"
+                                                        value={storeSettings.target_weekly || ""}
+                                                        onChange={e => setStoreSettings({...storeSettings, target_weekly: Number(e.target.value)})}
+                                                        className="w-full bg-background border border-border rounded-xl p-4 text-text-primary focus:border-accent outline-none font-bold"
+                                                        placeholder="Contoh: 10500000"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-bold text-text-secondary mb-2">Target Bulanan (Rp)</label>
+                                                    <input 
+                                                        type="number" 
+                                                        min="0"
+                                                        step="1000"
+                                                        value={storeSettings.target_monthly || ""}
+                                                        onChange={e => setStoreSettings({...storeSettings, target_monthly: Number(e.target.value)})}
+                                                        className="w-full bg-background border border-border rounded-xl p-4 text-text-primary focus:border-accent outline-none font-bold"
+                                                        placeholder="Contoh: 45000000"
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
