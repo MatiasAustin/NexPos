@@ -174,12 +174,29 @@ export default function PosPage() {
 
             let sess = dbSession;
 
+            // Jika session sudah ditutup (misal ditutup oleh rekan kasir lain), reset session lokal
+            if (sess && sess.status === 'closed') {
+                toast.info("Shift kasir telah ditutup.");
+                setHasSession(false);
+                setSessionId(null);
+                setSessionData(null);
+                return;
+            }
+
             // Fallback ke REST API jika query langsung belum menghasilkan data
             if (!sess && staff?.id) {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staff.id}&terminalId=TERM-01&_t=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staff.id}&terminalId=TERM-01${staff?.store_id ? `&storeId=${staff.store_id}` : ''}&_t=${Date.now()}`, { cache: 'no-store' });
                 if (res.ok) {
                     sess = await res.json();
                 }
+            }
+
+            if (sess && sess.status === 'closed') {
+                toast.info("Shift kasir telah ditutup.");
+                setHasSession(false);
+                setSessionId(null);
+                setSessionData(null);
+                return;
             }
 
             if (sess) {
@@ -252,8 +269,15 @@ export default function PosPage() {
 
         // Realtime listener Supabase untuk update instan ketika ada mutasi
         const channel = supabase.channel(`pos-drawer-${sessionId}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_sessions', filter: `id=eq.${sessionId}` }, () => {
-                fetchSessionData(sessionId, true);
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_sessions', filter: `id=eq.${sessionId}` }, (payload: any) => {
+                if (payload.new && payload.new.status === 'closed') {
+                    toast.info("Shift kasir telah ditutup.");
+                    setHasSession(false);
+                    setSessionId(null);
+                    setSessionData(null);
+                } else {
+                    fetchSessionData(sessionId, true);
+                }
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
                 fetchSessionData(sessionId, true);
@@ -308,7 +332,7 @@ export default function PosPage() {
             if (profile) {
                 setStaff(profile);
                 loadSettings(profile.store_id);
-                await checkActiveSession(profile.id);
+                await checkActiveSession(profile.id, profile.store_id);
             } else {
                 router.push('/login');
             }
@@ -317,21 +341,93 @@ export default function PosPage() {
         checkAuth();
     }, [router]);
 
-    const checkActiveSession = async (staffId: string) => {
+    const checkActiveSession = async (staffId: string, storeId?: string) => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staffId}&terminalId=TERM-01&_t=${Date.now()}`, { cache: 'no-store' });
-            if (res.ok) {
-                const sess = await res.json();
-                if (sess && sess.id) {
-                    setSessionId(sess.id);
-                    setSessionData(sess);
-                    setHasSession(true);
+            let activeSession: any = null;
+
+            // 1. Cek langsung ke Supabase: Jika ada shift yang sedang 'open' di toko ini,
+            // seluruh kasir/member langsung diarahkan ke shift aktif tersebut (mencegah double shift)
+            if (storeId) {
+                const { data: storeSession } = await supabase
+                    .from('cash_sessions')
+                    .select('*')
+                    .eq('store_id', storeId)
+                    .eq('status', 'open')
+                    .order('opened_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (storeSession) {
+                    activeSession = storeSession;
                 }
+            }
+
+            // 2. Fallback jika store_id kosong atau cek per staff_id
+            if (!activeSession) {
+                const { data: staffSession } = await supabase
+                    .from('cash_sessions')
+                    .select('*')
+                    .eq('staff_id', staffId)
+                    .eq('status', 'open')
+                    .order('opened_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (staffSession) {
+                    activeSession = staffSession;
+                }
+            }
+
+            // 3. Fallback ke API backend
+            if (!activeSession) {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash-sessions/active?staffId=${staffId}&terminalId=TERM-01${storeId ? `&storeId=${storeId}` : ''}&_t=${Date.now()}`, { cache: 'no-store' });
+                if (res.ok) {
+                    const sess = await res.json();
+                    if (sess && sess.id && sess.status === 'open') {
+                        activeSession = sess;
+                    }
+                }
+            }
+
+            if (activeSession && activeSession.id) {
+                setSessionId(activeSession.id);
+                setSessionData(activeSession);
+                setHasSession(true);
+            } else {
+                setSessionId(null);
+                setSessionData(null);
+                setHasSession(false);
             }
         } catch (error) {
             console.error("Error checking session:", error);
         }
     };
+
+    // Realtime Listener: Jika kasir sedang di layar 'Buka Shift' lalu ada rekan lain
+    // di toko yang sama membuka shift, kasir ini otomatis langsung diarahkan ke shift aktif tersebut
+    useEffect(() => {
+        if (hasSession || !staff?.store_id) return;
+
+        const channel = supabase.channel(`store-shift-sync-${staff.store_id}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'cash_sessions',
+                filter: `store_id=eq.${staff.store_id}`
+            }, (payload: any) => {
+                if (payload.new && payload.new.status === 'open') {
+                    toast.info("Shift kasir telah dibuka oleh rekan di toko ini. Mengarahkan ke shift aktif...");
+                    setSessionId(payload.new.id);
+                    setSessionData(payload.new);
+                    setHasSession(true);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [hasSession, staff?.store_id]);
 
     const [allStaff, setAllStaff] = useState<any[]>([]);
     const [selectedStaffId, setSelectedStaffId] = useState<string>("");
@@ -387,6 +483,27 @@ export default function PosPage() {
 
         setLoading(true);
         try {
+            // Safety check: Pastikan toko ini belum ada shift yang sedang terbuka (mencegah double shift)
+            if (staff?.store_id) {
+                const { data: existingSession } = await supabase
+                    .from('cash_sessions')
+                    .select('*')
+                    .eq('store_id', staff.store_id)
+                    .eq('status', 'open')
+                    .order('opened_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (existingSession) {
+                    toast.info("Shift kasir sudah dibuka oleh rekan di toko ini. Menghubungkan ke shift aktif...");
+                    setSessionId(existingSession.id);
+                    setSessionData(existingSession);
+                    setHasSession(true);
+                    setLoading(false);
+                    return;
+                }
+            }
+
             // Bypass Vercel API for Multitenant compatibility
             const { data: sessData, error } = await supabase.from('cash_sessions').insert([{
                 staff_id: activeStaffId,
@@ -398,7 +515,29 @@ export default function PosPage() {
                 store_id: staff?.store_id || null
             }]).select().single();
 
-            if (error) throw error;
+            if (error) {
+                // Jika bentrok dengan unique index (misal kasir lain klik buka bersamaan)
+                if (error.code === '23505' || error.message?.includes('duplicate key') || error.message?.includes('idx_one_open_shift_per_store')) {
+                    const { data: existingSession } = await supabase
+                        .from('cash_sessions')
+                        .select('*')
+                        .eq('store_id', staff?.store_id)
+                        .eq('status', 'open')
+                        .order('opened_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (existingSession) {
+                        toast.info("Shift kasir sudah dibuka oleh rekan di toko ini. Mengarahkan ke shift aktif...");
+                        setSessionId(existingSession.id);
+                        setSessionData(existingSession);
+                        setHasSession(true);
+                        setLoading(false);
+                        return;
+                    }
+                }
+                throw error;
+            }
 
             if (sessData) {
                 setSessionId(sessData.id);
@@ -1523,7 +1662,14 @@ export default function PosPage() {
                         </div>
                         <div className="flex flex-col shrink-0">
                             <span className="text-text-muted text-[10px] leading-tight">Kasir</span>
-                            <span className="text-text-primary text-xs font-bold">{staff?.full_name}</span>
+                            <span className="text-text-primary text-xs font-bold flex items-center gap-1.5">
+                                {staff?.full_name}
+                                {sessionData?.staff_id && sessionData.staff_id !== staff?.id && (
+                                    <span className="text-[10px] bg-accent/15 text-accent border border-accent/20 px-1.5 py-0.5 rounded-md font-medium" title="Menggunakan shift kasir aktif bersama di toko ini">
+                                        Shift Bersama
+                                    </span>
+                                )}
+                            </span>
                         </div>
                         {sessionData ? (
                             <div className="flex gap-3 md:gap-4 ml-2 pl-3 border-l border-border shrink-0 items-center bg-surface-hover/50 p-2 rounded-xl border border-border">

@@ -2,12 +2,27 @@ import { supabase } from '../config/database';
 
 export class CashManagementService {
     
-    async openSession(staffId: string, terminalId: string, openingCash: number) {
-        let storeId: string | null = null;
+    async openSession(staffId: string, terminalId: string, openingCash: number, storeIdParam?: string) {
+        let storeId: string | null = storeIdParam || null;
         try {
-            const { data: staff } = await supabase.from('staff_profiles').select('store_id').eq('id', staffId).single();
-            if (staff?.store_id) storeId = staff.store_id;
+            if (!storeId) {
+                const { data: staff } = await supabase.from('staff_profiles').select('store_id').eq('id', staffId).single();
+                if (staff?.store_id) storeId = staff.store_id;
+            }
         } catch(e) {}
+
+        // Prevent double shifts: If there is already an active open shift in this store, return it
+        if (storeId) {
+            const { data: existing } = await supabase
+                .from('cash_sessions')
+                .select('*')
+                .eq('store_id', storeId)
+                .eq('status', 'open')
+                .order('opened_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (existing) return existing;
+        }
 
         const { data, error } = await supabase
             .from('cash_sessions')
@@ -26,13 +41,19 @@ export class CashManagementService {
         return data;
     }
 
-    async getActiveSession(staffId: string, terminalId: string) {
-        const { data, error } = await supabase
+    async getActiveSession(staffId: string, terminalId: string, storeId?: string) {
+        let query = supabase
             .from('cash_sessions')
             .select('*')
-            .eq('staff_id', staffId)
-            .eq('terminal_id', terminalId)
-            .eq('status', 'open')
+            .eq('status', 'open');
+
+        if (storeId) {
+            query = query.eq('store_id', storeId);
+        } else {
+            query = query.eq('staff_id', staffId).eq('terminal_id', terminalId);
+        }
+
+        const { data, error } = await query
             .order('opened_at', { ascending: false })
             .limit(1);
             

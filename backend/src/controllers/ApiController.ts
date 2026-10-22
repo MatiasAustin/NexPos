@@ -369,8 +369,8 @@ router.get('/admin/cash-sessions', async (req, res) => {
 router.get('/health2', (req, res) => res.json({ status: 'v3' }));
 router.get('/cash-sessions/active', async (req, res) => {
     try {
-        const { staffId, terminalId } = req.query;
-        const session = await cashService.getActiveSession(String(staffId), String(terminalId));
+        const { staffId, terminalId, storeId } = req.query;
+        const session = await cashService.getActiveSession(String(staffId), String(terminalId), storeId ? String(storeId) : undefined);
         if (session) {
             res.json(session);
         } else {
@@ -417,8 +417,8 @@ router.get('/fix-drawer', async (req, res) => {
 
 router.post('/cash-sessions/open', async (req, res) => {
     try {
-        const { staffId, terminalId, openingCash } = req.body;
-        const session = await cashService.openSession(staffId, terminalId, openingCash);
+        const { staffId, terminalId, openingCash, storeId } = req.body;
+        const session = await cashService.openSession(staffId, terminalId, openingCash, storeId);
         res.json(session);
     } catch (error: any) {
         res.status(400).json({ error: error.message });
