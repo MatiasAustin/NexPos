@@ -78,25 +78,41 @@ export default function PosPage() {
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const savedCart = localStorage.getItem('nexpos_active_cart');
-            if (savedCart) {
-                try {
-                    const parsed = JSON.parse(savedCart);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        setCart(parsed);
-                    }
-                } catch(e) {}
-            }
+            const todayStr = new Date().toDateString();
             const savedDraft = localStorage.getItem('nexpos_active_draft_info');
             if (savedDraft) {
                 try {
                     const info = JSON.parse(savedDraft);
-                    setActiveDraftId(info.activeDraftId || null);
-                    setActiveQueueNumber(info.activeQueueNumber || null);
-                    setCustomerName(info.customerName || "");
-                    setDiscountValue(info.discountValue || "");
-                    setDiscountType(info.discountType || "nominal");
+                    // Jika draft disimpan di hari sebelumnya, bersihkan agar tidak muncul draft kemarin
+                    if (info.saveDate && info.saveDate !== todayStr) {
+                        localStorage.removeItem('nexpos_active_cart');
+                        localStorage.removeItem('nexpos_active_draft_info');
+                    } else {
+                        setActiveDraftId(info.activeDraftId || null);
+                        setActiveQueueNumber(info.activeQueueNumber || null);
+                        setCustomerName(info.customerName || "");
+                        setDiscountValue(info.discountValue || "");
+                        setDiscountType(info.discountType || "nominal");
+
+                        const savedCart = localStorage.getItem('nexpos_active_cart');
+                        if (savedCart) {
+                            const parsed = JSON.parse(savedCart);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                setCart(parsed);
+                            }
+                        }
+                    }
                 } catch(e) {}
+            } else {
+                const savedCart = localStorage.getItem('nexpos_active_cart');
+                if (savedCart) {
+                    try {
+                        const parsed = JSON.parse(savedCart);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            setCart(parsed);
+                        }
+                    } catch(e) {}
+                }
             }
             isLoaded.current = true;
         }
@@ -114,7 +130,8 @@ export default function PosPage() {
                 activeQueueNumber,
                 customerName,
                 discountValue,
-                discountType
+                discountType,
+                saveDate: new Date().toDateString()
             }));
         }
     }, [cart, activeDraftId, activeQueueNumber, customerName, discountValue, discountType]);
@@ -167,26 +184,52 @@ export default function PosPage() {
             if (sess) {
                 const sessionStart = sess.opened_at || new Date(new Date().setHours(0,0,0,0)).toISOString();
                 
-                // Ambil data pengeluaran dan refund secara paralel langsung dari Supabase
-                const [expRes, refRes] = await Promise.all([
-                    supabase.from('expenses')
-                        .select('amount, description')
-                        .gte('created_at', sessionStart),
-                    supabase.from('refunds')
-                        .select('refund_amount')
-                        .eq('status', 'APPROVED')
-                        .gte('created_at', sessionStart)
+                // Ambil data pengeluaran, refund, dan mutasi kas paralel dari Supabase
+                let expQuery = supabase.from('expenses')
+                    .select('amount, description, expense_date, created_at')
+                    .gte('created_at', sessionStart);
+                if (staff?.store_id) {
+                    expQuery = expQuery.eq('store_id', staff.store_id);
+                }
+
+                let refQuery = supabase.from('refunds')
+                    .select('refund_amount')
+                    .in('status', ['APPROVED', 'approved', 'Approved'])
+                    .gte('created_at', sessionStart);
+                if (staff?.store_id) {
+                    refQuery = refQuery.eq('store_id', staff.store_id);
+                }
+
+                const [expRes, refRes, movRes] = await Promise.all([
+                    expQuery,
+                    refQuery,
+                    supabase.from('cash_movements')
+                        .select('type, amount')
+                        .eq('session_id', id)
                 ]);
 
                 const expenses = expRes.data || [];
                 const refunds = refRes.data || [];
+                const movements = movRes.data || [];
 
-                sess.total_expense = expenses
+                const table_expense = expenses
                     .filter((e: any) => !e.description?.startsWith('['))
                     .reduce((sum: number, e: any) => sum + Number(e.amount || 0), 0);
 
-                sess.total_refund = refunds
+                const mov_expense = movements
+                    .filter((m: any) => m.type === 'expense' || m.type === 'cash_out')
+                    .reduce((sum: number, m: any) => sum + Math.abs(Number(m.amount || 0)), 0);
+
+                sess.total_expense = Math.max(table_expense, mov_expense);
+
+                const table_refund = refunds
                     .reduce((sum: number, r: any) => sum + Number(r.refund_amount || 0), 0);
+
+                const mov_refund = movements
+                    .filter((m: any) => m.type === 'refund')
+                    .reduce((sum: number, m: any) => sum + Math.abs(Number(m.amount || 0)), 0);
+
+                sess.total_refund = Math.max(table_refund, mov_refund);
                 
                 setSessionData({ ...sess });
             }
@@ -430,8 +473,15 @@ export default function PosPage() {
                         .order('created_at', { ascending: false });
                     
                     if (staff?.store_id) {
-                        query = query.or(`store_id.eq.${staff.store_id},store_id.is.null`);
+                        query = query.eq('store_id', staff.store_id);
                     }
+
+                    // Batasi hanya draft hari ini / shift aktif agar draft kemarin tidak muncul
+                    const todayStart = new Date();
+                    todayStart.setHours(0, 0, 0, 0);
+                    const shiftStart = sessionData?.opened_at ? new Date(sessionData.opened_at) : todayStart;
+                    const filterStart = shiftStart < todayStart ? shiftStart : todayStart;
+                    query = query.gte('created_at', filterStart.toISOString());
 
                     const { data, error } = await query;
                     if (data) setPendingOrders(data);
@@ -1287,7 +1337,9 @@ export default function PosPage() {
                 // 2. Perform draft deletion concurrently in background (non-blocking)
                 Promise.all([
                     draftIdToDelete ? supabase.from('kiosk_orders').delete().eq('id', draftIdToDelete) : Promise.resolve(),
-                    queueToDelete ? supabase.from('kiosk_orders').delete().eq('queue_number', queueToDelete) : Promise.resolve()
+                    (queueToDelete && staff?.store_id) 
+                        ? supabase.from('kiosk_orders').delete().eq('queue_number', queueToDelete).eq('store_id', staff.store_id)
+                        : (queueToDelete ? supabase.from('kiosk_orders').delete().eq('queue_number', queueToDelete) : Promise.resolve())
                 ]).catch(delErr => console.error("Gagal menghapus data draft dari database:", delErr));
 
                 // 3. Update Session Expected Cash in background if payment is CASH (non-blocking)
@@ -1439,8 +1491,8 @@ export default function PosPage() {
                                     <span className="text-green-400 text-xs font-bold">Rp {Number(sessionData.expected_cash || 0).toLocaleString('id-ID')}</span>
                                 </div>
                                 <div className="flex flex-col border-l border-border pl-3 md:pl-4">
-                                    <span className="text-text-muted text-[10px] leading-tight">Selisih (Penjualan Bersih)</span>
-                                    <span className="text-purple-400 text-xs font-bold">Rp {Number((sessionData.expected_cash || 0) - (sessionData.opening_cash || 0) + (sessionData.total_expense || 0)).toLocaleString('id-ID')}</span>
+                                    <span className="text-text-muted text-[10px] leading-tight">Penjualan Bersih (Cash)</span>
+                                    <span className="text-purple-400 text-xs font-bold">Rp {Math.max(0, Number((sessionData.expected_cash || 0) - (sessionData.opening_cash || 0) + (sessionData.total_expense || 0) + (sessionData.total_refund || 0))).toLocaleString('id-ID')}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 pl-2 border-l border-border">
                                     <button

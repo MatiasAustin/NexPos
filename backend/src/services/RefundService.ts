@@ -45,8 +45,24 @@ export class RefundService {
         
         let activeSessionId = sessionId;
         if (!activeSessionId) {
-            const { data: sessions } = await supabase.from('cash_sessions').select('id').eq('status', 'open').order('opened_at', { ascending: false }).limit(1);
-            if (sessions && sessions.length > 0) activeSessionId = sessions[0].id;
+            // Check if transaction has movements with session_id
+            const { data: movs } = await supabase.from('cash_movements').select('session_id').eq('transaction_id', trx.id).limit(1);
+            if (movs && movs.length > 0 && movs[0].session_id) {
+                activeSessionId = movs[0].session_id;
+            } else {
+                const trxTime = new Date(trx.created_at).getTime();
+                const { data: sessions } = await supabase.from('cash_sessions').select('id, opened_at, closed_at').order('opened_at', { ascending: false });
+                const matched = (sessions || []).find((s: any) => {
+                    const sOpen = new Date(s.opened_at).getTime();
+                    const sClose = s.closed_at ? new Date(s.closed_at).getTime() : Date.now();
+                    return trxTime >= sOpen && trxTime <= sClose;
+                });
+                if (matched) activeSessionId = matched.id;
+                else {
+                    const openSess = (sessions || []).find((s: any) => s.status === 'open');
+                    if (openSess) activeSessionId = openSess.id;
+                }
+            }
         }
 
         if (activeSessionId && isCash) {
@@ -64,7 +80,7 @@ export class RefundService {
         // 3. Update Refund & Transaction Status
         const { data, error } = await supabase
             .from('refunds')
-            .update({ status: 'approved', approved_by: approvedBy })
+            .update({ status: 'APPROVED', approved_by: approvedBy })
             .eq('id', refundId)
             .select('*')
             .single();
@@ -82,7 +98,7 @@ export class RefundService {
              action: 'approve_refund',
              entity_type: 'refund',
              entity_id: refundId,
-             new_value: { status: 'approved' }
+             new_value: { status: 'APPROVED' }
         });
 
         return data;

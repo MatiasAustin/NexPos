@@ -42,7 +42,7 @@ export class CashManagementService {
             const { data: refunds } = await supabase
                 .from('refunds')
                 .select('refund_amount')
-                .eq('status', 'APPROVED')
+                .in('status', ['APPROVED', 'approved', 'Approved'])
                 .eq('store_id', session.store_id)
                 .gte('created_at', session.opened_at);
             session.total_refund = refunds ? refunds.reduce((sum: number, r: any) => sum + Number(r.refund_amount), 0) : 0;

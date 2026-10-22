@@ -332,7 +332,7 @@ router.get('/admin/cash-sessions', async (req, res) => {
         
         // Fetch all expenses and refunds (source of truth)
         const { data: allExpenses } = await supabase.from('expenses').select('created_at, amount');
-        const { data: allRefunds } = await supabase.from('refunds').select('created_at, refund_amount').eq('status', 'APPROVED');
+        const { data: allRefunds } = await supabase.from('refunds').select('created_at, refund_amount').in('status', ['APPROVED', 'approved', 'Approved']);
         
         const sessionsWithTotals = data.map(session => {
             const sessionStart = session.opened_at;

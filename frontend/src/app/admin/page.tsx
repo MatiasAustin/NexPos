@@ -513,7 +513,10 @@ export default function AdminDashboard() {
                 if (data) {
                     // Ambil seluruh data pengeluaran, refund, dan mutasi kas penjualan untuk menghitung total per sesi
                     const { data: allExpenses } = await supabase.from('expenses').select('created_at, expense_date, amount, category');
-                    const { data: allRefunds } = await supabase.from('refunds').select('created_at, refund_amount').eq('status', 'APPROVED');
+                    const { data: allRefunds } = await supabase
+                        .from('refunds')
+                        .select('created_at, refund_amount, status, transaction_id, transactions(id, created_at)')
+                        .in('status', ['APPROVED', 'approved', 'Approved', 'pending', 'PENDING']);
                     const { data: allMovements } = await supabase.from('cash_movements').select('session_id, type, amount');
                     
                     const sessionsWithTotals = data.map((session: any) => {
@@ -537,12 +540,20 @@ export default function AdminDashboard() {
 
                         const total_expense = Math.max(table_expense, mov_expense);
 
-                        // Hitung refund dalam rentang waktu sesi
+                        // Hitung refund dalam rentang waktu sesi (baik berdasarkan waktu refund maupun waktu transaksi yang direfund)
                         const sessionRefunds = allRefunds ? allRefunds.filter((r: any) => {
-                            const t = new Date(r.created_at).getTime();
-                            return t >= sOpen && t <= sClose;
+                            const tRefund = r.created_at ? new Date(r.created_at).getTime() : 0;
+                            const tTrx = r.transactions?.created_at ? new Date(r.transactions.created_at).getTime() : 0;
+                            return (tRefund >= sOpen && tRefund <= sClose) || (tTrx >= sOpen && tTrx <= sClose);
                         }) : [];
-                        const total_refund = sessionRefunds.reduce((sum: number, r: any) => sum + Number(r.refund_amount), 0);
+                        const table_refund = sessionRefunds.reduce((sum: number, r: any) => sum + Number(r.refund_amount || 0), 0);
+                        
+                        // Hitung refund dari cash_movements bertipe refund untuk sesi ini
+                        const mov_refund = sessionMovements
+                            .filter((m: any) => m.type === 'refund')
+                            .reduce((sum: number, m: any) => sum + Math.abs(Number(m.amount || 0)), 0);
+
+                        const total_refund = Math.max(table_refund, mov_refund);
                         
                         // Hitung pendapatan tunai dari cash_movements bertipe sale jika tersedia
                         const saleMovements = sessionMovements.filter((m: any) => m.type === 'sale');
@@ -550,12 +561,29 @@ export default function AdminDashboard() {
                             ? saleMovements.reduce((sum: number, m: any) => sum + Number(m.amount), 0)
                             : Math.max(0, Number(session.expected_cash - session.opening_cash + total_expense + total_refund));
 
+                        // Hitung target kas sistem yang akurat: Modal Awal + Pendapatan Cash - Pengeluaran Cash - Total Refund
+                        const calculated_target = Number(session.opening_cash || 0) + total_cash_income - total_expense - total_refund;
+                        const effective_expected_cash = calculated_target;
+                        const diff = session.actual_cash !== null && session.actual_cash !== undefined
+                            ? Number(session.actual_cash) - effective_expected_cash
+                            : (session.difference !== null && session.difference !== undefined ? session.difference : null);
+
+                        // Sinkronkan ke database jika ada refund yang belum mengurangi expected_cash pada sesi ini
+                        if (session.expected_cash !== undefined && Number(session.expected_cash) !== effective_expected_cash && total_refund > 0) {
+                            supabase.from('cash_sessions').update({
+                                expected_cash: effective_expected_cash,
+                                ...(session.status === 'closed' && session.actual_cash !== null ? { difference: diff } : {})
+                            }).eq('id', session.id).then();
+                        }
+
                         return {
                             ...session,
                             staff_name: session.staff_profiles?.full_name,
                             total_expense,
                             total_refund,
-                            total_cash_income
+                            total_cash_income,
+                            expected_cash: effective_expected_cash,
+                            difference: diff !== null ? diff : (Number(session.actual_cash || 0) - effective_expected_cash)
                         };
                     });
                     setCashSessions(sessionsWithTotals);
@@ -1314,37 +1342,148 @@ export default function AdminDashboard() {
             toast.warning("Masukkan alasan refund terlebih dahulu.");
             return;
         }
+        const refundAmount = Number(refundTarget?.amount_due || refundTarget?.amount_received || 0);
         const ok = await confirm({
             title: "Konfirmasi Refund",
-            message: `Anda yakin ingin melakukan refund Rp ${Number(refundTarget?.amount_received || 0).toLocaleString('id-ID')}?`,
+            message: `Anda yakin ingin melakukan refund Rp ${refundAmount.toLocaleString('id-ID')}? Stok barang akan dikembalikan dan nominal uang di kasir akan disesuaikan.`,
             confirmText: "Ya, Proses Refund",
             variant: "warning"
         });
         if (!ok) return;
 
         setLoading(true);
+        const targetTrx = refundTarget;
         setRefundTarget(null);
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/refunds`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    transaction_id: refundTarget.id,
-                    refund_amount: refundTarget.amount_due,
-                    reason: refundReason,
-                    requested_by: session?.user?.id
-                })
-            });
-            if(res.ok) {
-                toast.success("Refund berhasil diproses!");
-                fetchData();
-            } else {
-                const err = await res.json();
-                toast.error(err.error || "Refund gagal.");
+            const staffId = session?.user?.id;
+
+            // 1. Catat ke tabel refunds secara langsung dengan status APPROVED
+            const { data: refundRecord, error: refErr } = await supabase.from('refunds').insert({
+                transaction_id: targetTrx.id,
+                refund_amount: refundAmount,
+                reason: refundReason,
+                requested_by: staffId,
+                approved_by: staffId,
+                status: 'APPROVED',
+                store_id: targetTrx.store_id || profile?.store_id || null
+            }).select('*').single();
+
+            if (refErr) throw refErr;
+
+            // 2. Ubah status transaksi menjadi 'Refunded'
+            await supabase.from('transactions').update({ status: 'Refunded' }).eq('id', targetTrx.id);
+
+            // 3. Kembalikan stok produk & bahan baku
+            if (targetTrx.order_items && targetTrx.order_items.length > 0) {
+                for (const item of targetTrx.order_items) {
+                    if (item.product_id) {
+                        const { data: pData } = await supabase.from('products').select('stock, name, ingredients').eq('id', item.product_id).single();
+                        if (pData && pData.stock !== null && pData.stock !== undefined) {
+                            await supabase.from('products').update({ stock: Number(pData.stock) + Number(item.quantity) }).eq('id', item.product_id);
+                        }
+                        if (pData?.ingredients && Array.isArray(pData.ingredients)) {
+                            for (const ing of pData.ingredients) {
+                                const mId = ing.raw_material_id || ing.id;
+                                if (mId && ing.qty > 0) {
+                                    const delta = Number(ing.qty) * Number(item.quantity);
+                                    const { data: mData } = await supabase.from('raw_materials').select('current_stock, name').eq('id', mId).single();
+                                    if (mData) {
+                                        const newStock = Number(mData.current_stock || 0) + delta;
+                                        await supabase.from('raw_materials').update({ current_stock: newStock }).eq('id', mId);
+                                        await supabase.from('material_stock_logs').insert([{
+                                            material_id: mId,
+                                            material_name: mData.name,
+                                            delta: delta,
+                                            current_stock: newStock,
+                                            note: `Refund: ${item.product_name} (Ref: ${targetTrx.order_reference})`,
+                                            staff_name: profile?.full_name || 'System',
+                                            store_id: targetTrx.store_id || profile?.store_id || null
+                                        }]);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-        } catch(error) {
-            toast.error("Terjadi kesalahan sistem saat memproses refund.");
+
+            // 4. Jika pembayaran Cash (Tunai), catat mutasi kas dan kurangi saldo target laci kasir
+            const pmName = (targetTrx.payment_methods?.name || '').toLowerCase();
+            const isCash = pmName.includes('cash') || pmName.includes('tunai') || targetTrx.payment_method_id === null;
+            if (isCash) {
+                let targetSessionId = null;
+                const { data: movs } = await supabase.from('cash_movements').select('session_id').eq('transaction_id', targetTrx.id).limit(1);
+                if (movs && movs.length > 0 && movs[0].session_id) {
+                    targetSessionId = movs[0].session_id;
+                } else {
+                    const trxTime = new Date(targetTrx.created_at).getTime();
+                    const { data: matchedSessions } = await supabase.from('cash_sessions').select('id, opened_at, closed_at').order('opened_at', { ascending: false });
+                    const matched = (matchedSessions || []).find((s: any) => {
+                        const sOpen = new Date(s.opened_at).getTime();
+                        const sClose = s.closed_at ? new Date(s.closed_at).getTime() : Date.now();
+                        return trxTime >= sOpen && trxTime <= sClose;
+                    });
+                    if (matched) {
+                        targetSessionId = matched.id;
+                    } else {
+                        const openSess = (matchedSessions || []).find((s: any) => s.status === 'open');
+                        if (openSess) targetSessionId = openSess.id;
+                    }
+                }
+
+                if (targetSessionId) {
+                    await supabase.from('cash_movements').insert({
+                        session_id: targetSessionId,
+                        staff_id: staffId,
+                        type: 'refund',
+                        amount: -Math.abs(refundAmount),
+                        reason: refundReason,
+                        transaction_id: targetTrx.id,
+                        store_id: targetTrx.store_id || profile?.store_id || null
+                    });
+
+                    const { data: sessData } = await supabase.from('cash_sessions').select('expected_cash, actual_cash, status').eq('id', targetSessionId).single();
+                    if (sessData) {
+                        const newExpected = Number(sessData.expected_cash || 0) - refundAmount;
+                        const updatePayload: any = { expected_cash: newExpected };
+                        if (sessData.status === 'closed' && sessData.actual_cash !== null) {
+                            updatePayload.difference = Number(sessData.actual_cash) - newExpected;
+                        }
+                        await supabase.from('cash_sessions').update(updatePayload).eq('id', targetSessionId);
+                    }
+                }
+            }
+
+            // 5. Catat audit log
+            await supabase.from('audit_logs').insert({
+                staff_id: staffId,
+                action: 'approve_refund',
+                entity_type: 'refund',
+                entity_id: targetTrx.id,
+                store_id: targetTrx.store_id || profile?.store_id || null,
+                new_value: { status: 'APPROVED', amount: refundAmount, reason: refundReason }
+            });
+
+            // 6. Opsional kirim ke backend API jika tersedia
+            if (process.env.NEXT_PUBLIC_API_URL) {
+                fetch(`${process.env.NEXT_PUBLIC_API_URL}/refunds`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        transaction_id: targetTrx.id,
+                        refund_amount: refundAmount,
+                        reason: refundReason,
+                        requested_by: staffId
+                    })
+                }).catch(() => {});
+            }
+
+            toast.success("Refund berhasil diproses! Stok dan saldo laci kasir telah diperbarui.");
+            fetchData();
+        } catch(error: any) {
+            console.error("Refund error:", error);
+            toast.error(error.message || "Terjadi kesalahan sistem saat memproses refund.");
         }
         setLoading(false);
     };
@@ -2023,9 +2162,13 @@ export default function AdminDashboard() {
             // Deduct from active cash drawer if shift is open AND paid with CASH
             if (newExpense.payment_method === 'CASH') {
                 try {
-                    const { data: activeSessions } = await supabase.from('cash_sessions')
-                        .select('id, expected_cash')
-                        .eq('status', 'open')
+                    let sessQuery = supabase.from('cash_sessions')
+                        .select('id, expected_cash, store_id')
+                        .eq('status', 'open');
+                    if (profile?.store_id) {
+                        sessQuery = sessQuery.eq('store_id', profile.store_id);
+                    }
+                    const { data: activeSessions } = await sessQuery
                         .order('opened_at', { ascending: false })
                         .limit(1);
                     
@@ -2131,10 +2274,14 @@ export default function AdminDashboard() {
                             }
                         }
                     } else if (amountDiff !== 0) {
-                        // Fallback: adjust active open session if any
-                        const { data: activeSessions } = await supabase.from('cash_sessions')
-                            .select('id, expected_cash')
-                            .eq('status', 'open')
+                        // Fallback: adjust active open session for this store if any
+                        let sessQuery = supabase.from('cash_sessions')
+                            .select('id, expected_cash, store_id')
+                            .eq('status', 'open');
+                        if (profile?.store_id) {
+                            sessQuery = sessQuery.eq('store_id', profile.store_id);
+                        }
+                        const { data: activeSessions } = await sessQuery
                             .order('opened_at', { ascending: false })
                             .limit(1);
                         if (activeSessions && activeSessions.length > 0) {
@@ -3344,7 +3491,7 @@ export default function AdminDashboard() {
                                                 filteredTransactions.map((trx: any) => {
                                                 const itemCogs = trx.order_items?.reduce((sum: number, item: any) => sum + ((item.cogs_at_time || 0) * item.quantity), 0) || 0;
                                                 const subTotal = trx.amount_due - (trx.tax_amount || 0);
-                                                const netProfit = subTotal - itemCogs;
+                                                const netProfit = trx.status === 'Refunded' ? 0 : (subTotal - itemCogs);
                                                 return (
                                                     <div key={trx.id} className="p-2 md:p-4 md:p-5 bg-surface rounded-2xl border border-border shadow-soft flex flex-col md:flex-row gap-4 justify-between transition-colors hover:border-accent/30">
                                                         <div className="flex-1">
