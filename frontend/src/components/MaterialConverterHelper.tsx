@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import toast from 'react-hot-toast';
+import { useToast } from '@/components/Toast';
 
 export interface MaterialConverterHelperProps {
     targetUnit: string;
@@ -48,6 +48,7 @@ export default function MaterialConverterHelper({
     onApplyStock,
     initialOpen = false
 }: MaterialConverterHelperProps) {
+    const toast = useToast();
     const [isOpen, setIsOpen] = useState(initialOpen);
     const [buyQty, setBuyQty] = useState<string>('1');
     const [buyUnit, setBuyUnit] = useState<string>(() => {

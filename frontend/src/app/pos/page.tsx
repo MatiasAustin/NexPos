@@ -12,6 +12,7 @@ import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
 import { LoadingSpinner } from "@/components/Loading";
 import StoreSwitcher from "@/components/StoreSwitcher";
+import MaterialConverterHelper, { convertUnitRate } from "@/components/MaterialConverterHelper";
 import { parseExpenseQtyAndUnit, formatExpenseDescription, cleanExpenseDescription } from "@/lib/expenseHelpers";
 import { useSaasSettings } from "@/contexts/SaasSettingsContext";
 
@@ -2375,8 +2376,29 @@ export default function PosPage() {
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                             <div>
-                                                <label className="text-xs font-bold text-text-muted block mb-1">Satuan</label>
-                                                <select value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-xs sm:text-sm font-semibold">
+                                                <label className="text-xs font-bold text-text-muted block mb-1">Satuan Dasar</label>
+                                                <select
+                                                    value={newMaterial.unit}
+                                                    onChange={e => {
+                                                        const nextUnit = e.target.value;
+                                                        const converted = convertUnitRate(
+                                                            newMaterial.unit,
+                                                            nextUnit,
+                                                            Number(newMaterial.last_price_per_unit || 0),
+                                                            Number(newMaterial.current_stock || 0)
+                                                        );
+                                                        setNewMaterial({
+                                                            ...newMaterial,
+                                                            unit: nextUnit,
+                                                            last_price_per_unit: converted.price,
+                                                            current_stock: converted.stock
+                                                        });
+                                                        if (converted.price !== newMaterial.last_price_per_unit && Number(newMaterial.last_price_per_unit) > 0) {
+                                                            toast.success(`Satuan diubah ke ${nextUnit}: Harga otomatis disesuaikan jadi Rp ${converted.price.toLocaleString('id-ID')} / ${nextUnit}`);
+                                                        }
+                                                    }}
+                                                    className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-xs sm:text-sm font-semibold"
+                                                >
                                                     <option value="g">Gram (g)</option>
                                                     <option value="ml">Mililiter (ml)</option>
                                                     <option value="pcs">Pieces (pcs)</option>
@@ -2389,14 +2411,49 @@ export default function PosPage() {
                                                 </select>
                                             </div>
                                             <div>
-                                                <label className="text-xs font-bold text-text-muted block mb-1">Stok Awal</label>
-                                                <input type="number" step="any" placeholder="0" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-sm" />
+                                                <label className="text-xs font-bold text-text-muted block mb-1">Stok Awal ({newMaterial.unit})</label>
+                                                <input type="number" step="any" placeholder="0" required value={newMaterial.current_stock || ''} onChange={e => setNewMaterial({...newMaterial, current_stock: Number(e.target.value)})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-sm font-semibold" />
                                             </div>
                                             <div>
-                                                <label className="text-xs font-bold text-text-muted block mb-1">Harga / Satuan</label>
-                                                <input type="number" step="any" placeholder="Rp" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-sm" />
+                                                <label className="text-xs font-bold text-text-muted block mb-1">Harga / Satuan (Rp / {newMaterial.unit})</label>
+                                                <input type="number" step="any" placeholder="Rp" required value={newMaterial.last_price_per_unit || ''} onChange={e => setNewMaterial({...newMaterial, last_price_per_unit: Number(e.target.value)})} className="w-full p-3 bg-surface-hover border border-border rounded-xl focus:border-accent outline-none text-text-primary text-sm font-bold text-accent" />
                                             </div>
                                         </div>
+
+                                        {(newMaterial.unit === 'g' || newMaterial.unit === 'gr' || newMaterial.unit === 'ml') && Number(newMaterial.last_price_per_unit) >= 1000 && (
+                                            <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl flex items-center justify-between text-xs">
+                                                <span className="text-amber-300">
+                                                    💡 Apakah Rp {Number(newMaterial.last_price_per_unit).toLocaleString('id-ID')} harga beli untuk 1 {newMaterial.unit === 'ml' ? 'Liter' : 'KG'}?
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const perGram = Number((Number(newMaterial.last_price_per_unit) / 1000).toFixed(2));
+                                                        const stockConverted = newMaterial.current_stock && Number(newMaterial.current_stock) <= 50 ? Number(newMaterial.current_stock) * 1000 : (newMaterial.current_stock || 1000);
+                                                        setNewMaterial(prev => ({
+                                                            ...prev,
+                                                            last_price_per_unit: perGram,
+                                                            current_stock: stockConverted
+                                                        }));
+                                                        toast.success(`Dikonversi: Rp ${perGram.toLocaleString('id-ID')} / ${newMaterial.unit}`);
+                                                    }}
+                                                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-lg transition-colors whitespace-nowrap ml-2"
+                                                >
+                                                    Ubah ke Rp {Number((Number(newMaterial.last_price_per_unit) / 1000).toFixed(2))} / {newMaterial.unit}
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <MaterialConverterHelper
+                                            targetUnit={newMaterial.unit}
+                                            onApply={(calcPrice) => {
+                                                setNewMaterial(prev => ({ ...prev, last_price_per_unit: calcPrice }));
+                                            }}
+                                            onApplyStock={(calcStock) => {
+                                                setNewMaterial(prev => ({ ...prev, current_stock: calcStock }));
+                                            }}
+                                        />
+
                                         <button type="submit" disabled={loading} className="w-full py-3 bg-accent text-text-primary rounded-xl font-bold hover:bg-accent-hover transition-colors text-sm sm:text-base">Simpan Bahan</button>
                                     </form>
                                     )}
