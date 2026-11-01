@@ -4496,7 +4496,7 @@ export default function AdminDashboard() {
                                                     <div className="flex bg-surface-hover rounded-lg p-1 border border-border">
                                                         {[{k:'all',l:'Semua'},{k:'bahan_baku',l:'🧪 Bahan'},{k:'operasional',l:'⚙️ Operasional'}].map(f => (
                                                             <button key={f.k} onClick={() => setExpenseCategoryFilter(f.k as any)}
-                                                                className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                                                                className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all whitespace-nowrap ${
                                                                     expenseCategoryFilter === f.k ? 'bg-purple-600 text-text-primary' : 'text-text-muted hover:text-text-primary'
                                                                 }`}>{f.l}</button>
                                                         ))}
@@ -4542,62 +4542,124 @@ export default function AdminDashboard() {
                                                             <div className="text-sm font-bold text-red-400">Rp {(totalBahanBaku + totalOperasional).toLocaleString('id-ID')}</div>
                                                         </div>
                                                     </div>
-                                                    <div className="overflow-x-auto max-h-[600px]">
-                                                        <table className="w-full text-left text-xs md:text-sm">
-                                                            <tbody>
-                                                                {filteredExpenses.map((exp: any) => {
-                                                                    const isBahan = getExpCategory(exp) === 'bahan_baku';
-                                                                    return (
-                                                                        <tr key={exp.id} className="border-b border-border hover:bg-surface-hover">
-                                                                            <td className="p-2 md:p-4">
-                                                                                <p className="font-bold text-text-primary">{exp.description}</p>
-                                                                                <p className="text-xs text-text-muted">{new Date(exp.expense_date || exp.created_at).toLocaleString('id-ID')}</p>
-                                                                            </td>
-                                                                            <td className="p-2 md:p-4 text-center">
-                                                                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold border ${
+                                                    <div className="max-h-[600px] overflow-y-auto">
+                                                        {/* Mobile Card List View (< md) */}
+                                                        <div className="md:hidden divide-y divide-border">
+                                                            {filteredExpenses.map((exp: any) => {
+                                                                const isBahan = getExpCategory(exp) === 'bahan_baku';
+                                                                return (
+                                                                    <div key={exp.id} className="p-3.5 hover:bg-surface-hover transition-colors space-y-2.5">
+                                                                        <div className="flex items-start justify-between gap-3">
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <p className="font-bold text-text-primary text-sm break-words">{exp.description}</p>
+                                                                                <p className="text-[11px] text-text-muted mt-0.5">{new Date(exp.expense_date || exp.created_at).toLocaleString('id-ID')}</p>
+                                                                            </div>
+                                                                            <div className="text-right shrink-0">
+                                                                                <span className="font-bold text-sm text-red-400 whitespace-nowrap">
+                                                                                    - Rp {Number(exp.amount).toLocaleString('id-ID')}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center justify-between gap-2 pt-0.5">
+                                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border whitespace-nowrap shrink-0 ${
                                                                                     isBahan
                                                                                         ? 'bg-green-500/10 text-green-400 border-green-500/20'
                                                                                         : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
                                                                                 }`}>
                                                                                     {isBahan ? '🧪 Bahan' : '⚙️ Ops'}
                                                                                 </span>
-                                                                            </td>
-                                                                            <td className="p-2 md:p-4 text-center">
                                                                                 {exp.staff_name ? (
-                                                                                    <span className="px-2 py-1 bg-accent/10 text-accent rounded-md text-[10px] font-bold border border-accent/20">{exp.staff_name}</span>
+                                                                                    <span className="inline-flex items-center px-2 py-0.5 bg-accent/10 text-accent rounded-md text-[10px] font-bold border border-accent/20 whitespace-nowrap shrink-0">{exp.staff_name}</span>
                                                                                 ) : (
-                                                                                    <span className="px-2 py-1 bg-gray-800 text-white rounded-md text-[10px] border border-border">Owner</span>
+                                                                                    <span className="inline-flex items-center px-2 py-0.5 bg-gray-800 text-white rounded-md text-[10px] border border-border whitespace-nowrap shrink-0">Owner</span>
                                                                                 )}
-                                                                            </td>
-                                                                            <td className="p-2 md:p-4 text-right font-bold text-red-400 whitespace-nowrap">- Rp {Number(exp.amount).toLocaleString('id-ID')}</td>
-                                                                            <td className="p-3 text-right">
-                                                                                <div className="flex gap-1 justify-end">
-                                                                                    <button 
-                                                                                        onClick={() => {
-                                                                                            const matId = exp.raw_material_id || exp.material_id || '';
-                                                                                            const mat = rawMaterials.find(m => m.id === matId);
-                                                                                            const parsed = parseExpenseQtyAndUnit(exp, mat, materialStockLogs);
-                                                                                            setEditingExpense({
-                                                                                                ...exp, 
-                                                                                                category: isBahan ? 'bahan_baku' : 'operasional', 
-                                                                                                material_id: matId,
-                                                                                                quantity: parsed.qty,
-                                                                                                buy_unit: parsed.unit,
-                                                                                                description: cleanExpenseDescription(exp.description)
-                                                                                            });
-                                                                                        }} 
-                                                                                        className="px-2 py-1 text-xs bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent hover:text-text-primary font-bold transition-colors"
-                                                                                    >
-                                                                                        Edit
-                                                                                    </button>
-                                                                                    <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
-                                                                                </div>
-                                                                            </td>
-                                                                        </tr>
-                                                                    );
-                                                                })}
-                                                            </tbody>
-                                                        </table>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                                                <button 
+                                                                                    onClick={() => {
+                                                                                        const matId = exp.raw_material_id || exp.material_id || '';
+                                                                                        const mat = rawMaterials.find(m => m.id === matId);
+                                                                                        const parsed = parseExpenseQtyAndUnit(exp, mat, materialStockLogs);
+                                                                                        setEditingExpense({
+                                                                                            ...exp, 
+                                                                                            category: isBahan ? 'bahan_baku' : 'operasional', 
+                                                                                            material_id: matId,
+                                                                                            quantity: parsed.qty,
+                                                                                            buy_unit: parsed.unit,
+                                                                                            description: cleanExpenseDescription(exp.description)
+                                                                                        });
+                                                                                    }} 
+                                                                                    className="px-2.5 py-1 text-xs bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent hover:text-text-primary font-bold transition-colors"
+                                                                                >
+                                                                                    Edit
+                                                                                </button>
+                                                                                <button onClick={() => handleDeleteExpense(exp.id)} className="px-2.5 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+
+                                                        {/* Desktop Table View (>= md) */}
+                                                        <div className="hidden md:block overflow-x-auto">
+                                                            <table className="w-full text-left text-xs md:text-sm min-w-[550px]">
+                                                                <tbody>
+                                                                    {filteredExpenses.map((exp: any) => {
+                                                                        const isBahan = getExpCategory(exp) === 'bahan_baku';
+                                                                        return (
+                                                                            <tr key={exp.id} className="border-b border-border hover:bg-surface-hover">
+                                                                                <td className="p-3 md:p-4">
+                                                                                    <p className="font-bold text-text-primary">{exp.description}</p>
+                                                                                    <p className="text-xs text-text-muted">{new Date(exp.expense_date || exp.created_at).toLocaleString('id-ID')}</p>
+                                                                                </td>
+                                                                                <td className="p-3 md:p-4 text-center whitespace-nowrap">
+                                                                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold border whitespace-nowrap shrink-0 ${
+                                                                                        isBahan
+                                                                                            ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                                                                            : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                                                                    }`}>
+                                                                                        {isBahan ? '🧪 Bahan' : '⚙️ Ops'}
+                                                                                    </span>
+                                                                                </td>
+                                                                                <td className="p-3 md:p-4 text-center whitespace-nowrap">
+                                                                                    {exp.staff_name ? (
+                                                                                        <span className="inline-flex items-center px-2.5 py-1 bg-accent/10 text-accent rounded-md text-[10px] font-bold border border-accent/20 whitespace-nowrap shrink-0">{exp.staff_name}</span>
+                                                                                    ) : (
+                                                                                        <span className="inline-flex items-center px-2.5 py-1 bg-gray-800 text-white rounded-md text-[10px] border border-border whitespace-nowrap shrink-0">Owner</span>
+                                                                                    )}
+                                                                                </td>
+                                                                                <td className="p-3 md:p-4 text-right font-bold text-red-400 whitespace-nowrap">- Rp {Number(exp.amount).toLocaleString('id-ID')}</td>
+                                                                                <td className="p-3 md:p-4 text-right whitespace-nowrap">
+                                                                                    <div className="flex gap-1 justify-end">
+                                                                                        <button 
+                                                                                            onClick={() => {
+                                                                                                const matId = exp.raw_material_id || exp.material_id || '';
+                                                                                                const mat = rawMaterials.find(m => m.id === matId);
+                                                                                                const parsed = parseExpenseQtyAndUnit(exp, mat, materialStockLogs);
+                                                                                                setEditingExpense({
+                                                                                                    ...exp, 
+                                                                                                    category: isBahan ? 'bahan_baku' : 'operasional', 
+                                                                                                    material_id: matId,
+                                                                                                    quantity: parsed.qty,
+                                                                                                    buy_unit: parsed.unit,
+                                                                                                    description: cleanExpenseDescription(exp.description)
+                                                                                                });
+                                                                                            }} 
+                                                                                            className="px-2 py-1 text-xs bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent hover:text-text-primary font-bold transition-colors"
+                                                                                        >
+                                                                                            Edit
+                                                                                        </button>
+                                                                                        <button onClick={() => handleDeleteExpense(exp.id)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white font-bold transition-colors">Hapus</button>
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    })}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
                                                     </div>
                                                     </>
                                                 );
@@ -4612,7 +4674,7 @@ export default function AdminDashboard() {
                                             <p className="p-2 md:p-4 md:p-6 text-text-muted text-center text-sm">Belum ada riwayat update stok.</p>
                                         ) : (
                                             <div className="overflow-x-auto">
-                                                <table className="w-full text-left text-xs md:text-sm">
+                                                <table className="w-full text-left text-xs md:text-sm min-w-[500px]">
                                                     <thead>
                                                         <tr className="bg-surface-hover border-b border-border text-white">
                                                             <th className="p-2 md:p-4 text-xs md:text-sm">Waktu</th>
@@ -4628,16 +4690,16 @@ export default function AdminDashboard() {
                                                                 <td className="p-2 md:p-4 text-text-muted">{new Date(log.created_at).toLocaleString('id-ID')}</td>
                                                                 <td className="p-2 md:p-4 font-bold text-text-primary">{log.material_name}</td>
                                                                 <td className="p-2 md:p-4">
-                                                                    <span className={`px-2 py-1 rounded-md font-bold text-xs ${log.delta > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-xs whitespace-nowrap ${log.delta > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
                                                                         {log.delta > 0 ? '+' : ''}{log.delta}
                                                                     </span>
                                                                 </td>
                                                                 <td className="p-2 md:p-4 text-text-muted">{log.note || '-'}</td>
                                                                 <td className="p-2 md:p-4">
                                                                     {log.staff_name ? (
-                                                                        <span className="px-2 py-1 bg-accent/10 text-accent rounded-md text-[10px] font-bold border border-accent/20">{log.staff_name}</span>
+                                                                        <span className="inline-flex items-center px-2 py-0.5 bg-accent/10 text-accent rounded-md text-[10px] font-bold border border-accent/20 whitespace-nowrap">{log.staff_name}</span>
                                                                     ) : (
-                                                                        <span className="px-2 py-1 bg-gray-800 text-white rounded-md text-[10px] border border-border">Admin</span>
+                                                                        <span className="inline-flex items-center px-2 py-0.5 bg-gray-800 text-white rounded-md text-[10px] border border-border whitespace-nowrap">Admin</span>
                                                                     )}
                                                                 </td>
                                                             </tr>
@@ -5026,7 +5088,7 @@ export default function AdminDashboard() {
                                             <p className="p-2 md:p-4 md:p-6 text-text-muted text-center text-sm">Belum ada riwayat update stok.</p>
                                         ) : (
                                             <div className="overflow-x-auto">
-                                                <table className="w-full text-left text-xs md:text-sm">
+                                                <table className="w-full text-left text-xs md:text-sm min-w-[500px]">
                                                     <thead>
                                                         <tr className="bg-surface-hover border-b border-border text-white">
                                                             <th className="p-2 md:p-4 text-xs md:text-sm">Waktu</th>
@@ -5042,16 +5104,16 @@ export default function AdminDashboard() {
                                                                 <td className="p-2 md:p-4 text-text-muted">{new Date(log.created_at).toLocaleString('id-ID')}</td>
                                                                 <td className="p-2 md:p-4 font-bold text-text-primary">{log.material_name}</td>
                                                                 <td className="p-2 md:p-4">
-                                                                    <span className={`px-2 py-1 rounded-md font-bold text-xs ${log.delta > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md font-bold text-xs whitespace-nowrap ${log.delta > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
                                                                         {log.delta > 0 ? '+' : ''}{log.delta}
                                                                     </span>
                                                                 </td>
                                                                 <td className="p-2 md:p-4 text-text-muted">{log.note || '-'}</td>
                                                                 <td className="p-2 md:p-4">
                                                                     {log.staff_name ? (
-                                                                        <span className="px-2 py-1 bg-accent/10 text-accent rounded-md text-[10px] font-bold border border-accent/20">{log.staff_name}</span>
+                                                                        <span className="inline-flex items-center px-2 py-0.5 bg-accent/10 text-accent rounded-md text-[10px] font-bold border border-accent/20 whitespace-nowrap">{log.staff_name}</span>
                                                                     ) : (
-                                                                        <span className="px-2 py-1 bg-gray-800 text-white rounded-md text-[10px] border border-border">Admin</span>
+                                                                        <span className="inline-flex items-center px-2 py-0.5 bg-gray-800 text-white rounded-md text-[10px] border border-border whitespace-nowrap">Admin</span>
                                                                     )}
                                                                 </td>
                                                             </tr>
