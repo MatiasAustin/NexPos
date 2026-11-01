@@ -2698,29 +2698,29 @@ export default function AdminDashboard() {
             {/* Main Content */}
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
                 {/* Top Header */}
-                <div className="h-20 border-b border-border px-6 md:px-8 flex items-center justify-between shrink-0 bg-background">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-xl md:text-lg font-semibold text-text-primary capitalize">
+                <div className="min-h-[4.5rem] py-2.5 border-b border-border px-4 sm:px-6 md:px-8 flex items-center justify-between shrink-0 bg-background flex-wrap gap-2.5">
+                    <div className="flex items-center gap-2.5 sm:gap-4">
+                        <h2 className="text-base sm:text-lg md:text-xl font-semibold text-text-primary capitalize truncate max-w-[150px] sm:max-w-none">
                             {activeTab.replace('reconciliation', 'Rekonsiliasi').replace('history', 'Riwayat Transaksi')}
                         </h2>
                         <button 
                             onClick={fetchData}
-                            className="whitespace-nowrap flex items-center gap-2 px-4 py-2 bg-gray-800/40 text-white rounded-full text-sm font-semibold hover:bg-gray-700/50 transition-colors border border-border"
+                            className="whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-800/40 text-white rounded-full text-xs sm:text-sm font-semibold hover:bg-gray-700/50 transition-colors border border-border"
                         >
-                            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-accent" : ""}`} /> 
-                            <span className="hidden md:inline">Refresh</span>
+                            <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${loading ? "animate-spin text-accent" : ""}`} /> 
+                            <span className="hidden sm:inline">Refresh</span>
                         </button>
                     </div>
 
                     {/* Store Switcher & Staff / Admin Profile Badge */}
-                    <div className="flex items-center gap-2.5 md:gap-3">
-                        <StoreSwitcher currentStoreId={profile?.store_id} />
-                        <div className="flex items-center gap-3 bg-surface border border-border px-3.5 py-1.5 md:px-4 md:py-2 rounded-xl sm:rounded-full shadow-sm">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-bold text-white shadow-sm">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <StoreSwitcher currentStoreId={profile?.store_id} align="right" />
+                        <div className="flex items-center gap-2.5 sm:gap-3 bg-surface border border-border px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full shadow-sm">
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-xs sm:text-sm font-bold text-white shadow-sm shrink-0">
                                 {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : 'A'}
                             </div>
                             <div className="flex flex-col hidden sm:flex">
-                                <span className="text-sm font-bold leading-tight text-text-primary">{profile?.full_name || 'Admin System'}</span>
+                                <span className="text-xs sm:text-sm font-bold leading-tight text-text-primary">{profile?.full_name || 'Admin System'}</span>
                                 <span className="text-[10px] text-accent font-bold uppercase tracking-wider">{profile?.role || 'Owner Access'}</span>
                             </div>
                         </div>
@@ -2835,13 +2835,13 @@ export default function AdminDashboard() {
                                             )}
 
                                             {/* Shift Filter Dropdown */}
-                                            <div className="flex items-center gap-2 bg-surface-hover px-3 py-1.5 rounded-xl border border-border h-10">
+                                            <div className="flex items-center gap-2 bg-surface-hover px-3 py-1.5 rounded-xl border border-border h-10 w-full sm:w-auto">
                                                 <Clock className="w-4 h-4 text-accent shrink-0" />
                                                 <span className="text-xs font-semibold text-text-muted whitespace-nowrap">Shift:</span>
                                                 <select
                                                     value={selectedShiftId}
                                                     onChange={(e) => handleSelectShift(e.target.value)}
-                                                    className="bg-transparent text-text-primary text-xs font-bold outline-none cursor-pointer pr-1 max-w-[210px] truncate"
+                                                    className="bg-transparent text-text-primary text-xs font-bold outline-none cursor-pointer pr-1 w-full sm:max-w-[210px] truncate"
                                                 >
                                                     <option value="all" className="bg-surface text-text-primary">
                                                         Semua Shift ({periodShifts.length} Shift)
@@ -2859,13 +2859,13 @@ export default function AdminDashboard() {
                                             </div>
 
                                             {/* Item / Product Filter Dropdown */}
-                                            <div className="flex items-center gap-2 bg-surface-hover px-3 py-1.5 rounded-xl border border-border h-10">
+                                            <div className="flex items-center gap-2 bg-surface-hover px-3 py-1.5 rounded-xl border border-border h-10 w-full sm:w-auto">
                                                 <Package className="w-4 h-4 text-purple-400 shrink-0" />
                                                 <span className="text-xs font-semibold text-text-muted whitespace-nowrap">Item:</span>
                                                 <select
                                                     value={selectedProductId}
                                                     onChange={(e) => handleSelectItem(e.target.value)}
-                                                    className="bg-transparent text-text-primary text-xs font-bold outline-none cursor-pointer pr-1 max-w-[200px] truncate"
+                                                    className="bg-transparent text-text-primary text-xs font-bold outline-none cursor-pointer pr-1 w-full sm:max-w-[200px] truncate"
                                                 >
                                                     <option value="all" className="bg-surface text-text-primary">
                                                         Semua Item ({(products.length > 0 ? products : productSalesData).length} Produk)
@@ -2880,16 +2880,16 @@ export default function AdminDashboard() {
                                                     <button
                                                         onClick={() => handleSelectItem('all')}
                                                         title="Reset Filter Item"
-                                                        className="p-1 hover:bg-gray-700/60 rounded-full text-text-muted hover:text-white"
+                                                        className="p-1 hover:bg-gray-700/60 rounded-full text-text-muted hover:text-white shrink-0"
                                                     >
                                                         <X className="w-3.5 h-3.5" />
                                                     </button>
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="flex flex-col sm:flex-row items-center gap-3">
+                                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
                                             {reconciliationPeriod === 'custom' && (
-                                                <div className="flex flex-col sm:flex-row items-center gap-2 bg-surface-hover p-1.5 rounded-xl border border-border">
+                                                <div className="flex flex-col sm:flex-row items-center gap-2 bg-surface-hover p-1.5 rounded-xl border border-border w-full sm:w-auto">
                                                     <input 
                                                         type="date" 
                                                         value={customDateStart}
@@ -2911,7 +2911,7 @@ export default function AdminDashboard() {
                                                     </button>
                                                 </div>
                                             )}
-                                            <div className="flex flex-wrap bg-surface-hover rounded-xl p-1 border border-border w-full md:w-fit">
+                                            <div className="flex bg-surface-hover rounded-xl p-1 border border-border w-full md:w-fit overflow-x-auto no-scrollbar">
                                                 {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'},{k:'yearly',l:'Tahunan'},{k:'custom',l:'Kustom'}].map(f => (
                                                     <button key={f.k} onClick={() => {
                                                         setSelectedShiftId("all");
@@ -2919,7 +2919,7 @@ export default function AdminDashboard() {
                                                         if (f.k !== 'custom') fetchReconciliation(f.k as any, undefined, undefined, 'all', selectedProductId);
                                                         else if (customDateStart && customDateEnd) fetchReconciliation('custom', customDateStart, customDateEnd, 'all', selectedProductId);
                                                     }}
-                                                        className={`flex-1 md:flex-none text-center px-2 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${reconciliationPeriod === f.k ? 'bg-accent text-text-primary' : 'text-text-muted hover:text-text-primary'}`}>
+                                                        className={`flex-1 md:flex-none text-center px-2.5 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all whitespace-nowrap ${reconciliationPeriod === f.k ? 'bg-accent text-text-primary' : 'text-text-muted hover:text-text-primary'}`}>
                                                         {f.l}
                                                     </button>
                                                 ))}
@@ -3549,10 +3549,10 @@ export default function AdminDashboard() {
                                                             <button onClick={() => shiftHistoryDate(1)} className="px-4 py-2 hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors flex items-center justify-center w-12">&gt;</button>
                                                         </div>
                                                     )}
-                                                    <div className="flex flex-wrap bg-surface-hover rounded-xl p-1 border border-border w-full md:w-fit">
+                                                    <div className="flex bg-surface-hover rounded-xl p-1 border border-border w-full md:w-fit overflow-x-auto no-scrollbar">
                                                         {[{k:'daily',l:'Harian'},{k:'weekly',l:'Mingguan'},{k:'monthly',l:'Bulanan'},{k:'yearly',l:'Tahunan'},{k:'custom',l:'Kustom'}].map(f => (
                                                             <button key={f.k} onClick={() => setHistoryFilterType(f.k as any)}
-                                                                className={`flex-1 md:flex-none text-center px-2 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${historyFilterType === f.k ? 'bg-accent text-text-primary' : 'text-text-muted hover:text-text-primary'}`}>
+                                                                className={`flex-1 md:flex-none text-center px-2.5 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all whitespace-nowrap ${historyFilterType === f.k ? 'bg-accent text-text-primary' : 'text-text-muted hover:text-text-primary'}`}>
                                                                 {f.l}
                                                             </button>
                                                         ))}

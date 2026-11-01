@@ -155,13 +155,13 @@ export default function ReportTargetCard({
                 {activeTarget > 0 ? (
                     <div className="space-y-5">
                         {/* Metrics Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                             {/* Target Box */}
-                            <div className="bg-background/60 border border-border p-4 rounded-xl">
+                            <div className="bg-background/60 border border-border p-3.5 sm:p-4 rounded-xl min-w-0">
                                 <span className="text-text-muted text-xs font-semibold uppercase tracking-wider block mb-1">
                                     Target {periodLabel}
                                 </span>
-                                <div className="text-xl font-bold text-text-primary">
+                                <div className="text-lg sm:text-xl font-bold text-text-primary truncate" title={`Rp ${activeTarget.toLocaleString('id-ID')}`}>
                                     Rp {activeTarget.toLocaleString('id-ID')}
                                 </div>
                                 <span className="text-[10px] text-text-muted mt-1 block">
@@ -170,11 +170,11 @@ export default function ReportTargetCard({
                             </div>
 
                             {/* Realisasi Box */}
-                            <div className="bg-background/60 border border-border p-4 rounded-xl">
+                            <div className="bg-background/60 border border-border p-3.5 sm:p-4 rounded-xl min-w-0">
                                 <span className="text-text-muted text-xs font-semibold uppercase tracking-wider block mb-1">
                                     Realisasi Omset
                                 </span>
-                                <div className={`text-xl font-bold ${isTargetMet ? 'text-emerald-400' : 'text-accent'}`}>
+                                <div className={`text-lg sm:text-xl font-bold truncate ${isTargetMet ? 'text-emerald-400' : 'text-accent'}`} title={`Rp ${currentRevenue.toLocaleString('id-ID')}`}>
                                     Rp {currentRevenue.toLocaleString('id-ID')}
                                 </div>
                                 <span className="text-[10px] text-text-muted mt-1 block">
@@ -183,7 +183,7 @@ export default function ReportTargetCard({
                             </div>
 
                             {/* Difference Box */}
-                            <div className={`p-4 rounded-xl border ${
+                            <div className={`p-3.5 sm:p-4 rounded-xl border min-w-0 ${
                                 isTargetMet 
                                     ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
                                     : "bg-amber-500/10 border-amber-500/20 text-amber-400"
@@ -191,7 +191,7 @@ export default function ReportTargetCard({
                                 <span className="text-xs font-semibold uppercase tracking-wider block mb-1">
                                     {isTargetMet ? "Surplus Penjualan" : "Sisa Kekurangan"}
                                 </span>
-                                <div className="text-xl font-bold">
+                                <div className="text-lg sm:text-xl font-bold truncate">
                                     {isTargetMet ? `+Rp ${difference.toLocaleString('id-ID')}` : `Rp ${Math.abs(difference).toLocaleString('id-ID')}`}
                                 </div>
                                 <span className="text-[10px] opacity-80 mt-1 block">
@@ -271,23 +271,23 @@ export default function ReportTargetCard({
 
             {/* Modal Set Target */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in duration-150">
-                    <div className="bg-surface border border-border rounded-3xl p-6 w-full max-w-lg shadow-2xl relative">
+                <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+                    <div className="bg-surface border border-border rounded-3xl p-5 sm:p-6 w-full max-w-lg shadow-2xl relative my-auto max-h-[90vh] overflow-y-auto">
                         {/* Modal Header */}
                         <div className="flex items-center justify-between pb-4 border-b border-border mb-5">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl bg-accent/10 text-accent flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-2xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
                                     <Target className="w-5 h-5" />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-lg text-text-primary">Atur Target Penjualan Toko</h3>
-                                    <p className="text-xs text-text-muted">Masukkan sasaran omset harian, mingguan, dan bulanan</p>
+                                <div className="min-w-0">
+                                    <h3 className="font-bold text-base sm:text-lg text-text-primary">Atur Target Penjualan Toko</h3>
+                                    <p className="text-xs text-text-muted truncate">Masukkan sasaran omset harian, mingguan, dan bulanan</p>
                                 </div>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setIsModalOpen(false)}
-                                className="p-2 hover:bg-surface-hover rounded-full text-text-muted hover:text-text-primary transition-colors"
+                                className="p-2 hover:bg-surface-hover rounded-full text-text-muted hover:text-text-primary transition-colors shrink-0"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -322,10 +322,10 @@ export default function ReportTargetCard({
                                 <button
                                     type="button"
                                     onClick={handleAutoFillFromDaily}
-                                    className="w-full py-2 px-3 bg-accent/10 hover:bg-accent/20 text-accent rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 border border-accent/20"
+                                    className="w-full py-2.5 px-3 bg-accent/10 hover:bg-accent/20 text-accent rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 border border-accent/20 text-center leading-normal"
                                 >
-                                    <Calculator className="w-3.5 h-3.5" />
-                                    Hitung Otomatis Mingguan (x7) & Bulanan (x30) dari Harian
+                                    <Calculator className="w-3.5 h-3.5 shrink-0" />
+                                    <span>Hitung Otomatis Mingguan (x7) & Bulanan (x30) dari Harian</span>
                                 </button>
                             )}
 

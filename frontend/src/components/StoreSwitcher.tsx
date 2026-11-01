@@ -17,13 +17,15 @@ interface StoreSwitcherProps {
     onStoreChanged?: (newStoreId: string, storeName: string) => void;
     className?: string;
     variant?: 'compact' | 'full';
+    align?: 'left' | 'right' | 'auto';
 }
 
 export default function StoreSwitcher({
     currentStoreId,
     onStoreChanged,
     className = "",
-    variant = "full"
+    variant = "full",
+    align = "auto"
 }: StoreSwitcherProps) {
     const [stores, setStores] = useState<StoreItem[]>([]);
     const [activeStore, setActiveStore] = useState<StoreItem | null>(null);
@@ -329,7 +331,13 @@ export default function StoreSwitcher({
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute right-0 sm:left-0 sm:right-auto mt-2 w-72 sm:w-80 bg-surface border border-border rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className={`absolute mt-2 w-[calc(100vw-2rem)] max-w-[280px] sm:max-w-xs sm:w-80 bg-surface border border-border rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 ${
+                    align === 'right' 
+                        ? 'right-0 left-auto' 
+                        : align === 'left' 
+                            ? 'left-0 right-auto' 
+                            : 'left-0 sm:left-0 right-auto sm:right-auto'
+                }`}>
                     {/* Header */}
                     <div className="p-3.5 border-b border-border bg-background/50 flex items-center justify-between">
                         <div>
@@ -409,8 +417,8 @@ export default function StoreSwitcher({
 
             {/* Modal Tambah Toko Baru */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in duration-150">
-                    <div className="bg-surface border border-border rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
+                <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+                    <div className="bg-surface border border-border rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl relative my-auto max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="w-10 h-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
                                 <Sparkles className="w-5 h-5" />
