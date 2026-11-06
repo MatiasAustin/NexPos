@@ -1633,10 +1633,11 @@ export default function PosPage() {
         <div className="flex flex-col sm:flex-row h-screen w-full max-w-full bg-background text-text-primary overflow-hidden print:block print:h-auto print:overflow-visible print:bg-white text-sm md:text-base">
             <div className="print:hidden"><ConfirmDialog /></div>
             {/* LEFT: PRODUCTS LIST */}
-            <div className="flex-1 flex flex-col overflow-y-auto print:hidden">
-                <div className="p-3 sm:p-4 md:p-6 border-b border-border flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3 sm:gap-4 bg-surface">
-                    <div className="flex items-center justify-between w-full xl:w-auto gap-3">
-                        <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden print:hidden">
+                <div className="p-3 sm:p-4 border-b border-border bg-surface shrink-0 flex flex-col gap-3 min-w-0">
+                    <div className="flex flex-wrap items-center justify-between gap-3 min-w-0">
+                        {/* BRANDING & CLOCK */}
+                        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
                             <AppLogo
                                 logoUrl={saasSettings.app_logo}
                                 showBackground={saasSettings.logo_show_background}
@@ -1644,72 +1645,96 @@ export default function PosPage() {
                                 size={9}
                             />
                             <div>
-                                <h1 className="text-base sm:text-xl font-bold text-text-primary leading-tight">{saasSettings.app_name} Terminal</h1>
+                                <h1 className="text-base sm:text-lg font-bold text-text-primary leading-tight">{saasSettings.app_name} Terminal</h1>
                                 <span className="text-text-muted text-[11px] sm:text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date().toLocaleTimeString()}</span>
                             </div>
                         </div>
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                            <ThemeToggle />
-                            <button onClick={toggleFullscreen} className="p-2 bg-surface-hover hover:bg-border rounded-xl transition-colors text-text-secondary" title="Toggle Fullscreen">
-                                <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
+
+                        {/* ACTIONS & NAVIGATION */}
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
+                            <StoreSwitcher currentStoreId={staff?.store_id} align="left" />
+                            <button onClick={() => setShowExpensesModal(true)} className="px-2.5 sm:px-3 py-1.5 bg-orange-500/10 text-orange-400 rounded-full hover:bg-orange-500/20 font-semibold text-[10px] uppercase tracking-wider border border-orange-500/20 transition-colors shrink-0">
+                                Catat Pengeluaran
                             </button>
-                            {/* Mobile Cart Trigger Button in Header */}
-                            <button
-                                onClick={() => setIsMobileCartOpen(true)}
-                                className="sm:hidden relative p-2 bg-accent/15 text-accent rounded-xl hover:bg-accent/25 transition-colors border border-accent/30"
-                                title="Buka Keranjang"
-                            >
-                                <ShoppingCart className="w-4 h-4" />
-                                {cart.length > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-accent text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                                        {cart.reduce((s, i) => s + i.qty, 0)}
-                                    </span>
-                                )}
+                            <Link href="/admin?tab=raw_materials" className="px-2.5 sm:px-3 py-1.5 bg-purple-500/10 text-purple-400 rounded-full hover:bg-purple-500/20 font-semibold text-[10px] uppercase tracking-wider border border-purple-500/20 transition-colors flex items-center gap-1 shrink-0">
+                                📦 Bahan
+                            </Link>
+                            <Link href="/admin?tab=inventory" className="px-2.5 sm:px-3 py-1.5 bg-green-500/10 text-green-400 rounded-full hover:bg-green-500/20 font-semibold text-[10px] uppercase tracking-wider border border-green-500/20 transition-colors flex items-center gap-1 shrink-0">
+                                📋 Produk
+                            </Link>
+                            <Link href="/admin" className="px-2.5 sm:px-3 py-1.5 bg-accent/10 text-accent rounded-full hover:bg-accent-hover/20 font-semibold text-[10px] uppercase tracking-wider border border-accent/20 transition-colors flex items-center justify-center shrink-0">
+                                Dashboard
+                            </Link>
+                            <button onClick={handleCloseSession} className="px-3 sm:px-3.5 py-1.5 whitespace-nowrap bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20 font-semibold text-[10px] uppercase tracking-wider border border-red-500/20 transition-colors shrink-0">
+                                Tutup Shift
                             </button>
+                            <button onClick={handleLogout} className="px-3 sm:px-3.5 py-1.5 whitespace-nowrap bg-gray-800 text-white rounded-full hover:bg-gray-700 font-semibold text-[10px] uppercase tracking-wider transition-colors shrink-0">
+                                Logout
+                            </button>
+                            <div className="flex items-center gap-1.5 pl-1 shrink-0">
+                                <ThemeToggle />
+                                <button onClick={toggleFullscreen} className="p-2 bg-surface-hover hover:bg-border rounded-xl transition-colors text-text-secondary" title="Toggle Fullscreen">
+                                    <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
+                                </button>
+                                {/* Mobile Cart Trigger Button in Header */}
+                                <button
+                                    onClick={() => setIsMobileCartOpen(true)}
+                                    className="sm:hidden relative p-2 bg-accent/15 text-accent rounded-xl hover:bg-accent/25 transition-colors border border-accent/30"
+                                    title="Buka Keranjang"
+                                >
+                                    <ShoppingCart className="w-4 h-4" />
+                                    {cart.length > 0 && (
+                                        <span className="absolute -top-1 -right-1 bg-accent text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                                            {cart.reduce((s, i) => s + i.qty, 0)}
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    
-                    {/* Store Switcher & Staff Profile in POS Header */}
-                    <div className="flex items-center gap-2 flex-wrap w-full xl:w-auto">
-                        <StoreSwitcher currentStoreId={staff?.store_id} align="left" />
-                        <div className="bg-background border border-border p-1.5 sm:p-2 pr-3 sm:pr-4 rounded-xl sm:rounded-full font-semibold flex items-center gap-2 sm:gap-3 text-xs sm:text-sm shadow-sm overflow-x-auto whitespace-nowrap hide-scrollbar max-w-full">
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-accent/10 rounded-full flex items-center justify-center text-accent shrink-0">
-                            <Banknote className="w-4 h-4 sm:w-5 sm:h-5" />
+
+                    {/* SHIFT & DRAWER STATUS BAR */}
+                    <div className="bg-background border border-border p-1.5 sm:p-2 px-3 sm:px-4 rounded-xl sm:rounded-2xl font-semibold flex items-center justify-between gap-3 text-xs sm:text-sm shadow-sm overflow-x-auto whitespace-nowrap hide-scrollbar min-w-0 w-full">
+                        <div className="flex items-center gap-2 shrink-0">
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-accent/10 rounded-full flex items-center justify-center text-accent shrink-0">
+                                <Banknote className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </div>
+                            <div className="flex flex-col shrink-0">
+                                <span className="text-text-muted text-[9px] sm:text-[10px] leading-tight">Kasir</span>
+                                <span className="text-text-primary text-[11px] sm:text-xs font-bold flex items-center gap-1.5">
+                                    {staff?.full_name}
+                                    {sessionData?.staff_id && sessionData.staff_id !== staff?.id && (
+                                        <span className="text-[9px] sm:text-[10px] bg-accent/15 text-accent border border-accent/20 px-1.5 py-0.5 rounded-md font-medium" title="Menggunakan shift kasir aktif bersama di toko ini">
+                                            Shift Bersama
+                                        </span>
+                                    )}
+                                </span>
+                            </div>
                         </div>
-                        <div className="flex flex-col shrink-0">
-                            <span className="text-text-muted text-[9px] sm:text-[10px] leading-tight">Kasir</span>
-                            <span className="text-text-primary text-[11px] sm:text-xs font-bold flex items-center gap-1.5">
-                                {staff?.full_name}
-                                {sessionData?.staff_id && sessionData.staff_id !== staff?.id && (
-                                    <span className="text-[9px] sm:text-[10px] bg-accent/15 text-accent border border-accent/20 px-1.5 py-0.5 rounded-md font-medium" title="Menggunakan shift kasir aktif bersama di toko ini">
-                                        Shift Bersama
-                                    </span>
-                                )}
-                            </span>
-                        </div>
+
                         {sessionData ? (
-                            <div className="flex gap-2.5 sm:gap-4 ml-1.5 sm:ml-2 pl-2 sm:pl-3 border-l border-border shrink-0 items-center bg-surface-hover/50 p-1.5 sm:p-2 rounded-xl border border-border">
+                            <div className="flex gap-2.5 sm:gap-4 items-center shrink-0">
                                 <div className="flex flex-col">
                                     <span className="text-text-muted text-[9px] sm:text-[10px] leading-tight">Modal Awal</span>
                                     <span className="text-accent text-[11px] sm:text-xs font-bold">Rp {Number(sessionData.opening_cash || 0).toLocaleString('id-ID')}</span>
                                 </div>
-                                <div className="flex flex-col">
+                                <div className="flex flex-col border-l border-border pl-2.5 sm:pl-3">
                                     <span className="text-text-muted text-[9px] sm:text-[10px] leading-tight">Pengeluaran</span>
                                     <span className="text-red-400 text-[11px] sm:text-xs font-bold">Rp {Number(sessionData.total_expense || 0).toLocaleString('id-ID')}</span>
                                 </div>
-                                <div className="flex flex-col border-l border-border pl-2.5 sm:pl-4">
+                                <div className="flex flex-col border-l border-border pl-2.5 sm:pl-3">
                                     <span className="text-text-muted text-[9px] sm:text-[10px] leading-tight">Refund</span>
                                     <span className="text-yellow-400 text-[11px] sm:text-xs font-bold">Rp {Number(sessionData.total_refund || 0).toLocaleString('id-ID')}</span>
                                 </div>
-                                <div className="flex flex-col border-l border-border pl-2.5 sm:pl-4">
+                                <div className="flex flex-col border-l border-border pl-2.5 sm:pl-3">
                                     <span className="text-text-muted text-[9px] sm:text-[10px] leading-tight">Laci (Sistem)</span>
                                     <span className="text-green-400 text-[11px] sm:text-xs font-bold">Rp {Number(sessionData.expected_cash || 0).toLocaleString('id-ID')}</span>
                                 </div>
-                                <div className="flex flex-col border-l border-border pl-2.5 sm:pl-4">
+                                <div className="flex flex-col border-l border-border pl-2.5 sm:pl-3">
                                     <span className="text-text-muted text-[9px] sm:text-[10px] leading-tight">Penjualan Bersih (Cash)</span>
                                     <span className="text-purple-400 text-[11px] sm:text-xs font-bold">Rp {Math.max(0, Number((sessionData.expected_cash || 0) - (sessionData.opening_cash || 0) + (sessionData.total_expense || 0) + (sessionData.total_refund || 0))).toLocaleString('id-ID')}</span>
                                 </div>
-                                <div className="flex items-center gap-1.5 pl-2 border-l border-border">
+                                <div className="flex items-center gap-1.5 pl-2 sm:pl-3 border-l border-border">
                                     <button
                                         type="button"
                                         onClick={() => sessionId && fetchSessionData(sessionId)}
@@ -1725,43 +1750,22 @@ export default function PosPage() {
                                 </div>
                             </div>
                         ) : hasSession && (
-                            <div className="flex gap-2 ml-2 pl-3 border-l border-border shrink-0 items-center bg-surface-hover/50 p-2 rounded-xl border border-border text-xs text-text-muted">
+                            <div className="flex gap-2 items-center text-xs text-text-muted shrink-0">
                                 <RefreshCw className="w-3.5 h-3.5 animate-spin text-accent" />
                                 <span className="text-[11px] font-medium">Menarik data laci...</span>
                             </div>
                         )}
-                        <div className="flex gap-1.5 sm:gap-2 ml-2 sm:ml-4 shrink-0">
-                            <button onClick={() => setShowExpensesModal(true)} className="px-2.5 sm:px-3 py-1 bg-orange-500/10 text-orange-400 rounded-full hover:bg-orange-500/20 font-semibold text-[10px] uppercase tracking-wider border border-orange-500/20 transition-colors">
-                                Catat Pengeluaran
-                            </button>
-                            <Link href="/admin?tab=raw_materials" className="px-2.5 sm:px-3 py-1 bg-purple-500/10 text-purple-400 rounded-full hover:bg-purple-500/20 font-semibold text-[10px] uppercase tracking-wider border border-purple-500/20 transition-colors flex items-center gap-1">
-                                📦 Bahan
-                            </Link>
-                            <Link href="/admin?tab=inventory" className="px-2.5 sm:px-3 py-1 bg-green-500/10 text-green-400 rounded-full hover:bg-green-500/20 font-semibold text-[10px] uppercase tracking-wider border border-green-500/20 transition-colors flex items-center gap-1">
-                                📋 Produk
-                            </Link>
-                            <Link href="/admin" className="px-2.5 sm:px-3 py-1 bg-accent/10 text-accent rounded-full hover:bg-accent-hover/20 font-semibold text-[10px] uppercase tracking-wider border border-accent/20 transition-colors flex items-center justify-center">
-                                Dashboard
-                            </Link>
-                            <button onClick={handleCloseSession} className="px-3 sm:px-4 py-1 sm:py-2 whitespace-nowrap bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20 font-semibold text-[10px] uppercase tracking-wider border border-red-500/20 transition-colors">
-                                Tutup Shift
-                            </button>
-                            <button onClick={handleLogout} className="px-3 sm:px-4 py-1 sm:py-2 whitespace-nowrap bg-gray-800 text-white rounded-full hover:bg-gray-700 font-semibold text-[10px] uppercase tracking-wider transition-colors">
-                                Logout
-                            </button>
-                        </div>
                     </div>
                 </div>
-                </div>
 
-                <div className="p-4 md:p-6 flex-1 overflow-y-auto no-scrollbar">
+                <div className="p-4 md:p-6 flex-1 min-w-0 overflow-y-auto overflow-x-hidden no-scrollbar">
                     {/* INLINE NOTIFICATIONS (DESKTOP ONLY) */}
                     <div className="hidden sm:block">
                         {/* INCOMING ORDERS NOTIFICATION */}
                         {pendingOrders.filter(o => o.status === 'pending').length > 0 && (
                             <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl shadow-soft">
                                 <h3 className="font-bold text-orange-400 mb-3 flex items-center gap-2">🛒 Pesanan Baru dari Customer</h3>
-                                <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                                <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar min-w-0">
                                     {pendingOrders.map((order: any, idx: number) => order.status === 'pending' && (
                                         <div key={order.id} className="relative group flex-shrink-0 min-w-[150px]">
                                             <button 
@@ -1789,7 +1793,7 @@ export default function PosPage() {
                         {pendingOrders.filter(o => o.status === 'draft').length > 0 && (
                             <div className="mb-6 p-4 bg-accent/10 border border-accent/20 rounded-2xl shadow-soft">
                                 <h3 className="font-bold text-accent mb-3 flex items-center gap-2">📝 Draft Pesanan (Belum Bayar)</h3>
-                                <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                                <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar min-w-0">
                                     {pendingOrders.map((order: any, idx: number) => order.status === 'draft' && (
                                         <div key={order.id} className="relative group flex-shrink-0 min-w-[150px]">
                                             <button 
@@ -1824,8 +1828,8 @@ export default function PosPage() {
                     </div>
 
                     {/* Categories & View Mode Toggle */}
-                    <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center mb-6">
-                        <div className="flex overflow-x-auto gap-2 pb-2 w-full xl:w-auto no-scrollbar">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between items-start sm:items-center mb-6 min-w-0 w-full">
+                        <div className="flex overflow-x-auto gap-2 pb-2 w-full min-w-0 no-scrollbar">
                             {categories.map(cat => (
                                 <button
                                     key={cat}
@@ -3089,7 +3093,7 @@ export default function PosPage() {
                             {pendingOrders.filter((o: any) => o.status === 'pending').length > 0 && (
                                 <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl">
                                     <h3 className="font-bold text-orange-400 mb-3 flex items-center gap-2">🛒 Pesanan Baru</h3>
-                                    <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                                    <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar min-w-0">
                                         {pendingOrders.filter((o: any) => o.status === 'pending').map((order: any, idx: number) => (
                                             <div key={order.id} className="relative group flex-shrink-0 min-w-[140px]">
                                                 <button 
@@ -3117,7 +3121,7 @@ export default function PosPage() {
                             {pendingOrders.filter((o: any) => o.status === 'draft').length > 0 && (
                                 <div className="p-4 bg-accent/10 border border-accent/20 rounded-2xl">
                                     <h3 className="font-bold text-accent mb-3 flex items-center gap-2">📝 Draft Pesanan (Belum Bayar)</h3>
-                                    <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                                    <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar min-w-0">
                                         {pendingOrders.filter((o: any) => o.status === 'draft').map((order: any, idx: number) => (
                                             <div key={order.id} className="relative group flex-shrink-0 min-w-[140px]">
                                                 <button 
