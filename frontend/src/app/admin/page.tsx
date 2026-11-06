@@ -216,6 +216,9 @@ export default function AdminDashboard() {
     const [historyLoading, setHistoryLoading] = useState(false);
     const [inventorySalesData, setInventorySalesData] = useState<any[]>([]);
     const [productStockDelta, setProductStockDelta] = useState<number>(0);
+    const [inventoryStatusFilter, setInventoryStatusFilter] = useState<'active' | 'archived' | 'all'>('active');
+    const [inventoryCategoryFilter, setInventoryCategoryFilter] = useState<string>('all');
+    const [inventorySearchQuery, setInventorySearchQuery] = useState<string>('');
     const [editingStaff, setEditingStaff] = useState<any>(null);
     const [editingMaterial, setEditingMaterial] = useState<any>(null);
     const [editingExpense, setEditingExpense] = useState<any>(null);
@@ -1738,46 +1741,41 @@ export default function AdminDashboard() {
     };
 
     const handleDeleteProduct = async (product: any) => {
+        const isAlreadyArchived = product.is_active === false;
         const ok = await confirm({
-            title: "Hapus Menu",
-            message: `Hapus menu "${product.name}"? Menu ini tidak akan muncul lagi di kasir. Riwayat transaksi masa lalu tetap tersimpan dengan aman.`,
-            confirmText: "Ya, Hapus",
+            title: isAlreadyArchived ? "Hapus Menu Permanen" : "Arsipkan Menu",
+            message: isAlreadyArchived 
+                ? `Hapus menu "${product.name}" secara permanen dari database? Jika menu memiliki riwayat transaksi penjualan masa lalu, data akan tetap dipertahankan di tab Diarsipkan demi keamanan integritas laporan keuangan.`
+                : `Pindahkan menu "${product.name}" ke tab Diarsipkan? Menu ini tidak akan muncul lagi di kasir. Riwayat transaksi masa lalu tetap tersimpan dengan aman.`,
+            confirmText: isAlreadyArchived ? "Hapus Permanen" : "Ya, Arsipkan",
             variant: "danger"
         });
         if (!ok) return;
         setLoading(true);
         try {
-            let success = false;
-            // 1. Coba hapus via API backend
-            try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${product.id}`, { method: 'DELETE' });
-                if (res.ok) success = true;
-            } catch(e) {}
-
-            // 2. Fallback direct Supabase jika API gagal atau foreign key constraint
-            if (!success) {
+            if (isAlreadyArchived) {
+                // Percobaan hard-delete dari database
                 const { error: delErr } = await supabase.from('products').delete().eq('id', product.id);
                 if (delErr) {
-                    // Jika ada foreign key ke order_items (pernah terjual), nonaktifkan produk agar data transaksi tetap aman
-                    const { error: deactErr } = await supabase
-                        .from('products')
-                        .update({ is_active: false, updated_at: new Date().toISOString() })
-                        .eq('id', product.id);
-                    if (!deactErr) success = true;
+                    toast.info(`Menu "${product.name}" tidak dapat dihapus permanen dari database karena memiliki riwayat penjualan di struk/laporan masa lalu. Menu tetap aman di tab Diarsipkan.`);
                 } else {
-                    success = true;
+                    toast.success(`Menu "${product.name}" berhasil dihapus permanen.`);
+                    await logAudit("DELETE_DATA", "products", product.id, { product_name: product.name, action: "Hapus Permanen Produk" });
+                    fetchData();
                 }
-            }
-
-            if (success) {
-                toast.success(`Menu "${product.name}" berhasil dihapus dari kasir.`);
-                await logAudit("DELETE_DATA", "products", product.id, { product_name: product.name, action: "Hapus / Nonaktifkan Produk" });
-                fetchData();
             } else {
-                toast.error("Gagal menghapus menu.");
+                // Soft delete / arsipkan
+                const { error: deactErr } = await supabase
+                    .from('products')
+                    .update({ is_active: false, updated_at: new Date().toISOString() })
+                    .eq('id', product.id);
+                if (deactErr) throw deactErr;
+                toast.success(`Menu "${product.name}" berhasil diarsipkan (tidak aktif di kasir).`);
+                await logAudit("ARCHIVE_DATA", "products", product.id, { product_name: product.name, action: "Arsipkan Produk" });
+                fetchData();
             }
-        } catch(error) {
-            toast.error("Terjadi kesalahan jaringan.");
+        } catch(error: any) {
+            toast.error(error.message || "Gagal memproses menu.");
         }
         setLoading(false);
     };
@@ -3913,72 +3911,227 @@ export default function AdminDashboard() {
                                     </form>
 
                                     <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-left border-collapse text-xs md:text-sm">
-                                                <thead>
-                                                    <tr className="bg-surface-hover border-b border-border">
-                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted">Produk</th>
-                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Harga Jual</th>
-                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Profit</th>
-                                                        <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-center">Stok</th>
-<th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-center">Status</th>
-<th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-center">Aksi</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
+                                        {/* Filter & Toolbar */}
+                                        {(() => {
+                                            const activeCount = products.filter((p: any) => p.is_active !== false).length;
+                                            const archivedCount = products.filter((p: any) => p.is_active === false).length;
+                                            const allProductCategories = Array.from(new Set(products.map((p: any) => p.category).filter(Boolean)));
 
-                                                    {products.map((p: any) => (
-                                                        <tr key={p.id} className="border-b border-border hover:bg-surface-hover">
-                                                            <td className="p-2 md:p-4 flex items-center gap-4">
-                                                                <div className="w-14 h-14 bg-surface-hover border border-border rounded-xl flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
-                                                                    {p.image_url 
-                                                                        ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
-                                                                        : <span>{p.image_icon || '≡ƒôª'}</span>
-                                                                    }
-                                                                </div>
-                                                                <div>
-                                                                    <p className="font-bold text-text-primary text-base">{p.name}</p>
-                                                                    <p className="text-xs text-text-muted">{p.category}</p>
-                                                                    {p.options_config && p.options_config.length > 0 && (
-                                                                        <div className="flex flex-wrap gap-1 mt-1.5">
-                                                                            {p.options_config.map((opt: any, idx: number) => (
-                                                                                <span key={idx} className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-md bg-accent/10 text-accent border border-accent/20 font-medium">
-                                                                                    {opt.type === 'multiple' ? '🥛' : '🧊'} {opt.name} ({opt.choices?.length || 0})
-                                                                                </span>
-                                                                            ))}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                            <td className="p-2 md:p-4 text-right">
-                                                                <p className="font-bold text-text-secondary">Rp {p.price.toLocaleString('id-ID')}</p>
-                                                                <p className="text-xs text-text-muted">
-                                                                    HPP: Rp {p.cogs.toLocaleString('id-ID')}
-                                                                    {p.ingredients && p.ingredients.length > 0 && ` (${p.ingredients.length} Bahan)`}
-                                                                </p>
-                                                            </td>
-                                                            <td className="p-2 md:p-4 text-right font-bold text-green-400">Rp {(p.price - p.cogs).toLocaleString('id-ID')}</td>
-                                                            <td className="p-2 md:p-4 text-center">
-                                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-white'}`}>{p.stock}</span>
-                                                            </td>
-<td className="p-2 md:p-4 text-center">
-    <button onClick={() => toggleProductStatus(p)} disabled={loading} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors border ${p.is_active ? 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20' : 'bg-gray-800 text-white border-border hover:bg-gray-700'}`}>
-        {p.is_active ? 'Tersedia' : 'Habis/Off'}
-    </button>
-</td>
-<td className="p-2 md:p-4 text-center">
-                                                                <div className="flex flex-wrap gap-2 justify-center">
-                                                                    <button onClick={() => setAdjustingProductStock(p)} className="px-2 py-1 text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-600 hover:text-white transition-colors">+/- Stok</button>
-                                                                    <button onClick={() => handleViewProductHistory(p)} className="px-2 py-1 text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-600 hover:text-text-primary transition-colors">Riwayat</button>
-                                                                    <button onClick={() => openEditProduct(p)} className="px-2 py-1 text-xs font-bold bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent hover:text-text-primary transition-colors">Edit</button>
-                                                                    <button onClick={() => handleDeleteProduct(p)} className="px-2 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Hapus</button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                            const filteredInventoryProducts = products.filter((p: any) => {
+                                                if (inventoryStatusFilter === 'active' && p.is_active === false) return false;
+                                                if (inventoryStatusFilter === 'archived' && p.is_active !== false) return false;
+                                                if (inventoryCategoryFilter !== 'all' && (p.category || 'Uncategorized') !== inventoryCategoryFilter) return false;
+                                                if (inventorySearchQuery.trim()) {
+                                                    const q = inventorySearchQuery.toLowerCase();
+                                                    const nameMatch = (p.name || '').toLowerCase().includes(q);
+                                                    const catMatch = (p.category || '').toLowerCase().includes(q);
+                                                    if (!nameMatch && !catMatch) return false;
+                                                }
+                                                return true;
+                                            });
+
+                                            return (
+                                                <>
+                                                    <div className="p-4 md:p-6 border-b border-border flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-surface">
+                                                        <div>
+                                                            <h3 className="font-bold text-lg md:text-xl text-text-primary flex items-center gap-2">
+                                                                📋 Daftar Menu & Produk
+                                                            </h3>
+                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setInventoryStatusFilter('active')}
+                                                                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 ${
+                                                                        inventoryStatusFilter === 'active'
+                                                                            ? 'bg-accent text-text-primary shadow-sm'
+                                                                            : 'bg-surface-hover hover:bg-border text-text-muted hover:text-text-primary border border-border'
+                                                                    }`}
+                                                                >
+                                                                    <span>✅ Menu Aktif</span>
+                                                                    <span className="px-1.5 py-0.5 rounded-md bg-black/20 text-[10px] font-extrabold">{activeCount}</span>
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setInventoryStatusFilter('archived')}
+                                                                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 ${
+                                                                        inventoryStatusFilter === 'archived'
+                                                                            ? 'bg-orange-500 text-white shadow-sm'
+                                                                            : 'bg-surface-hover hover:bg-border text-text-muted hover:text-text-primary border border-border'
+                                                                    }`}
+                                                                >
+                                                                    <span>📦 Diarsipkan / Nonaktif</span>
+                                                                    <span className="px-1.5 py-0.5 rounded-md bg-black/20 text-[10px] font-extrabold">{archivedCount}</span>
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setInventoryStatusFilter('all')}
+                                                                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 ${
+                                                                        inventoryStatusFilter === 'all'
+                                                                            ? 'bg-gray-700 text-white shadow-sm'
+                                                                            : 'bg-surface-hover hover:bg-border text-text-muted hover:text-text-primary border border-border'
+                                                                    }`}
+                                                                >
+                                                                    <span>Semua ({products.length})</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Search and Category Filter */}
+                                                        <div className="flex items-center gap-2.5 w-full lg:w-auto flex-wrap">
+                                                            <div className="relative flex-1 sm:w-60">
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Cari nama menu..."
+                                                                    value={inventorySearchQuery}
+                                                                    onChange={e => setInventorySearchQuery(e.target.value)}
+                                                                    className="w-full pl-3 pr-8 py-2 bg-background border border-border rounded-xl text-text-primary text-xs outline-none focus:border-accent"
+                                                                />
+                                                                {inventorySearchQuery && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setInventorySearchQuery('')}
+                                                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary text-xs"
+                                                                    >
+                                                                        ✕
+                                                                    </button>
+                                                                )}
+                                                            </div>
+
+                                                            <select
+                                                                value={inventoryCategoryFilter}
+                                                                onChange={e => setInventoryCategoryFilter(e.target.value)}
+                                                                className="bg-background border border-border rounded-xl px-3 py-2 text-text-primary text-xs outline-none focus:border-accent font-medium"
+                                                            >
+                                                                <option value="all">Semua Kategori</option>
+                                                                {allProductCategories.map((cat: any) => (
+                                                                    <option key={cat} value={cat}>{cat}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="overflow-x-auto">
+                                                        <table className="w-full text-left border-collapse text-xs md:text-sm">
+                                                            <thead>
+                                                                <tr className="bg-surface-hover border-b border-border">
+                                                                    <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted">Produk</th>
+                                                                    <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Harga Jual</th>
+                                                                    <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-right">Profit</th>
+                                                                    <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-center">Stok</th>
+                                                                    <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-center">Status</th>
+                                                                    <th className="p-2 md:p-4 text-xs md:text-sm font-semibold text-text-muted text-center">Aksi</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {filteredInventoryProducts.length === 0 ? (
+                                                                    <tr>
+                                                                        <td colSpan={6} className="p-8 text-center text-text-muted">
+                                                                            {inventoryStatusFilter === 'archived'
+                                                                                ? 'Tidak ada menu yang diarsipkan.'
+                                                                                : 'Tidak ada produk yang cocok dengan filter.'}
+                                                                        </td>
+                                                                    </tr>
+                                                                ) : (
+                                                                    filteredInventoryProducts.map((p: any) => {
+                                                                        const isArchived = p.is_active === false;
+                                                                        return (
+                                                                            <tr key={p.id} className={`border-b border-border hover:bg-surface-hover transition-colors ${isArchived ? 'opacity-70 bg-surface-hover/20' : ''}`}>
+                                                                                <td className="p-2 md:p-4 flex items-center gap-4">
+                                                                                    <div className="w-14 h-14 bg-surface-hover border border-border rounded-xl flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
+                                                                                        {p.image_url 
+                                                                                            ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                                                                                            : <span>{p.image_icon || '📦'}</span>
+                                                                                        }
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                                                            <p className="font-bold text-text-primary text-base">{p.name}</p>
+                                                                                            {isArchived && (
+                                                                                                <span className="text-[10px] bg-orange-500/15 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded-full font-bold">
+                                                                                                    Diarsipkan
+                                                                                                </span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                        <p className="text-xs text-text-muted">{p.category || 'Uncategorized'}</p>
+                                                                                        {p.options_config && p.options_config.length > 0 && (
+                                                                                            <div className="flex flex-wrap gap-1 mt-1.5">
+                                                                                                {p.options_config.map((opt: any, idx: number) => (
+                                                                                                    <span key={idx} className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-md bg-accent/10 text-accent border border-accent/20 font-medium">
+                                                                                                        {opt.type === 'multiple' ? '🥛' : '🧊'} {opt.name} ({opt.choices?.length || 0})
+                                                                                                    </span>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td className="p-2 md:p-4 text-right">
+                                                                                    <p className="font-bold text-text-secondary">Rp {p.price.toLocaleString('id-ID')}</p>
+                                                                                    <p className="text-xs text-text-muted">
+                                                                                        HPP: Rp {p.cogs.toLocaleString('id-ID')}
+                                                                                        {p.ingredients && p.ingredients.length > 0 && ` (${p.ingredients.length} Bahan)`}
+                                                                                    </p>
+                                                                                </td>
+                                                                                <td className="p-2 md:p-4 text-right font-bold text-green-400">Rp {(p.price - p.cogs).toLocaleString('id-ID')}</td>
+                                                                                <td className="p-2 md:p-4 text-center">
+                                                                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-gray-800 text-white'}`}>{p.stock}</span>
+                                                                                </td>
+                                                                                <td className="p-2 md:p-4 text-center">
+                                                                                    <button 
+                                                                                        onClick={() => toggleProductStatus(p)} 
+                                                                                        disabled={loading} 
+                                                                                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors border ${
+                                                                                            p.is_active 
+                                                                                                ? 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20' 
+                                                                                                : 'bg-orange-500/10 text-orange-400 border-orange-500/30 hover:bg-orange-500/20'
+                                                                                        }`}
+                                                                                        title={p.is_active ? 'Klik untuk arsipkan / nonaktifkan' : 'Klik untuk pulihkan / aktifkan'}
+                                                                                    >
+                                                                                        {p.is_active ? 'Tersedia' : 'Diarsipkan'}
+                                                                                    </button>
+                                                                                </td>
+                                                                                <td className="p-2 md:p-4 text-center">
+                                                                                    <div className="flex flex-wrap gap-2 justify-center">
+                                                                                        <button onClick={() => setAdjustingProductStock(p)} className="px-2 py-1 text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-600 hover:text-white transition-colors">+/- Stok</button>
+                                                                                        <button onClick={() => handleViewProductHistory(p)} className="px-2 py-1 text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-600 hover:text-text-primary transition-colors">Riwayat</button>
+                                                                                        <button onClick={() => openEditProduct(p)} className="px-2 py-1 text-xs font-bold bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent hover:text-text-primary transition-colors">Edit</button>
+                                                                                        {isArchived ? (
+                                                                                            <>
+                                                                                                <button 
+                                                                                                    onClick={() => toggleProductStatus(p)} 
+                                                                                                    className="px-2 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-colors"
+                                                                                                    title="Aktifkan kembali ke kasir"
+                                                                                                >
+                                                                                                    Pulihkan
+                                                                                                </button>
+                                                                                                <button 
+                                                                                                    onClick={() => handleDeleteProduct(p)} 
+                                                                                                    className="px-2 py-1 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors"
+                                                                                                    title="Hapus permanen dari database"
+                                                                                                >
+                                                                                                    Hapus
+                                                                                                </button>
+                                                                                            </>
+                                                                                        ) : (
+                                                                                            <button 
+                                                                                                onClick={() => handleDeleteProduct(p)} 
+                                                                                                className="px-2 py-1 text-xs font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-lg hover:bg-orange-600 hover:text-white transition-colors"
+                                                                                                title="Pindahkan ke arsip (sembunyikan dari kasir)"
+                                                                                            >
+                                                                                                    Arsipkan
+                                                                                            </button>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    })
+                                                                )}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                     
 
