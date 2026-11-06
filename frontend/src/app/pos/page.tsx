@@ -1622,10 +1622,11 @@ export default function PosPage() {
         );
     }
 
-    // Sync categories from storeSettings or fallback to derived ones
-    const dynamicCategories = storeSettings?.categories && storeSettings.categories.length > 0
-        ? storeSettings.categories
-        : Array.from(new Set(products.map(p => p.category || "Uncategorized")));
+    // Combine storeSettings.categories and all categories present in loaded products so no category is ever omitted
+    const productCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+    const configuredCategories = storeSettings?.categories && Array.isArray(storeSettings.categories) ? storeSettings.categories : [];
+    const combinedCategories = Array.from(new Set([...configuredCategories, ...productCategories]));
+    const dynamicCategories = combinedCategories.length > 0 ? combinedCategories : ["Uncategorized"];
     const categories = ["Semua", ...dynamicCategories];
     const filteredProducts = activeCategory === "Semua" ? products : products.filter(p => (p.category || "Uncategorized") === activeCategory);
 

@@ -14,21 +14,26 @@ export class ProductService {
     }
 
     async createProduct(payload: any) {
+        const insertData: any = {
+            name: payload.name,
+            category: payload.category,
+            price: payload.price,
+            cogs: payload.cogs,
+            stock: payload.stock,
+            image_icon: payload.image_icon || '📦',
+            image_url: payload.image_url || null,
+            is_active: payload.is_active !== undefined ? payload.is_active : true,
+            ingredients: payload.ingredients || [],
+            discount_percentage: payload.discount_percentage || 0,
+            options_config: payload.options_config || []
+        };
+        if (payload.store_id) {
+            insertData.store_id = payload.store_id;
+        }
+
         const { data, error } = await supabase
             .from('products')
-            .insert({
-                name: payload.name,
-                category: payload.category,
-                price: payload.price,
-                cogs: payload.cogs,
-                stock: payload.stock,
-                image_icon: payload.image_icon || '📦',
-                image_url: payload.image_url || null,
-                is_active: payload.is_active !== undefined ? payload.is_active : true,
-                ingredients: payload.ingredients || [],
-                discount_percentage: payload.discount_percentage || 0,
-                options_config: payload.options_config || []
-            })
+            .insert(insertData)
             .select('*')
             .single();
 
@@ -54,6 +59,9 @@ export class ProductService {
         if (payload.image_url !== undefined) {
             updateData.image_url = payload.image_url;
         }
+        if (payload.store_id !== undefined) {
+            updateData.store_id = payload.store_id;
+        }
 
         const { data, error } = await supabase
             .from('products')
@@ -67,8 +75,34 @@ export class ProductService {
     }
 
     async deleteProduct(id: string) {
+        // Cek jika produk pernah terjual di order_items
+        const { data: orderItem } = await supabase
+            .from('order_items')
+            .select('id')
+            .eq('product_id', id)
+            .limit(1)
+            .maybeSingle();
+
+        if (orderItem) {
+            // Soft delete / nonaktifkan agar integritas riwayat laporan penjualan tetap 100% aman
+            const { error } = await supabase
+                .from('products')
+                .update({ is_active: false, updated_at: new Date().toISOString() })
+                .eq('id', id);
+            if (error) throw new Error(`Gagal menonaktifkan produk: ${error.message}`);
+            return true;
+        }
+
         const { error } = await supabase.from('products').delete().eq('id', id);
-        if (error) throw new Error(`Failed to delete product: ${error.message}`);
+        if (error) {
+            // Fallback soft delete jika terkena constraint lain
+            const { error: softErr } = await supabase
+                .from('products')
+                .update({ is_active: false, updated_at: new Date().toISOString() })
+                .eq('id', id);
+            if (softErr) throw new Error(`Failed to delete product: ${error.message}`);
+            return true;
+        }
         return true;
     }
 }

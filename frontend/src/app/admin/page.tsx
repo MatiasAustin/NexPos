@@ -354,9 +354,15 @@ export default function AdminDashboard() {
                 const { data } = await supabase.from('staff_profiles').select('*').eq('store_id', prof.store_id).order('full_name', { ascending: true });
                 if(data) setStaffList(data);
             } else if (activeTab === "inventory") {
+                let prodQuery = supabase.from('products').select('*').order('category', { ascending: true });
+                let matQuery = supabase.from('raw_materials').select('*').order('name', { ascending: true });
+                if (prof?.store_id) {
+                    prodQuery = prodQuery.eq('store_id', prof.store_id);
+                    matQuery = matQuery.eq('store_id', prof.store_id);
+                }
                 const [prodRes, matRes, orderItemsRes] = await Promise.all([
-                    supabase.from('products').select('*').order('category', { ascending: true }),
-                    supabase.from('raw_materials').select('*').order('name', { ascending: true }),
+                    prodQuery,
+                    matQuery,
                     supabase.from('order_items').select('product_id, product_name, quantity, price_at_time, created_at').order('created_at', { ascending: false }).limit(500)
                 ]);
                 if (prodRes.data) setProducts(prodRes.data);
@@ -385,7 +391,11 @@ export default function AdminDashboard() {
                 await fetchTransactions(historyFilterType);
             } else if (activeTab === "settings") {
                 try {
-                    const { data } = await supabase.from('store_settings').select('*').limit(1).maybeSingle();
+                    let settingsQuery = supabase.from('store_settings').select('*');
+                    if (prof?.store_id) {
+                        settingsQuery = settingsQuery.eq('store_id', prof.store_id);
+                    }
+                    const { data } = await settingsQuery.limit(1).maybeSingle();
                     if (data) {
                         setStoreSettings(prev => ({
                             ...prev,
@@ -562,16 +572,25 @@ export default function AdminDashboard() {
     const handleSaveSettings = async () => {
         setLoading(true);
         try {
-            const { data } = await supabase.from('store_settings').select('id').maybeSingle();
+            let query = supabase.from('store_settings').select('id');
+            if (profile?.store_id) query = query.eq('store_id', profile.store_id);
+            const { data } = await query.maybeSingle();
             
+            const settingsPayload = {
+                ...storeSettings,
+                store_id: profile?.store_id || null
+            };
+
             if (data?.id) {
-                const { error } = await supabase.from('store_settings').update(storeSettings).eq('id', data.id);
+                const { error } = await supabase.from('store_settings').update(settingsPayload).eq('id', data.id);
                 if (error) throw error;
             } else {
-                const { error } = await supabase.from('store_settings').insert([storeSettings]);
+                const { error } = await supabase.from('store_settings').insert([settingsPayload]);
                 if (error) throw error;
             }
             toast.success("Pengaturan Toko berhasil disimpan!");
+            const storeKey = profile?.store_id ? `nexpos_store_settings_${profile.store_id}` : "nexpos_store_settings";
+            localStorage.setItem(storeKey, JSON.stringify(storeSettings));
             localStorage.setItem("nexpos_store_settings", JSON.stringify(storeSettings));
         } catch(e: any) {
             toast.error("Gagal menyimpan: " + (e.message || "Pastikan script SQL dijalankan."));
@@ -1234,7 +1253,8 @@ export default function AdminDashboard() {
                 image_url: newProduct.image_url,
                 image_icon: newProduct.image_icon || '☕',
                 operational_cost: opCost,
-                is_active: true
+                is_active: true,
+                store_id: profile?.store_id || null
             };
             const { error } = await supabase.from('products').insert([payload]);
             
@@ -1491,30 +1511,45 @@ export default function AdminDashboard() {
             : Number(editingProduct.cogs);
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${editingProduct.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: editingProduct.name,
-                    category: editingProduct.category,
-                    price: Number(editingProduct.price),
-                    cogs: computedCogs,
-                    stock: Number(editingProduct.stock),
-                    image_icon: editingProduct.image_icon,
-                    image_url: editingProduct.image_url || null,
-                    ingredients: editingProduct.ingredients,
-                    discount_percentage: Number(editingProduct.discount_percentage || 0),
-                    options_config: editingProduct.options_config || [],
-                    operational_cost: opCost
-                })
-            });
-            if(res.ok) {
+            const updatePayload: any = {
+                name: editingProduct.name,
+                category: editingProduct.category,
+                price: Number(editingProduct.price),
+                cogs: computedCogs,
+                stock: Number(editingProduct.stock),
+                image_icon: editingProduct.image_icon,
+                image_url: editingProduct.image_url || null,
+                ingredients: editingProduct.ingredients,
+                discount_percentage: Number(editingProduct.discount_percentage || 0),
+                options_config: editingProduct.options_config || [],
+                operational_cost: opCost,
+                store_id: profile?.store_id || editingProduct.store_id || null
+            };
+
+            let updated = false;
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${editingProduct.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatePayload)
+                });
+                if (res.ok) updated = true;
+            } catch(e) {}
+
+            if (!updated) {
+                const { error: sbErr } = await supabase
+                    .from('products')
+                    .update({ ...updatePayload, updated_at: new Date().toISOString() })
+                    .eq('id', editingProduct.id);
+                if (!sbErr) updated = true;
+            }
+
+            if (updated) {
                 toast.success("Produk berhasil diperbarui!"); await logAudit("EDIT_DATA", "products", editingProduct.id, { product_name: editingProduct.name, action: "Edit Produk" });
                 setEditingProduct(null);
                 fetchData();
             } else {
-                const err = await res.json();
-                toast.error(err.error || "Gagal memperbarui produk.");
+                toast.error("Gagal memperbarui produk.");
             }
         } catch(error) {
             toast.error("Terjadi kesalahan jaringan.");
@@ -1597,16 +1632,29 @@ export default function AdminDashboard() {
     const toggleProductStatus = async (product: any) => {
         setLoading(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${product.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...product,
-                    is_active: !product.is_active
-                })
-            });
-            if (res.ok) {
-                toast.success(`Produk ${product.name} ${!product.is_active ? 'diaktifkan' : 'dinonaktifkan'}.`);
+            let success = false;
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${product.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...product,
+                        is_active: !product.is_active
+                    })
+                });
+                if (res.ok) success = true;
+            } catch(e) {}
+
+            if (!success) {
+                const { error: directErr } = await supabase
+                    .from('products')
+                    .update({ is_active: !product.is_active, updated_at: new Date().toISOString() })
+                    .eq('id', product.id);
+                if (!directErr) success = true;
+            }
+
+            if (success) {
+                toast.success(`Produk "${product.name}" ${!product.is_active ? 'diaktifkan (Tersedia)' : 'dinonaktifkan (Habis/Off)'}.`);
                 fetchData();
             } else {
                 toast.error("Gagal mengubah status produk.");
@@ -1692,20 +1740,41 @@ export default function AdminDashboard() {
     const handleDeleteProduct = async (product: any) => {
         const ok = await confirm({
             title: "Hapus Menu",
-            message: `Hapus menu "${product.name}" secara permanen? Tindakan ini tidak dapat dibatalkan.`,
+            message: `Hapus menu "${product.name}"? Menu ini tidak akan muncul lagi di kasir. Riwayat transaksi masa lalu tetap tersimpan dengan aman.`,
             confirmText: "Ya, Hapus",
             variant: "danger"
         });
         if (!ok) return;
         setLoading(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${product.id}`, { method: 'DELETE' });
-            if (res.ok) {
-                toast.success("Menu berhasil dihapus."); await logAudit("DELETE_DATA", "products", product.id, { product_name: product.name, action: "Hapus Produk" });
+            let success = false;
+            // 1. Coba hapus via API backend
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/products/${product.id}`, { method: 'DELETE' });
+                if (res.ok) success = true;
+            } catch(e) {}
+
+            // 2. Fallback direct Supabase jika API gagal atau foreign key constraint
+            if (!success) {
+                const { error: delErr } = await supabase.from('products').delete().eq('id', product.id);
+                if (delErr) {
+                    // Jika ada foreign key ke order_items (pernah terjual), nonaktifkan produk agar data transaksi tetap aman
+                    const { error: deactErr } = await supabase
+                        .from('products')
+                        .update({ is_active: false, updated_at: new Date().toISOString() })
+                        .eq('id', product.id);
+                    if (!deactErr) success = true;
+                } else {
+                    success = true;
+                }
+            }
+
+            if (success) {
+                toast.success(`Menu "${product.name}" berhasil dihapus dari kasir.`);
+                await logAudit("DELETE_DATA", "products", product.id, { product_name: product.name, action: "Hapus / Nonaktifkan Produk" });
                 fetchData();
             } else {
-                const err = await res.json();
-                toast.error(err.error || "Gagal menghapus menu.");
+                toast.error("Gagal menghapus menu.");
             }
         } catch(error) {
             toast.error("Terjadi kesalahan jaringan.");
@@ -1730,15 +1799,20 @@ export default function AdminDashboard() {
 
     const saveCategoriesToDB = async (newCategories: string[]) => {
         try {
-            const { data } = await supabase.from('store_settings').select('id').maybeSingle();
+            let query = supabase.from('store_settings').select('id');
+            if (profile?.store_id) query = query.eq('store_id', profile.store_id);
+            const { data } = await query.maybeSingle();
+
             if (data?.id) {
                 await supabase.from('store_settings').update({ categories: newCategories }).eq('id', data.id);
             } else {
-                await supabase.from('store_settings').insert([{ categories: newCategories }]);
+                await supabase.from('store_settings').insert([{ store_id: profile?.store_id || null, categories: newCategories }]);
             }
-            // Update localStorage
-            const local = JSON.parse(localStorage.getItem("nexpos_store_settings") || "{}");
+            // Update localStorage per store
+            const storeKey = profile?.store_id ? `nexpos_store_settings_${profile.store_id}` : "nexpos_store_settings";
+            const local = JSON.parse(localStorage.getItem(storeKey) || localStorage.getItem("nexpos_store_settings") || "{}");
             local.categories = newCategories;
+            localStorage.setItem(storeKey, JSON.stringify(local));
             localStorage.setItem("nexpos_store_settings", JSON.stringify(local));
         } catch (e) {
             console.error("Auto-save category failed", e);
