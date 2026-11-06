@@ -203,7 +203,7 @@ export default function PosPage() {
             if (sess) {
                 const sessionStart = sess.opened_at || new Date(new Date().setHours(0,0,0,0)).toISOString();
                 
-                // Ambil data pengeluaran, refund, dan mutasi kas paralel dari Supabase
+                // Ambil data pengeluaran, refund, mutasi kas, dan transaksi tunai paralel dari Supabase
                 let expQuery = supabase.from('expenses')
                     .select('amount, description, expense_date, created_at')
                     .gte('created_at', sessionStart);
@@ -219,17 +219,27 @@ export default function PosPage() {
                     refQuery = refQuery.eq('store_id', staff.store_id);
                 }
 
-                const [expRes, refRes, movRes] = await Promise.all([
+                let trxQuery = supabase.from('transactions')
+                    .select('amount_due, payment_method_id, payment_methods(name, type), status, created_at')
+                    .gte('created_at', sessionStart)
+                    .eq('status', 'Paid');
+                if (staff?.store_id) {
+                    trxQuery = trxQuery.eq('store_id', staff.store_id);
+                }
+
+                const [expRes, refRes, movRes, trxRes] = await Promise.all([
                     expQuery,
                     refQuery,
                     supabase.from('cash_movements')
                         .select('type, amount')
-                        .eq('session_id', id)
+                        .eq('session_id', id),
+                    trxQuery
                 ]);
 
                 const expenses = expRes.data || [];
                 const refunds = refRes.data || [];
                 const movements = movRes.data || [];
+                const transactions = trxRes.data || [];
 
                 const table_expense = expenses
                     .filter((e: any) => !e.description?.startsWith('['))
@@ -239,7 +249,7 @@ export default function PosPage() {
                     .filter((m: any) => m.type === 'expense' || m.type === 'cash_out')
                     .reduce((sum: number, m: any) => sum + Math.abs(Number(m.amount || 0)), 0);
 
-                sess.total_expense = Math.max(table_expense, mov_expense);
+                const total_expense = Math.max(table_expense, mov_expense);
 
                 const table_refund = refunds
                     .reduce((sum: number, r: any) => sum + Number(r.refund_amount || 0), 0);
@@ -248,7 +258,36 @@ export default function PosPage() {
                     .filter((m: any) => m.type === 'refund')
                     .reduce((sum: number, m: any) => sum + Math.abs(Number(m.amount || 0)), 0);
 
-                sess.total_refund = Math.max(table_refund, mov_refund);
+                const total_refund = Math.max(table_refund, mov_refund);
+
+                // Hitung penjualan tunai (Cash)
+                const mov_sales = movements
+                    .filter((m: any) => m.type === 'sale')
+                    .reduce((sum: number, m: any) => sum + Number(m.amount || 0), 0);
+
+                const trx_cash_sales = transactions
+                    .filter((t: any) => {
+                        const mType = t.payment_methods?.type?.toLowerCase();
+                        const mName = t.payment_methods?.name?.toLowerCase() || '';
+                        return mType === 'cash' || mName.includes('cash') || mName.includes('tunai');
+                    })
+                    .reduce((sum: number, t: any) => sum + Number(t.amount_due || 0), 0);
+
+                const total_cash_sales = Math.max(mov_sales, trx_cash_sales);
+
+                const opening_cash = Number(sess.opening_cash || 0);
+                const reconciled_expected = opening_cash + total_cash_sales - total_expense - total_refund;
+
+                sess.opening_cash = opening_cash;
+                sess.total_expense = total_expense;
+                sess.total_refund = total_refund;
+                sess.cash_sales = total_cash_sales;
+                sess.expected_cash = reconciled_expected;
+
+                // Auto-healing: sinkronkan ke DB jika database expected_cash berbeda dari hasil rekonsiliasi sistem
+                if (sess.status === 'open' && Number(dbSession?.expected_cash) !== reconciled_expected) {
+                    supabase.from('cash_sessions').update({ expected_cash: reconciled_expected }).eq('id', id).then();
+                }
                 
                 setSessionData({ ...sess });
             }
@@ -572,12 +611,18 @@ export default function PosPage() {
         if (!actualCashInput) return;
         setLoading(true);
         try {
+            const expected = Number(sessionData?.expected_cash ?? 0);
+            const actual = Number(actualCashInput);
+            const diff = actual - expected;
+
             // Bypass Vercel API for Multitenant compatibility
             const { error } = await supabase.from('cash_sessions').update({
                 status: 'closed',
                 closed_at: new Date().toISOString(),
-                actual_cash: Number(actualCashInput),
-                discrepancy_reason: "Ditutup manual oleh kasir"
+                actual_cash: actual,
+                expected_cash: expected,
+                difference: diff,
+                discrepancy_reason: diff !== 0 ? "Selisih kas fisik vs sistem" : "Sesuai sistem"
             }).eq('id', sessionId);
 
             if (error) throw error;
@@ -1733,7 +1778,7 @@ export default function PosPage() {
                                 </div>
                                 <div className="flex flex-col border-l border-border pl-2.5 sm:pl-3">
                                     <span className="text-text-muted text-[9px] sm:text-[10px] leading-tight">Penjualan Bersih (Cash)</span>
-                                    <span className="text-purple-400 text-[11px] sm:text-xs font-bold">Rp {Math.max(0, Number((sessionData.expected_cash || 0) - (sessionData.opening_cash || 0) + (sessionData.total_expense || 0) + (sessionData.total_refund || 0))).toLocaleString('id-ID')}</span>
+                                    <span className="text-purple-400 text-[11px] sm:text-xs font-bold">Rp {Number(sessionData.cash_sales ?? Math.max(0, Number((sessionData.expected_cash || 0) - (sessionData.opening_cash || 0) + (sessionData.total_expense || 0) + (sessionData.total_refund || 0)))).toLocaleString('id-ID')}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 pl-2 sm:pl-3 border-l border-border">
                                     <button

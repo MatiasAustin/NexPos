@@ -292,27 +292,54 @@ router.delete('/expenses/:id', async (req, res) => {
         // Get expense first to match reason
         const { data: expense } = await supabase.from('expenses').select('*').eq('id', id).single();
         if (expense) {
-            // Find and delete the related cash_movement (heuristic match since no fk)
-            const reasonPattern = `%${expense.description}%`;
+            const isCash = !expense.description?.startsWith('[');
+            const expenseAmt = Math.abs(Number(expense.amount || 0));
+
+            // Find matching cash_movement
             let movQuery = supabase.from('cash_movements')
                 .select('*')
-                .eq('type', 'expense')
-                .eq('amount', -Math.abs(expense.amount))
-                .ilike('reason', reasonPattern);
+                .eq('type', 'expense');
             
             if (sessionId) movQuery = movQuery.eq('session_id', sessionId);
             if (expense.store_id) movQuery = movQuery.eq('store_id', expense.store_id);
             
             const { data: movements } = await movQuery;
-            
-            if (movements && movements.length > 0) {
-                for (const mov of movements) {
-                    await supabase.from('cash_movements').delete().eq('id', mov.id);
-                    // Restore expected_cash
-                    const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', mov.session_id).single();
+            let matchedMovement = movements?.find((m: any) => 
+                Math.abs(Number(m.amount)) === expenseAmt && 
+                (m.reason?.includes(expense.description) || expense.description?.includes(m.reason?.replace('Pengeluaran: ', '')))
+            );
+
+            if (!matchedMovement && movements && movements.length > 0) {
+                matchedMovement = movements.find((m: any) => Math.abs(Number(m.amount)) === expenseAmt);
+            }
+
+            if (matchedMovement) {
+                await supabase.from('cash_movements').delete().eq('id', matchedMovement.id);
+                // Restore expected_cash
+                const targetSessionId = matchedMovement.session_id || sessionId;
+                if (targetSessionId) {
+                    const { data: session } = await supabase.from('cash_sessions').select('expected_cash').eq('id', targetSessionId).single();
                     if (session) {
-                        const restored = parseFloat(session.expected_cash) - parseFloat(mov.amount); // mov.amount is negative
-                        await supabase.from('cash_sessions').update({ expected_cash: restored }).eq('id', mov.session_id);
+                        const restored = Number(session.expected_cash || 0) + expenseAmt;
+                        await supabase.from('cash_sessions').update({ expected_cash: restored }).eq('id', targetSessionId);
+                    }
+                }
+            } else if (isCash) {
+                // If no cash_movement was found but it is a cash expense, restore expected_cash on active session
+                let targetSessionId = sessionId;
+                if (!targetSessionId && expense.store_id) {
+                    const { data: openSess } = await supabase.from('cash_sessions')
+                        .select('id, expected_cash')
+                        .eq('store_id', expense.store_id)
+                        .eq('status', 'open')
+                        .order('opened_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (openSess) {
+                        targetSessionId = openSess.id;
+                        const restored = Number(openSess.expected_cash || 0) + expenseAmt;
+                        await supabase.from('cash_sessions').update({ expected_cash: restored }).eq('id', targetSessionId);
                     }
                 }
             }

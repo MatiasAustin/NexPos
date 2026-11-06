@@ -498,8 +498,8 @@ export default function AdminDashboard() {
                             ? Number(session.actual_cash) - effective_expected_cash
                             : (session.difference !== null && session.difference !== undefined ? session.difference : null);
 
-                        // Sinkronkan ke database jika ada refund yang belum mengurangi expected_cash pada sesi ini
-                        if (session.expected_cash !== undefined && Number(session.expected_cash) !== effective_expected_cash && total_refund > 0) {
+                        // Sinkronkan ke database jika expected_cash berbeda dari hasil rekonsiliasi sistem (misal ada pengeluaran dihapus atau refund)
+                        if (session.expected_cash !== undefined && Number(session.expected_cash) !== effective_expected_cash) {
                             supabase.from('cash_sessions').update({
                                 expected_cash: effective_expected_cash,
                                 ...(session.status === 'closed' && session.actual_cash !== null ? { difference: diff } : {})
